@@ -52,12 +52,13 @@ export async function registerAppDataRoutes(fastify: FastifyInstance): Promise<v
     }
   }, async (request, reply) => {
     const startTime = Date.now();
+    // Declare year outside try block so it's accessible in catch
+    let year = new Date().getFullYear();
     
     try {
       const prisma = getPrismaClient();
       
       // Get year from query parameter (default to current year)
-      let year = new Date().getFullYear();
       if (request.query.year) {
         const { sanitizeYearInput } = await import('../services/year-manager');
         const sanitized = sanitizeYearInput(request.query.year);
@@ -88,28 +89,52 @@ export async function registerAppDataRoutes(fastify: FastifyInstance): Promise<v
       const lastSyncTimestamp = await getConfig('ytd_last_sync_timestamp');
       
       // Transform tickets (convert BigInt to Number for JSON)
-      const tickets = dbTickets.map(t => ({
-        id: Number(t.freshdeskTicketId),
-        subject: t.subject,
-        status: t.status,
-        priority: t.priority,
-        groupId: t.groupId ? Number(t.groupId) : null,
-        companyId: t.companyId ? Number(t.companyId) : null,
-        createdAt: t.createdAt.toISOString(),
-        updatedAt: t.updatedAt.toISOString(),
-        tags: t.tags || [],
-      }));
+      // Defensive: Handle empty arrays and invalid data
+      const tickets = (dbTickets || []).map(t => {
+        try {
+          return {
+            id: Number(t.freshdeskTicketId),
+            subject: t.subject || '',
+            status: t.status || 0,
+            priority: t.priority || 0,
+            groupId: t.groupId ? Number(t.groupId) : null,
+            companyId: t.companyId ? Number(t.companyId) : null,
+            createdAt: t.createdAt ? t.createdAt.toISOString() : new Date().toISOString(),
+            updatedAt: t.updatedAt ? t.updatedAt.toISOString() : new Date().toISOString(),
+            tags: Array.isArray(t.tags) ? t.tags : [],
+          };
+        } catch (err) {
+          logger.warn({ ticketId: t.freshdeskTicketId, error: err }, 'Failed to transform ticket, skipping');
+          return null;
+        }
+      }).filter(Boolean) as any[];
       
       // Transform companies to lookup map
+      // Defensive: Handle empty arrays and invalid data
       const companies: Record<number, string> = {};
-      for (const c of dbCompanies) {
-        companies[Number(c.freshdeskCompanyId)] = c.name;
+      for (const c of (dbCompanies || [])) {
+        try {
+          const companyId = Number(c.freshdeskCompanyId);
+          if (!isNaN(companyId) && c.name) {
+            companies[companyId] = c.name;
+          }
+        } catch (err) {
+          logger.warn({ companyId: c.freshdeskCompanyId, error: err }, 'Failed to transform company, skipping');
+        }
       }
       
       // Transform groups to lookup map
+      // Defensive: Handle empty arrays and invalid data
       const groups: Record<number, string> = {};
-      for (const g of dbGroups) {
-        groups[Number(g.freshdeskGroupId)] = g.name;
+      for (const g of (dbGroups || [])) {
+        try {
+          const groupId = Number(g.freshdeskGroupId);
+          if (!isNaN(groupId) && g.name) {
+            groups[groupId] = g.name;
+          }
+        } catch (err) {
+          logger.warn({ groupId: g.freshdeskGroupId, error: err }, 'Failed to transform group, skipping');
+        }
       }
       
       const durationMs = Date.now() - startTime;
@@ -135,8 +160,28 @@ export async function registerAppDataRoutes(fastify: FastifyInstance): Promise<v
       return reply.send(response);
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error({ error: errorMessage }, 'Failed to fetch unified app data');
+      // Log full error object with stack trace for debugging
+      if (error instanceof Error) {
+        logger.error({
+          error: {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          },
+          year,
+        }, 'Failed to fetch unified app data');
+      } else {
+        // Handle non-Error objects
+        logger.error({
+          error: {
+            type: typeof error,
+            value: JSON.stringify(error),
+          },
+          year,
+        }, 'Failed to fetch unified app data (non-Error thrown)');
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error';
       
       return reply.status(500).send({
         success: false,

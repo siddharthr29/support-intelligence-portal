@@ -93,20 +93,31 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
         groupCount: Object.keys(json.data.groups).length,
       });
       
+      // Defensive: Handle missing or invalid data
       set({
-        tickets: json.data.tickets,
-        companies: json.data.companies,
-        groups: json.data.groups,
-        lastSyncTimestamp: json.data.lastSyncTimestamp,
+        tickets: Array.isArray(json.data?.tickets) ? json.data.tickets : [],
+        companies: json.data?.companies || {},
+        groups: json.data?.groups || {},
+        lastSyncTimestamp: json.data?.lastSyncTimestamp || null,
         isLoading: false,
         isLoaded: true,
         error: null,
       });
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[AppDataStore] Error:', errorMessage);
-      set({ isLoading: false, error: errorMessage });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
+      console.error('[AppDataStore] Error:', errorMessage, error);
+      
+      // CRITICAL: Set isLoaded to true even on error to prevent infinite retries
+      set({ 
+        isLoading: false, 
+        isLoaded: true, // Prevent retry loops
+        error: errorMessage,
+        // Set safe defaults on error
+        tickets: [],
+        companies: {},
+        groups: {},
+      });
     }
   },
   
