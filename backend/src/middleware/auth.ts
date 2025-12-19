@@ -12,6 +12,7 @@ declare module 'fastify' {
 
 // Paths that don't require authentication
 const PUBLIC_PATHS = [
+  '/health',
   '/api/health',
   '/api/monthly-report/public/', // Public share links
 ];
