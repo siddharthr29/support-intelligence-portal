@@ -18,6 +18,7 @@ import {
   Calendar
 } from "lucide-react";
 import { AiChat } from "@/components/dashboard/ai-chat";
+import { DebugEnvClient } from "@/components/debug-env-client";
 import { useTicketStore } from "@/stores/ticket-store";
 import { useYearStore } from "@/stores/year-store";
 
@@ -250,6 +251,7 @@ export default function DashboardPage() {
         )}
         </div>
       </Shell>
+      <DebugEnvClient />
     </ProtectedRoute>
   );
 }
