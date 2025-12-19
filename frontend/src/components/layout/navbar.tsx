@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
+import { YearSelector } from '@/components/year-selector';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -75,7 +76,8 @@ export function Navbar() {
         </div>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-3">
+          <YearSelector />
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -140,6 +142,9 @@ export function Navbar() {
               <SheetHeader>
                 <SheetTitle className="text-left">Navigation</SheetTitle>
               </SheetHeader>
+              <div className="mt-4">
+                <YearSelector />
+              </div>
               <nav className="flex flex-col gap-2 mt-6">
                 {NAV_ITEMS.map((item) => {
                   const Icon = item.icon;

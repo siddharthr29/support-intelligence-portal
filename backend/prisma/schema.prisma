@@ -241,13 +241,30 @@ model YtdTicket {
   createdAt         DateTime @map("created_at")
   updatedAt         DateTime @map("updated_at")
   tags              String[]
+  year              Int
 
   @@index([createdAt])
   @@index([status])
   @@index([priority])
   @@index([companyId])
   @@index([groupId])
+  @@index([year])
   @@map("ytd_tickets")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  action    String
+  userId    String?
+  userEmail String?
+  details   Json
+  ipAddress String?
+  userAgent String?
+
+  @@index([timestamp])
+  @@index([action])
+  @@map("audit_logs")
 }
 
 model CompanyCache {

@@ -87,10 +87,14 @@ export default function SettingsPage() {
     googleAppsScriptUrl: '',
     // AI Chatbot
     groqApiKey: '',
-    // Firebase
+    // Firebase Client (Frontend)
     firebaseApiKey: '',
     firebaseAuthDomain: '',
     firebaseProjectId: '',
+    // Firebase Admin SDK (Backend)
+    firebaseAdminProjectId: '',
+    firebaseAdminClientEmail: '',
+    firebaseAdminPrivateKey: '',
     // Discord
     discordWebhookUrl: '',
   });
@@ -178,6 +182,9 @@ export default function SettingsPage() {
         firebaseApiKey: '',
         firebaseAuthDomain: '',
         firebaseProjectId: '',
+        firebaseAdminProjectId: '',
+        firebaseAdminClientEmail: '',
+        firebaseAdminPrivateKey: '',
         discordWebhookUrl: '',
       });
       setShowConfirmDialog(false);
@@ -204,10 +211,14 @@ export default function SettingsPage() {
     if (credentials.googleAppsScriptUrl) updates.googleAppsScriptUrl = credentials.googleAppsScriptUrl;
     // AI Chatbot
     if (credentials.groqApiKey) updates.groqApiKey = credentials.groqApiKey;
-    // Firebase
+    // Firebase Client
     if (credentials.firebaseApiKey) updates.firebaseApiKey = credentials.firebaseApiKey;
     if (credentials.firebaseAuthDomain) updates.firebaseAuthDomain = credentials.firebaseAuthDomain;
     if (credentials.firebaseProjectId) updates.firebaseProjectId = credentials.firebaseProjectId;
+    // Firebase Admin SDK
+    if (credentials.firebaseAdminProjectId) updates.firebaseAdminProjectId = credentials.firebaseAdminProjectId;
+    if (credentials.firebaseAdminClientEmail) updates.firebaseAdminClientEmail = credentials.firebaseAdminClientEmail;
+    if (credentials.firebaseAdminPrivateKey) updates.firebaseAdminPrivateKey = credentials.firebaseAdminPrivateKey;
     // Discord
     if (credentials.discordWebhookUrl) updates.discordWebhookUrl = credentials.discordWebhookUrl;
 
@@ -490,6 +501,64 @@ export default function SettingsPage() {
 
               <Separator />
 
+              {/* Firebase Admin SDK Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  🔐 Firebase Admin SDK (Backend Auth)
+                  {settings.firebaseAdminConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="p-3 rounded-lg bg-orange-50 border border-orange-200">
+                  <p className="text-xs text-orange-800 font-medium mb-1">⚠️ Critical Security Credentials</p>
+                  <p className="text-xs text-orange-700">
+                    These credentials enable backend authentication. Changes will reload the Firebase Admin SDK immediately.
+                    All API requests will be re-authenticated with new credentials.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAdminProjectId">Project ID</Label>
+                  <Input
+                    id="firebaseAdminProjectId"
+                    type="text"
+                    placeholder={settings.firebaseAdminProjectId || 'e.g., my-project-id'}
+                    value={credentials.firebaseAdminProjectId}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAdminProjectId: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAdminClientEmail" className="flex items-center gap-2">
+                    Client Email
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <Input
+                    id="firebaseAdminClientEmail"
+                    type="text"
+                    placeholder={settings.firebaseAdminClientEmail || 'firebase-adminsdk-xxxxx@project.iam.gserviceaccount.com'}
+                    value={credentials.firebaseAdminClientEmail}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAdminClientEmail: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAdminPrivateKey" className="flex items-center gap-2">
+                    Private Key
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <textarea
+                    id="firebaseAdminPrivateKey"
+                    className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono text-xs"
+                    placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                    value={credentials.firebaseAdminPrivateKey}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAdminPrivateKey: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Paste the entire private key including BEGIN/END markers. Keep \n characters.
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Google Sheets Section */}
               <div className="space-y-3">
                 <h4 className="font-medium text-sm flex items-center gap-2">
@@ -715,34 +784,133 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        {/* Confirmation Dialog */}
+        {/* Confirmation Dialog with Summary */}
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
                 Confirm Credential Update
               </DialogTitle>
               <DialogDescription>
-                You are about to update the following credentials. This action will be logged.
+                Review the changes below carefully. This action will be logged in the audit trail.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <ul className="space-y-2">
-                {Object.keys(pendingCredentials).map((key) => (
-                  <li key={key} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                  </li>
-                ))}
-              </ul>
+            
+            <div className="py-4 space-y-4">
+              {/* Firebase Admin SDK Warning */}
+              {(pendingCredentials.firebaseAdminProjectId || 
+                pendingCredentials.firebaseAdminClientEmail || 
+                pendingCredentials.firebaseAdminPrivateKey) && (
+                <div className="p-4 rounded-lg bg-red-50 border-2 border-red-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-red-900">
+                        🔐 Critical: Firebase Admin SDK Update
+                      </p>
+                      <p className="text-xs text-red-800">
+                        Updating Firebase Admin credentials will:
+                      </p>
+                      <ul className="text-xs text-red-800 space-y-1 ml-4 list-disc">
+                        <li>Immediately reload the Firebase Admin SDK</li>
+                        <li>Re-authenticate all future API requests</li>
+                        <li>Affect backend authentication for all users</li>
+                        <li>Take effect within seconds of saving</li>
+                      </ul>
+                      <p className="text-xs text-red-900 font-medium mt-2">
+                        ⚠️ Ensure credentials are correct to avoid authentication failures!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Changes Summary */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold">Changes to be applied:</h4>
+                <div className="grid gap-2">
+                  {Object.entries(pendingCredentials).map(([key, value]) => {
+                    const isFirebaseAdmin = key.startsWith('firebaseAdmin');
+                    const isSensitive = key.toLowerCase().includes('key') || 
+                                       key.toLowerCase().includes('password') ||
+                                       key.toLowerCase().includes('private');
+                    
+                    return (
+                      <div 
+                        key={key} 
+                        className={`flex items-start gap-3 p-3 rounded-lg border ${
+                          isFirebaseAdmin ? 'bg-orange-50 border-orange-200' : 'bg-muted/50'
+                        }`}
+                      >
+                        <CheckCircle2 className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+                          isFirebaseAdmin ? 'text-orange-600' : 'text-green-600'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">
+                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                            {isFirebaseAdmin && (
+                              <Badge variant="outline" className="ml-2 text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                Backend Auth
+                              </Badge>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
+                            {isSensitive 
+                              ? '••••••••' + (value as string).slice(-4)
+                              : (value as string).length > 50 
+                                ? (value as string).slice(0, 50) + '...'
+                                : value
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Security Notice */}
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <div className="flex items-start gap-2">
+                  <Shield className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="text-xs text-blue-800">
+                    <p className="font-medium mb-1">Security & Audit</p>
+                    <ul className="space-y-1 ml-4 list-disc">
+                      <li>All credentials are encrypted with AES-256</li>
+                      <li>This action will be logged in the audit trail</li>
+                      <li>Configuration cache will be cleared</li>
+                      <li>Changes take effect immediately</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowConfirmDialog(false)}
+                disabled={updateMutation.isPending}
+              >
                 Cancel
               </Button>
-              <Button onClick={confirmSave} disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? 'Saving...' : 'Confirm & Save'}
+              <Button 
+                onClick={confirmSave} 
+                disabled={updateMutation.isPending}
+                className="gap-2"
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4" />
+                    Confirm & Save Securely
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

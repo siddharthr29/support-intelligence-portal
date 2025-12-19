@@ -6,9 +6,11 @@ import rateLimit from '@fastify/rate-limit';
 import { config, validateSecrets } from './config';
 import { logger, isAppError, toErrorMessage } from './utils';
 import { startWeeklyScheduler, stopWeeklyScheduler, isSchedulerRunning, isIngestionJobRunning } from './jobs';
+import { startYearlyCleanupScheduler, stopYearlyCleanupScheduler } from './jobs/yearly-cleanup';
 import { connectPrisma, disconnectPrisma } from './persistence';
 import { registerRoutes } from './routes';
 import { logError } from './services/error-log-service';
+import { initializeFirebaseAdmin } from './config/firebase-admin';
 
 const fastify = Fastify({
   logger: true,
@@ -32,6 +34,18 @@ async function bootstrap(): Promise<void> {
 
     await connectPrisma();
     logger.info('Database connected');
+
+    // Initialize Firebase Admin SDK for authentication
+    if (process.env.FIREBASE_PROJECT_ID) {
+      try {
+        initializeFirebaseAdmin();
+        logger.info('Firebase Admin SDK initialized for authentication');
+      } catch (error) {
+        logger.warn({ error }, 'Firebase Admin initialization failed - authentication disabled');
+      }
+    } else {
+      logger.warn('Firebase credentials not configured - authentication disabled in development');
+    }
 
     // PERFORMANCE: Enable compression for all responses
     await fastify.register(compress, {
@@ -111,6 +125,10 @@ async function bootstrap(): Promise<void> {
       return payload;
     });
 
+    // SECURITY: Firebase Authentication middleware (global)
+    const { authMiddleware } = await import('./middleware/auth');
+    fastify.addHook('preHandler', authMiddleware);
+
     // SECURITY: Input sanitization hook
     fastify.addHook('preHandler', async (request) => {
       // Sanitize query parameters
@@ -181,6 +199,7 @@ async function bootstrap(): Promise<void> {
     logger.info('API routes registered');
 
     startWeeklyScheduler();
+    startYearlyCleanupScheduler();
 
     const address = await fastify.listen({
       port: config.port,
@@ -205,6 +224,7 @@ async function shutdown(): Promise<void> {
   logger.info('Shutting down...');
 
   stopWeeklyScheduler();
+  stopYearlyCleanupScheduler();
   await fastify.close();
   await disconnectPrisma();
 

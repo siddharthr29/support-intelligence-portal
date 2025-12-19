@@ -46,6 +46,7 @@ export async function upsertYtdTickets(tickets: readonly FreshdeskTicket[]): Pro
               companyId: ticket.company_id ? BigInt(ticket.company_id) : null,
               updatedAt: new Date(ticket.updated_at),
               tags: ticketTags,
+              year: new Date(ticket.created_at).getFullYear(),
             },
             create: {
               freshdeskTicketId: BigInt(ticket.id),
@@ -57,6 +58,7 @@ export async function upsertYtdTickets(tickets: readonly FreshdeskTicket[]): Pro
               createdAt: new Date(ticket.created_at),
               updatedAt: new Date(ticket.updated_at),
               tags: ticketTags,
+              year: new Date(ticket.created_at).getFullYear(),
             },
           });
         })

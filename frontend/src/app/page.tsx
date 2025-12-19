@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AiChat } from "@/components/dashboard/ai-chat";
 import { useTicketStore } from "@/stores/ticket-store";
+import { useYearStore } from "@/stores/year-store";
 
 // Lazy load heavy components for better performance
 const PriorityChart = lazy(() => import("@/components/dashboard/priority-chart").then(m => ({ default: m.PriorityChart })));
@@ -37,6 +38,7 @@ type DatePreset = 'current_week' | 'past_month' | 'custom';
 
 export default function DashboardPage() {
   const [datePreset, setDatePreset] = useState<DatePreset>('current_week');
+  const { selectedYear } = useYearStore();
   
   // Use centralized ticket store
   const { 
@@ -90,6 +92,7 @@ export default function DashboardPage() {
   } : null;
 
   const resolutionRate = filteredStats?.resolutionRate ?? 0;
+  const hasNoData = filteredStats && filteredStats.totalTickets === 0;
 
   return (
     <ProtectedRoute>
@@ -99,7 +102,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Support Intelligence Dashboard
+              Support Intelligence Dashboard - {selectedYear}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {isStatsLoading ? (
@@ -169,65 +172,82 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Empty State for No Data */}
+        {hasNoData && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+              No Data Available for {selectedYear}
+            </h3>
+            <p className="text-sm text-yellow-700 mb-4">
+              There are no tickets recorded for this year. Please select a different year or wait for data to be synced.
+            </p>
+          </div>
+        )}
+
         {/* Key Metrics Grid */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="New Tickets"
-            value={filteredStats?.ticketsCreated ?? 0}
-            subtitle={dateRange.from && dateRange.to ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}` : 'Select date range'}
-            icon={Ticket}
-            iconClassName="from-blue-500/20 to-blue-600/10"
-            infoText="Total new tickets created in the selected period."
-          />
-          <MetricCard
-            title="Completed"
-            value={(filteredStats?.ticketsResolved ?? 0) + (filteredStats?.ticketsClosed ?? 0)}
-            subtitle={`${filteredStats?.ticketsResolved ?? 0} resolved, ${filteredStats?.ticketsClosed ?? 0} closed`}
-            icon={CheckCircle2}
-            iconClassName="from-green-500/20 to-green-600/10"
-            infoText="Tickets resolved or closed in the selected period."
-          />
-          <MetricCard
-            title="High Priority"
-            value={(filteredStats?.urgentTickets ?? 0) + (filteredStats?.highTickets ?? 0)}
-            subtitle={`${filteredStats?.urgentTickets ?? 0} urgent, ${filteredStats?.highTickets ?? 0} high`}
-            icon={AlertTriangle}
-            iconClassName="from-red-500/20 to-red-600/10"
-            infoText="Urgent and High priority tickets requiring attention."
-          />
-          <MetricCard
-            title="Completion Rate"
-            value={`${resolutionRate}%`}
-            subtitle={`${filteredStats?.ticketsOpen ?? 0} open, ${filteredStats?.ticketsPending ?? 0} pending`}
-            icon={TrendingUp}
-            iconClassName="from-purple-500/20 to-purple-600/10"
-            infoText="Percentage of tickets completed (resolved + closed)."
-          />
-        </div>
+        {!hasNoData && (
+          <>
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="New Tickets"
+                value={filteredStats?.ticketsCreated ?? 0}
+                subtitle={dateRange.from && dateRange.to ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}` : 'Select date range'}
+                icon={Ticket}
+                iconClassName="from-blue-500/20 to-blue-600/10"
+                infoText="Total new tickets created in the selected period."
+              />
+              <MetricCard
+                title="Completed"
+                value={(filteredStats?.ticketsResolved ?? 0) + (filteredStats?.ticketsClosed ?? 0)}
+                subtitle={`${filteredStats?.ticketsResolved ?? 0} resolved, ${filteredStats?.ticketsClosed ?? 0} closed`}
+                icon={CheckCircle2}
+                iconClassName="from-green-500/20 to-green-600/10"
+                infoText="Tickets resolved or closed in the selected period."
+              />
+              <MetricCard
+                title="High Priority"
+                value={(filteredStats?.urgentTickets ?? 0) + (filteredStats?.highTickets ?? 0)}
+                subtitle={`${filteredStats?.urgentTickets ?? 0} urgent, ${filteredStats?.highTickets ?? 0} high`}
+                icon={AlertTriangle}
+                iconClassName="from-red-500/20 to-red-600/10"
+                infoText="Urgent and High priority tickets requiring attention."
+              />
+              <MetricCard
+                title="Completion Rate"
+                value={`${resolutionRate}%`}
+                subtitle={`${filteredStats?.ticketsOpen ?? 0} open, ${filteredStats?.ticketsPending ?? 0} pending`}
+                icon={TrendingUp}
+                iconClassName="from-purple-500/20 to-purple-600/10"
+                infoText="Percentage of tickets completed (resolved + closed)."
+              />
+            </div>
 
-        {/* Charts - Lazy loaded */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <Suspense fallback={<ChartSkeleton />}>
-            <PriorityChart 
-              data={statsData?.priorityBreakdown} 
-              isLoading={isStatsLoading} 
-            />
-          </Suspense>
-          <Suspense fallback={<ChartSkeleton />}>
-            <StatusChart 
-              data={statsData?.statusBreakdown} 
-              isLoading={isStatsLoading} 
-            />
-          </Suspense>
-        </div>
+            {/* Charts - Lazy loaded */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Suspense fallback={<ChartSkeleton />}>
+                <PriorityChart 
+                  data={statsData?.priorityBreakdown} 
+                  isLoading={isStatsLoading} 
+                />
+              </Suspense>
+              <Suspense fallback={<ChartSkeleton />}>
+                <StatusChart 
+                  data={statsData?.statusBreakdown} 
+                  isLoading={isStatsLoading} 
+                />
+              </Suspense>
+            </div>
 
-        {/* Unresolved Summary - Lazy loaded */}
-        <Suspense fallback={<ChartSkeleton />}>
-          <UnresolvedSummary 
-            groupBreakdown={statsData?.groupBreakdown} 
-            isLoading={isStatsLoading} 
-          />
-        </Suspense>
+            {/* Unresolved Summary - Lazy loaded */}
+            <Suspense fallback={<ChartSkeleton />}>
+              <UnresolvedSummary 
+                groupBreakdown={statsData?.groupBreakdown} 
+                isLoading={isStatsLoading} 
+              />
+            </Suspense>
+          </>
+        )}
         </div>
       </Shell>
     </ProtectedRoute>

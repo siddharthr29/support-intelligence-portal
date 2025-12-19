@@ -15,6 +15,9 @@ import { registerAiChatRoutes } from './ai-chat';
 import { registerErrorLogRoutes } from './error-logs';
 import { registerYtdIngestionRoutes } from './ytd-ingestion';
 import { registerAppDataRoutes } from './app-data';
+import { registerYearRoutes } from './years';
+import { registerAuditLogRoutes } from './audit-logs';
+import { registerCleanupRoutes } from './cleanup';
 
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerStatsRoutes(fastify);
@@ -33,4 +36,7 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerErrorLogRoutes(fastify);
   await registerYtdIngestionRoutes(fastify);
   await registerAppDataRoutes(fastify);
+  await registerYearRoutes(fastify);
+  await registerAuditLogRoutes(fastify);
+  await registerCleanupRoutes(fastify);
 }

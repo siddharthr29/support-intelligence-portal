@@ -288,6 +288,44 @@ export async function sendDiscordWeeklyReport(): Promise<boolean> {
 }
 
 /**
+ * Send a simple alert message to Discord
+ */
+export async function sendDiscordAlert(message: string): Promise<boolean> {
+  const webhookUrl = await getSecureConfig('DISCORD_WEBHOOK_URL') || process.env.DISCORD_WEBHOOK_URL;
+  
+  if (!webhookUrl) {
+    logger.warn('Discord webhook URL not configured, skipping alert');
+    return false;
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: 'Support Intelligence Bot',
+        avatar_url: 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png',
+        content: message,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error({ status: response.status, error: errorText }, 'Discord alert failed');
+      return false;
+    }
+
+    logger.info('Discord alert sent successfully');
+    return true;
+  } catch (error) {
+    logger.error({ error }, 'Failed to send Discord alert');
+    return false;
+  }
+}
+
+/**
  * Check if engineer hours have been added for the current week
  */
 async function checkEngineerHoursAdded(): Promise<boolean> {

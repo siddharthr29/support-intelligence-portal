@@ -48,10 +48,14 @@ interface UpdateCredentialsBody {
   googleAppsScriptUrl?: string;
   // AI Chatbot
   groqApiKey?: string;
-  // Firebase
+  // Firebase Client (Frontend)
   firebaseApiKey?: string;
   firebaseAuthDomain?: string;
   firebaseProjectId?: string;
+  // Firebase Admin SDK (Backend)
+  firebaseAdminProjectId?: string;
+  firebaseAdminClientEmail?: string;
+  firebaseAdminPrivateKey?: string;
   // Discord
   discordWebhookUrl?: string;
 }
@@ -96,11 +100,21 @@ export async function registerSettingsRoutes(fastify: FastifyInstance): Promise<
         groqApiKey: await getMaskedConfig('GROQ_API_KEY'),
         groqConfigured: !!(await getSecureConfig('GROQ_API_KEY') || process.env.GROQ_API_KEY),
         
-        // Firebase
+        // Firebase Client (Frontend)
         firebaseApiKey: await getMaskedConfig('FIREBASE_API_KEY'),
         firebaseAuthDomain: await getSecureConfig('FIREBASE_AUTH_DOMAIN') || process.env.FIREBASE_AUTH_DOMAIN || 'Not configured',
         firebaseProjectId: await getSecureConfig('FIREBASE_PROJECT_ID') || process.env.FIREBASE_PROJECT_ID || 'Not configured',
         firebaseConfigured: !!(await getSecureConfig('FIREBASE_API_KEY') || process.env.FIREBASE_API_KEY),
+        
+        // Firebase Admin SDK (Backend)
+        firebaseAdminProjectId: await getSecureConfig('FIREBASE_PROJECT_ID') || process.env.FIREBASE_PROJECT_ID || 'Not configured',
+        firebaseAdminClientEmail: await getMaskedConfig('FIREBASE_CLIENT_EMAIL'),
+        firebaseAdminPrivateKey: '********', // Never expose private key
+        firebaseAdminConfigured: !!(
+          (await getSecureConfig('FIREBASE_PROJECT_ID') || process.env.FIREBASE_PROJECT_ID) &&
+          (await getSecureConfig('FIREBASE_CLIENT_EMAIL') || process.env.FIREBASE_CLIENT_EMAIL) &&
+          (await getSecureConfig('FIREBASE_PRIVATE_KEY') || process.env.FIREBASE_PRIVATE_KEY)
+        ),
         
         // Discord
         discordWebhookUrl: await getMaskedConfig('DISCORD_WEBHOOK_URL'),
@@ -141,6 +155,7 @@ export async function registerSettingsRoutes(fastify: FastifyInstance): Promise<
         googleSheetsUrl, googleSheetsApiKey, googleAppsScriptUrl,
         groqApiKey,
         firebaseApiKey, firebaseAuthDomain, firebaseProjectId,
+        firebaseAdminProjectId, firebaseAdminClientEmail, firebaseAdminPrivateKey,
         discordWebhookUrl,
         confirmUpdate 
       } = request.body;
@@ -241,6 +256,45 @@ export async function registerSettingsRoutes(fastify: FastifyInstance): Promise<
           else errors.push('Firebase Project ID');
         }
 
+        // Firebase Admin SDK (Backend)
+        let firebaseAdminUpdated = false;
+        
+        if (firebaseAdminProjectId && firebaseAdminProjectId !== 'Not configured') {
+          const success = await setSecureConfig('FIREBASE_PROJECT_ID', firebaseAdminProjectId, false);
+          if (success) {
+            updates.push('Firebase Admin Project ID');
+            firebaseAdminUpdated = true;
+            // Update environment variable for immediate use
+            process.env.FIREBASE_PROJECT_ID = firebaseAdminProjectId;
+          } else {
+            errors.push('Firebase Admin Project ID');
+          }
+        }
+
+        if (firebaseAdminClientEmail && firebaseAdminClientEmail !== '********' && !firebaseAdminClientEmail.includes('****')) {
+          const success = await setSecureConfig('FIREBASE_CLIENT_EMAIL', firebaseAdminClientEmail, true);
+          if (success) {
+            updates.push('Firebase Admin Client Email');
+            firebaseAdminUpdated = true;
+            // Update environment variable for immediate use
+            process.env.FIREBASE_CLIENT_EMAIL = firebaseAdminClientEmail;
+          } else {
+            errors.push('Firebase Admin Client Email');
+          }
+        }
+
+        if (firebaseAdminPrivateKey && firebaseAdminPrivateKey !== '********') {
+          const success = await setSecureConfig('FIREBASE_PRIVATE_KEY', firebaseAdminPrivateKey, true);
+          if (success) {
+            updates.push('Firebase Admin Private Key');
+            firebaseAdminUpdated = true;
+            // Update environment variable for immediate use
+            process.env.FIREBASE_PRIVATE_KEY = firebaseAdminPrivateKey;
+          } else {
+            errors.push('Firebase Admin Private Key');
+          }
+        }
+
         // Discord
         if (discordWebhookUrl && discordWebhookUrl !== '********' && !discordWebhookUrl.includes('****')) {
           const success = await setSecureConfig('DISCORD_WEBHOOK_URL', discordWebhookUrl, false);
@@ -251,6 +305,23 @@ export async function registerSettingsRoutes(fastify: FastifyInstance): Promise<
         // Clear config cache to force reload with new values
         if (updates.length > 0) {
           clearConfigCache();
+        }
+
+        // Reload Firebase Admin SDK if credentials were updated
+        if (firebaseAdminUpdated) {
+          try {
+            const { reloadFirebaseAdmin } = await import('../config/firebase-admin');
+            await reloadFirebaseAdmin();
+            logger.info('Firebase Admin SDK reloaded with new credentials');
+            
+            await logActivity({
+              activityType: 'FIREBASE_ADMIN_RELOAD',
+              description: 'Firebase Admin SDK reloaded with updated credentials',
+            });
+          } catch (error) {
+            logger.error({ error }, 'Failed to reload Firebase Admin SDK');
+            errors.push('Firebase Admin SDK Reload');
+          }
         }
 
         if (errors.length > 0) {
@@ -265,10 +336,11 @@ export async function registerSettingsRoutes(fastify: FastifyInstance): Promise<
         return reply.send({
           success: true,
           message: updates.length > 0 
-            ? `Successfully updated: ${updates.join(', ')}. Config reloaded.`
+            ? `Successfully updated: ${updates.join(', ')}. Config reloaded.${firebaseAdminUpdated ? ' Firebase Admin SDK reloaded.' : ''}`
             : 'No changes made',
           updatedFields: updates,
           configReloaded: updates.length > 0,
+          firebaseAdminReloaded: firebaseAdminUpdated,
         });
       } catch (error) {
         logger.error({ error }, 'Failed to update credentials');

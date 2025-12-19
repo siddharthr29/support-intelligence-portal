@@ -40,16 +40,41 @@ interface AppDataResponse {
 export async function registerAppDataRoutes(fastify: FastifyInstance): Promise<void> {
   
   // GET /api/app-data - Single endpoint for ALL frontend data
-  fastify.get('/api/app-data', async (_request, reply) => {
+  fastify.get<{
+    Querystring: { year?: string };
+  }>('/api/app-data', {
+    preHandler: async (request, reply) => {
+      // Apply rate limiting for year switches
+      const { yearRateLimitMiddleware } = await import('../middleware/year-rate-limit');
+      if (request.query.year) {
+        await yearRateLimitMiddleware(request, reply);
+      }
+    }
+  }, async (request, reply) => {
     const startTime = Date.now();
     
     try {
       const prisma = getPrismaClient();
       
-      logger.info('Fetching unified app data (single request)');
+      // Get year from query parameter (default to current year)
+      let year = new Date().getFullYear();
+      if (request.query.year) {
+        const { sanitizeYearInput } = await import('../services/year-manager');
+        const sanitized = sanitizeYearInput(request.query.year);
+        if (sanitized === null) {
+          return reply.status(400).send({
+            success: false,
+            error: `Invalid year parameter: ${request.query.year}`,
+          });
+        }
+        year = sanitized;
+      }
       
-      // Query 1: Get all YTD tickets
+      logger.info({ year }, 'Fetching unified app data (single request)');
+      
+      // Query 1: Get YTD tickets filtered by year
       const dbTickets = await prisma.ytdTicket.findMany({
+        where: { year },
         orderBy: { createdAt: 'desc' },
       });
       

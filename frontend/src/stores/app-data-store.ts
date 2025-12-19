@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { FRESHDESK_STATUS, FRESHDESK_PRIORITY, getCompanyName as getCompanyNameFromConstants, getGroupName as getGroupNameFromConstants } from '@/lib/constants';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { apiGet } from '@/lib/api-client';
 
 export interface Ticket {
   id: number;
@@ -54,7 +53,7 @@ interface AppDataState {
   error: string | null;
   
   // Actions
-  fetchAppData: () => Promise<void>;
+  fetchAppData: (year?: number) => Promise<void>;
   
   // Computed helpers
   getTicketsByDateRange: (startDate: Date, endDate: Date) => Ticket[];
@@ -76,25 +75,17 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
   error: null,
   
   // Fetch all data in ONE request
-  fetchAppData: async () => {
+  fetchAppData: async (year?: number) => {
     // Prevent duplicate fetches
     if (get().isLoading) return;
     
     set({ isLoading: true, error: null });
     
+    const selectedYear = year || new Date().getFullYear();
+    
     try {
-      console.log('[AppDataStore] Fetching unified app data...');
-      const res = await fetch(`${API_BASE_URL}/api/app-data`);
-      
-      if (!res.ok) {
-        throw new Error(`Failed to fetch app data: ${res.status}`);
-      }
-      
-      const json = await res.json();
-      
-      if (!json.success) {
-        throw new Error(json.error || 'Failed to fetch app data');
-      }
+      console.log('[AppDataStore] Fetching unified app data...', { year: selectedYear });
+      const json = await apiGet(`/api/app-data?year=${selectedYear}`);
       
       console.log('[AppDataStore] Data loaded:', {
         ticketCount: json.data.tickets.length,
