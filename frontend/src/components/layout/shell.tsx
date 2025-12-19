@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Navbar } from './navbar';
 import { AiChat } from '@/components/dashboard/ai-chat';
+import { JobStatusBanner } from './job-status-banner';
 import { useAppDataStore } from '@/stores/app-data-store';
 import { Loader2 } from 'lucide-react';
 
@@ -23,6 +24,7 @@ export function Shell({ children }: ShellProps) {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
+      <JobStatusBanner />
       <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {isLoading && !isLoaded ? (
           <div className="flex items-center justify-center h-64">
