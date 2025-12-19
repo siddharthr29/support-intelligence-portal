@@ -5,6 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 /**
  * Get Firebase ID token for authenticated requests
  * Returns null if user is not authenticated
+ * Always gets fresh token to avoid caching issues
  */
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -13,8 +14,8 @@ async function getAuthToken(): Promise<string | null> {
       return null;
     }
     
-    // Get fresh token (Firebase handles caching and refresh automatically)
-    const token = await user.getIdToken();
+    // Force fresh token (no caching) to ensure backend can verify
+    const token = await user.getIdToken(true);
     return token;
   } catch (error) {
     console.error('Failed to get auth token:', error);
@@ -56,7 +57,7 @@ async function createHeaders(additionalHeaders?: HeadersInit): Promise<Record<st
 /**
  * Authenticated fetch wrapper
  * Automatically attaches Firebase ID token to requests
- * Supports multi-user concurrent sessions (each user has their own token)
+ * Forces logout on 401 to prevent retry loops
  */
 export async function authenticatedFetch(
   endpoint: string,
@@ -71,32 +72,25 @@ export async function authenticatedFetch(
     headers,
   });
 
-  // Handle authentication errors
+  // Handle authentication errors - FORCE LOGOUT, NO RETRY
   if (response.status === 401) {
-    const data = await response.json().catch(() => ({}));
+    console.error('Authentication failed (401). Forcing logout...');
     
-    // Token expired or invalid - try to refresh
-    if (data.code === 'AUTH_TOKEN_EXPIRED' || data.code === 'AUTH_TOKEN_INVALID') {
-      console.warn('Auth token expired, attempting refresh...');
-      
-      // Force token refresh
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          await user.getIdToken(true); // Force refresh
-          
-          // Retry request with new token
-          const newHeaders = await createHeaders(options.headers);
-          return fetch(url, {
-            ...options,
-            headers: newHeaders,
-          });
-        } catch (error) {
-          console.error('Token refresh failed:', error);
-          // Let the error propagate to trigger re-login
-        }
-      }
+    // Immediately sign out to clear invalid session
+    try {
+      await auth.signOut();
+      console.log('User signed out due to authentication failure');
+    } catch (error) {
+      console.error('Failed to sign out:', error);
     }
+    
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    
+    // Return the 401 response (no retry)
+    return response;
   }
 
   return response;
@@ -104,11 +98,17 @@ export async function authenticatedFetch(
 
 /**
  * GET request with authentication
+ * Throws on non-2xx responses (except 401 which redirects to login)
  */
 export async function apiGet<T = any>(endpoint: string): Promise<T> {
   const response = await authenticatedFetch(endpoint, {
     method: 'GET',
   });
+
+  // 401 already handled by authenticatedFetch (logout + redirect)
+  if (response.status === 401) {
+    throw new Error('Authentication failed. Please log in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -120,12 +120,18 @@ export async function apiGet<T = any>(endpoint: string): Promise<T> {
 
 /**
  * POST request with authentication
+ * Throws on non-2xx responses (except 401 which redirects to login)
  */
 export async function apiPost<T = any>(endpoint: string, data?: any): Promise<T> {
   const response = await authenticatedFetch(endpoint, {
     method: 'POST',
     body: data ? JSON.stringify(data) : undefined,
   });
+
+  // 401 already handled by authenticatedFetch (logout + redirect)
+  if (response.status === 401) {
+    throw new Error('Authentication failed. Please log in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -137,12 +143,18 @@ export async function apiPost<T = any>(endpoint: string, data?: any): Promise<T>
 
 /**
  * PUT request with authentication
+ * Throws on non-2xx responses (except 401 which redirects to login)
  */
 export async function apiPut<T = any>(endpoint: string, data?: any): Promise<T> {
   const response = await authenticatedFetch(endpoint, {
     method: 'PUT',
     body: data ? JSON.stringify(data) : undefined,
   });
+
+  // 401 already handled by authenticatedFetch (logout + redirect)
+  if (response.status === 401) {
+    throw new Error('Authentication failed. Please log in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -154,11 +166,17 @@ export async function apiPut<T = any>(endpoint: string, data?: any): Promise<T> 
 
 /**
  * DELETE request with authentication
+ * Throws on non-2xx responses (except 401 which redirects to login)
  */
 export async function apiDelete<T = any>(endpoint: string): Promise<T> {
   const response = await authenticatedFetch(endpoint, {
     method: 'DELETE',
   });
+
+  // 401 already handled by authenticatedFetch (logout + redirect)
+  if (response.status === 401) {
+    throw new Error('Authentication failed. Please log in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
