@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: avni-support-backend
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        sync: false
+      - key: FRESHDESK_DOMAIN
+        sync: false
+      - key: FRESHDESK_API_KEY
+        sync: false
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: METABASE_URL
+        sync: false
+      - key: METABASE_USERNAME
+        sync: false
+      - key: METABASE_PASSWORD
+        sync: false
+      - key: METABASE_RFT_QUESTION_ID
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CONFIG_ENCRYPTION_KEY
+        sync: false
+      - key: GOOGLE_SHEETS_URL
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
