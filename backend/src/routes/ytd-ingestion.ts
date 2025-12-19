@@ -187,17 +187,21 @@ async function runYtdIngestion(): Promise<void> {
     for (let i = 0; i < ytdTickets.length; i += batchSize) {
       const batch = ytdTickets.slice(i, i + batchSize);
       await prisma.ytdTicket.createMany({
-        data: batch.map(t => ({
-          freshdeskTicketId: BigInt(t.id),
-          subject: t.subject || '',
-          status: t.status,
-          priority: t.priority,
-          groupId: t.group_id ? BigInt(t.group_id) : null,
-          companyId: t.company_id ? BigInt(t.company_id) : null,
-          createdAt: new Date(t.created_at),
-          updatedAt: new Date(t.updated_at),
-          tags: [...(t.tags || [])],
-        })),
+        data: batch.map(t => {
+          const createdAt = new Date(t.created_at);
+          return {
+            freshdeskTicketId: BigInt(t.id),
+            subject: t.subject || '',
+            status: t.status,
+            priority: t.priority,
+            groupId: t.group_id ? BigInt(t.group_id) : null,
+            companyId: t.company_id ? BigInt(t.company_id) : null,
+            createdAt: createdAt,
+            updatedAt: new Date(t.updated_at),
+            tags: [...(t.tags || [])],
+            year: createdAt.getFullYear(),
+          };
+        }),
         skipDuplicates: true,
       });
       logger.info({ batch: Math.floor(i / batchSize) + 1, inserted: batch.length }, 'Inserted YTD ticket batch');

@@ -63,7 +63,9 @@ export async function reloadFirebaseAdmin(): Promise<void> {
     // Delete all Firebase apps
     const apps = admin.apps;
     for (const app of apps) {
-      await app.delete();
+      if (app) {
+        await app.delete();
+      }
     }
 
     // Reinitialize with new credentials from environment
