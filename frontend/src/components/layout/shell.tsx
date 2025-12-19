@@ -5,6 +5,7 @@ import { Navbar } from './navbar';
 import { AiChat } from '@/components/dashboard/ai-chat';
 import { JobStatusBanner } from './job-status-banner';
 import { useAppDataStore } from '@/stores/app-data-store';
+import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 
 interface ShellProps {
@@ -13,13 +14,14 @@ interface ShellProps {
 
 export function Shell({ children }: ShellProps) {
   const { fetchAppData, isLoading, isLoaded, error } = useAppDataStore();
+  const { authReady } = useAuth();
   
-  // Fetch data ONCE on app load
+  // Fetch data ONCE on app load, but only after auth is ready
   useEffect(() => {
-    if (!isLoaded && !isLoading) {
+    if (!isLoaded && !isLoading && authReady) {
       fetchAppData();
     }
-  }, [isLoaded, isLoading, fetchAppData]);
+  }, [isLoaded, isLoading, authReady, fetchAppData]);
   
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -38,12 +40,7 @@ export function Shell({ children }: ShellProps) {
             <div className="text-center">
               <p className="text-red-600 mb-2">Failed to load data</p>
               <p className="text-sm text-muted-foreground">{error}</p>
-              <button 
-                onClick={() => fetchAppData()} 
-                className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                Retry
-              </button>
+              {/* Remove retry button for auth failures to prevent loops */}
             </div>
           </div>
         ) : (

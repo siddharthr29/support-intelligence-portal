@@ -72,21 +72,28 @@ export async function authenticatedFetch(
     headers,
   });
 
-  // Handle authentication errors - FORCE LOGOUT, NO RETRY
+  // Handle authentication errors - ONLY LOGOUT IF AUTH IS READY
   if (response.status === 401) {
-    console.error('Authentication failed (401). Forcing logout...');
+    // Check if Firebase auth is fully initialized
+    const isAuthReady = (window as any).__authReady === true;
     
-    // Immediately sign out to clear invalid session
-    try {
-      await auth.signOut();
-      console.log('User signed out due to authentication failure');
-    } catch (error) {
-      console.error('Failed to sign out:', error);
-    }
-    
-    // Redirect to login page
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+    if (isAuthReady) {
+      console.error('Authentication failed (401). Forcing logout...');
+      
+      // Immediately sign out to clear invalid session
+      try {
+        await auth.signOut();
+        console.log('User signed out due to authentication failure');
+      } catch (error) {
+        console.error('Failed to sign out:', error);
+      }
+      
+      // Redirect to login page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    } else {
+      console.warn('Authentication failed (401) but auth not ready - ignoring to prevent premature logout');
     }
     
     // Return the 401 response (no retry)

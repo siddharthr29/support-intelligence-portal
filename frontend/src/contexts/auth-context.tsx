@@ -7,6 +7,7 @@ import { onAuthChange, signIn, signOut } from '@/lib/firebase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authReady: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -16,14 +17,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
       setUser(user);
       setLoading(false);
+      setAuthReady(true); // Auth is fully initialized
+      
+      // Set global flag for API client to check
+      if (typeof window !== 'undefined') {
+        (window as any).__authReady = true;
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      // Clean up global flag on unmount
+      if (typeof window !== 'undefined') {
+        delete (window as any).__authReady;
+      }
+      unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -35,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, authReady, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
