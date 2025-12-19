@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WeeklySnapshot {
+  id            String   @id @default(uuid())
+  snapshotId    String   @unique @map("snapshot_id")
+  weekStartDate DateTime @map("week_start_date")
+  weekEndDate   DateTime @map("week_end_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+  timezone      String   @default("Asia/Kolkata")
+  version       Int      @default(1)
+
+  ticketsCreated  Int @map("tickets_created")
+  ticketsResolved Int @map("tickets_resolved")
+  ticketsClosed   Int @map("tickets_closed")
+
+  priorityUrgent Int @map("priority_urgent")
+  priorityHigh   Int @map("priority_high")
+  priorityMedium Int @map("priority_medium")
+  priorityLow    Int @map("priority_low")
+
+  averageResolutionTimeHours Float? @map("average_resolution_time_hours")
+
+  customerMaxTicketsCompanyId   BigInt? @map("customer_max_tickets_company_id")
+  customerMaxTicketsCompanyName String? @map("customer_max_tickets_company_name")
+  customerMaxTicketsCount       Int?    @map("customer_max_tickets_count")
+
+  seUnresolvedOpen    Int @default(0) @map("se_unresolved_open")
+  seUnresolvedPending Int @default(0) @map("se_unresolved_pending")
+
+  psUnresolvedOpen            Int @default(0) @map("ps_unresolved_open")
+  psUnresolvedPending         Int @default(0) @map("ps_unresolved_pending")
+  psUnresolvedMarkedForRelease Int @default(0) @map("ps_unresolved_marked_for_release")
+
+  groupResolutions GroupResolution[]
+  ticketSnapshots  TicketSnapshot[]
+  jobExecutions    JobExecution[]
+  rftSnapshots     RftSnapshot[]
+
+  expiresAt DateTime? @map("expires_at")
+
+  @@index([weekStartDate])
+  @@index([weekEndDate])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("weekly_snapshots")
+}
+
+model GroupResolution {
+  id              String @id @default(uuid())
+  snapshotId      String @map("snapshot_id")
+  groupId         BigInt @map("group_id")
+  groupName       String @map("group_name")
+  ticketsResolved Int    @map("tickets_resolved")
+  ticketsOpen     Int    @map("tickets_open")
+  ticketsPending  Int    @map("tickets_pending")
+
+  snapshot WeeklySnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@unique([snapshotId, groupId])
+  @@map("group_resolutions")
+}
+
+model TicketSnapshot {
+  id                String   @id @default(uuid())
+  snapshotId        String   @map("snapshot_id")
+  freshdeskTicketId BigInt   @map("freshdesk_ticket_id")
+  subject           String
+  status            Int
+  priority          Int
+  groupId           BigInt?  @map("group_id")
+  companyId         BigInt?  @map("company_id")
+  createdAt         DateTime @map("created_at")
+  updatedAt         DateTime @map("updated_at")
+  isEscalated       Boolean  @default(false) @map("is_escalated")
+  tags              String[] @default([])
+
+  snapshot WeeklySnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@unique([snapshotId, freshdeskTicketId])
+  @@index([snapshotId])
+  @@index([status])
+  @@index([priority])
+  @@index([groupId])
+  @@index([companyId])
+  @@map("ticket_snapshots")
+}
+
+model EngineerHours {
+  id               String @id @default(uuid())
+  snapshotId       String @map("snapshot_id")
+  engineerName     String @map("engineer_name")
+  totalHoursWorked Float  @map("total_hours_worked")
+  ticketsResolved  Int    @default(0) @map("tickets_resolved")
+  avgTimePerTicket Float? @map("avg_time_per_ticket")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([snapshotId, engineerName])
+  @@index([snapshotId])
+  @@map("engineer_hours")
+}
+
+model JobExecution {
+  id          String   @id @default(uuid())
+  jobId       String   @unique @map("job_id")
+  snapshotId  String?  @map("snapshot_id")
+  status      String
+  startedAt   DateTime @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  durationMs  Int?     @map("duration_ms")
+  error       String?
+
+  ticketsIngested   Int @default(0) @map("tickets_ingested")
+  groupsIngested    Int @default(0) @map("groups_ingested")
+  companiesIngested Int @default(0) @map("companies_ingested")
+
+  snapshot WeeklySnapshot? @relation(fields: [snapshotId], references: [snapshotId], onDelete: SetNull)
+
+  @@index([snapshotId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("job_executions")
+}
+
+model RetentionAuditLog {
+  id         String   @id @default(uuid())
+  snapshotId String   @map("snapshot_id")
+  action     String
+  executedAt DateTime @default(now()) @map("executed_at")
+  details    String?
+
+  @@index([snapshotId])
+  @@index([executedAt])
+  @@map("retention_audit_logs")
+}
+
+model RftSnapshot {
+  id                     String   @id @default(uuid())
+  snapshotId             String   @unique @map("snapshot_id")
+  fetchedAt              DateTime @map("fetched_at")
+  questionId             Int      @map("question_id")
+
+  totalNewlyReported     Int      @map("total_newly_reported")
+  totalClosuresThisWeek  Int      @map("total_closures_this_week")
+  totalClosedSoFar       Int      @map("total_closed_so_far")
+  totalOpenRfts          Int      @map("total_open_rfts")
+
+  organisationBreakdown  RftOrganisationSnapshot[]
+
+  weeklySnapshotId       String?  @map("weekly_snapshot_id")
+  weeklySnapshot         WeeklySnapshot? @relation(fields: [weeklySnapshotId], references: [snapshotId], onDelete: SetNull)
+
+  @@index([fetchedAt])
+  @@index([weeklySnapshotId])
+  @@map("rft_snapshots")
+}
+
+model RftOrganisationSnapshot {
+  id                       String @id @default(uuid())
+  rftSnapshotId            String @map("rft_snapshot_id")
+  organisation             String
+  newlyReportedCurrentWeek Int    @map("newly_reported_current_week")
+  closuresThisWeek         Int    @map("closures_this_week")
+  closedRftsSoFar          Int    @map("closed_rfts_so_far")
+  totalOpenRfts            Int    @map("total_open_rfts")
+
+  rftSnapshot              RftSnapshot @relation(fields: [rftSnapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@unique([rftSnapshotId, organisation])
+  @@index([organisation])
+  @@map("rft_organisation_snapshots")
+}
+
+model WeeklyNote {
+  id          String   @id @default(uuid())
+  snapshotId  String   @map("snapshot_id")
+  noteType    String   @map("note_type")
+  content     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // No foreign key - notes can be created for any week, even before snapshot exists
+
+  @@index([snapshotId])
+  @@index([noteType])
+  @@map("weekly_notes")
+}
+
+model ActivityLog {
+  id           String   @id
+  activityType String   @map("activity_type")
+  description  String
+  metadata     String?
+  userId       String?  @map("user_id")
+  timestamp    DateTime @default(now())
+
+  @@index([activityType])
+  @@index([timestamp])
+  @@index([userId])
+  @@map("activity_logs")
+}
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  encrypted Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}
+
+model ErrorLog {
+  id         Int      @id @default(autoincrement())
+  message    String
+  source     String
+  statusCode Int      @map("status_code")
+  metadata   String?
+  timestamp  DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([statusCode])
+  @@index([source])
+  @@map("error_logs")
+}
+
+model YtdTicket {
+  id                String   @id @default(uuid())
+  freshdeskTicketId BigInt   @unique @map("freshdesk_ticket_id")
+  subject           String
+  status            Int
+  priority          Int
+  groupId           BigInt?  @map("group_id")
+  companyId         BigInt?  @map("company_id")
+  createdAt         DateTime @map("created_at")
+  updatedAt         DateTime @map("updated_at")
+  tags              String[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([priority])
+  @@index([companyId])
+  @@index([groupId])
+  @@map("ytd_tickets")
+}
+
+model CompanyCache {
+  freshdeskCompanyId BigInt   @id @map("freshdesk_company_id")
+  name               String
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("company_cache")
+}
+
+model GroupCache {
+  freshdeskGroupId BigInt   @id @map("freshdesk_group_id")
+  name             String
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("group_cache")
+}

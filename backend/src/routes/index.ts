@@ -1,0 +1,36 @@
+import type { FastifyInstance } from 'fastify';
+import { registerStatsRoutes } from './stats';
+import { registerRftRoutes } from './rft';
+import { registerNotesRoutes } from './notes';
+import { registerIngestionRoutes } from './ingestion';
+import { registerCompaniesRoutes } from './companies';
+import { registerEngineerHoursRoutes } from './engineer-hours';
+import { registerSettingsRoutes } from './settings';
+import { registerGoogleSheetsRoutes } from './google-sheets';
+import { registerGroupsRoutes } from './groups';
+import { registerQuickAnswersRoutes } from './quick-answers';
+import { registerMonthlyReportRoutes } from './monthly-report';
+import { registerLiveStatsRoutes } from './live-stats';
+import { registerAiChatRoutes } from './ai-chat';
+import { registerErrorLogRoutes } from './error-logs';
+import { registerYtdIngestionRoutes } from './ytd-ingestion';
+import { registerAppDataRoutes } from './app-data';
+
+export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
+  await registerStatsRoutes(fastify);
+  await registerRftRoutes(fastify);
+  await registerNotesRoutes(fastify);
+  await registerIngestionRoutes(fastify);
+  await registerCompaniesRoutes(fastify);
+  await registerEngineerHoursRoutes(fastify);
+  await registerSettingsRoutes(fastify);
+  await registerGoogleSheetsRoutes(fastify);
+  await registerGroupsRoutes(fastify);
+  await registerQuickAnswersRoutes(fastify);
+  await registerMonthlyReportRoutes(fastify);
+  await registerLiveStatsRoutes(fastify);
+  await registerAiChatRoutes(fastify);
+  await registerErrorLogRoutes(fastify);
+  await registerYtdIngestionRoutes(fastify);
+  await registerAppDataRoutes(fastify);
+}
