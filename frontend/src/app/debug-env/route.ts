@@ -9,3 +9,5 @@ export async function GET() {
     NODE_ENV: process.env.NODE_ENV || 'NOT_SET',
   });
 }
+
+export const dynamic = 'force-dynamic';
