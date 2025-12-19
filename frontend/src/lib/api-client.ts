@@ -25,11 +25,25 @@ async function getAuthToken(): Promise<string | null> {
 /**
  * Create headers with authentication token
  */
-async function createHeaders(additionalHeaders?: HeadersInit): Promise<HeadersInit> {
-  const headers: HeadersInit = {
+async function createHeaders(additionalHeaders?: HeadersInit): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...additionalHeaders,
   };
+
+  // Merge additional headers
+  if (additionalHeaders) {
+    if (additionalHeaders instanceof Headers) {
+      additionalHeaders.forEach((value, key) => {
+        headers[key] = value;
+      });
+    } else if (Array.isArray(additionalHeaders)) {
+      additionalHeaders.forEach(([key, value]) => {
+        headers[key] = value;
+      });
+    } else {
+      Object.assign(headers, additionalHeaders);
+    }
+  }
 
   const token = await getAuthToken();
   if (token) {
