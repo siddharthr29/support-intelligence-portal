@@ -79,18 +79,67 @@ export async function pdfRoutes(fastify: FastifyInstance) {
         throw new Error(`Failed to navigate to URL: ${navError instanceof Error ? navError.message : 'Unknown error'}`);
       }
 
+      // Wait for page to be fully loaded
+      logger.info('Waiting for page to be fully loaded');
+      await page.waitForSelector('body', { timeout: 10000 });
+      
+      // Wait for React to hydrate and render
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       // Wait for map to load
       logger.info('Waiting for Leaflet map container');
+      let mapFound = false;
       try {
-        await page.waitForSelector('.leaflet-container', { timeout: 15000 });
+        await page.waitForSelector('.leaflet-container', { timeout: 20000 });
+        mapFound = true;
+        logger.info('Leaflet container found');
       } catch (selectorError) {
-        logger.error('Leaflet container not found');
-        // Continue anyway - page might still be usable
+        logger.error('Leaflet container not found after 20s');
+        // Continue anyway - page might still be usable without map
       }
 
-      // Additional wait for tiles to load
-      logger.info('Waiting for tiles to load');
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Increased to 5s
+      // Additional wait for tiles to load if map was found
+      if (mapFound) {
+        logger.info('Waiting for tiles to load');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Wait for tile images to be loaded
+        await page.evaluate(() => {
+          return new Promise((resolve) => {
+            const tiles = document.querySelectorAll('.leaflet-tile-pane img');
+            if (tiles.length === 0) {
+              resolve(true);
+              return;
+            }
+            
+            let loadedCount = 0;
+            const totalTiles = tiles.length;
+            
+            tiles.forEach((tile: any) => {
+              if (tile.complete) {
+                loadedCount++;
+                if (loadedCount === totalTiles) resolve(true);
+              } else {
+                tile.addEventListener('load', () => {
+                  loadedCount++;
+                  if (loadedCount === totalTiles) resolve(true);
+                });
+                tile.addEventListener('error', () => {
+                  loadedCount++;
+                  if (loadedCount === totalTiles) resolve(true);
+                });
+              }
+            });
+            
+            // Timeout after 10s
+            setTimeout(() => resolve(true), 10000);
+          });
+        });
+        logger.info('Tiles loaded');
+      } else {
+        // If no map, just wait a bit for other content
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
       // Generate PDF
       logger.info('Generating PDF');
