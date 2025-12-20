@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api-client';
+import { LeadershipNavigation } from '@/components/leadership/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, TrendingUp, Users, Clock, CheckCircle } from 'lucide-react';
 
 interface WeeklySummary {
   week_ending: string;
@@ -43,17 +46,32 @@ export default function SummaryPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        <div className="container mx-auto p-6">
+          <div className="mb-6">
+            <Skeleton className="h-10 w-64 mb-2" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+          <div className="grid gap-6">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-48" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        <div className="container mx-auto p-6">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Error Loading Summary</h3>
+            <p className="text-sm">{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -69,73 +87,114 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Weekly Founder Summary</h1>
-        <p className="text-muted-foreground">Week ending {summary?.week_ending}</p>
-        <p className="text-sm text-muted-foreground">Data coverage: {summary?.data_coverage}</p>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-3xl font-bold">{summary?.key_metrics.total_tickets_week}</p>
-          <p className="text-sm text-muted-foreground">Tickets This Week</p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-3xl font-bold">{summary?.key_metrics.unresolved_backlog}</p>
-          <p className="text-sm text-muted-foreground">Unresolved Backlog</p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-3xl font-bold text-red-600">{summary?.key_metrics.critical_issues}</p>
-          <p className="text-sm text-muted-foreground">Critical Issues</p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-3xl font-bold">{summary?.key_metrics.trend_vs_last_week}</p>
-          <p className="text-sm text-muted-foreground">vs Last Week</p>
-        </div>
-      </div>
-
-      {/* Top Risks */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">🚨 Top Risks</h2>
-        <div className="space-y-3">
-          {summary?.top_risks.map((risk, idx) => (
-            <div key={idx} className={`border rounded-lg p-4 ${getSeverityColor(risk.severity)}`}>
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold">{risk.partner_name}</h3>
-                <span className="text-xs uppercase font-medium">{risk.severity}</span>
-              </div>
-              <p className="text-sm font-medium mb-1">{risk.risk_type}</p>
-              <p className="text-sm opacity-75">{risk.details}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Partners to Watch */}
-      {summary?.partners_to_watch && summary.partners_to_watch.length > 0 && (
+    <div className="min-h-screen bg-gray-50">
+      <LeadershipNavigation />
+      
+      <div className="container mx-auto p-6">
+        {/* Page Header */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">👀 Partners to Watch</h2>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <ul className="list-disc list-inside space-y-1">
-              {summary.partners_to_watch.map((partner, idx) => (
-                <li key={idx} className="text-sm">{partner}</li>
-              ))}
-            </ul>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Weekly Executive Summary</h1>
+          <p className="text-gray-600">Week ending {summary?.week_ending}</p>
+          <p className="text-sm text-gray-500">Data coverage: {summary?.data_coverage}</p>
+        </div>
+
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Tickets This Week</span>
+              <Users className="h-5 w-5 text-blue-500" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{summary?.key_metrics.total_tickets_week || 0}</p>
+          </div>
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Unresolved Backlog</span>
+              <Clock className="h-5 w-5 text-orange-500" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{summary?.key_metrics.unresolved_backlog || 0}</p>
+          </div>
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Critical Issues</span>
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <p className="text-3xl font-bold text-red-600">{summary?.key_metrics.critical_issues || 0}</p>
+          </div>
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">vs Last Week</span>
+              <TrendingUp className="h-5 w-5 text-gray-400" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{summary?.key_metrics.trend_vs_last_week || 'N/A'}</p>
           </div>
         </div>
-      )}
 
-      {/* Recommended Actions */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">✅ Recommended Actions</h2>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <ol className="list-decimal list-inside space-y-2">
-            {summary?.recommended_actions.map((action, idx) => (
-              <li key={idx} className="text-sm">{action}</li>
-            ))}
-          </ol>
+        {/* Top Risks */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertCircle className="h-6 w-6 text-red-600" />
+            Top Risks
+          </h2>
+          <div className="space-y-3">
+            {summary?.top_risks && summary.top_risks.length > 0 ? (
+              summary.top_risks.map((risk, idx) => (
+                <div key={idx} className={`bg-white border rounded-lg p-6 ${getSeverityColor(risk.severity)}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-900">{risk.partner_name || 'Unknown Partner'}</h3>
+                    <span className="text-xs uppercase font-bold px-2 py-1 rounded">{risk.severity}</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-800 mb-1">{risk.risk_type}</p>
+                  <p className="text-sm text-gray-600">{risk.details}</p>
+                </div>
+              ))
+            ) : (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-2" />
+                <p className="text-green-800 font-medium">No critical risks detected</p>
+                <p className="text-sm text-green-600 mt-1">All partners operating within normal parameters</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Partners to Watch */}
+        {summary?.partners_to_watch && summary.partners_to_watch.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Partners to Watch</h2>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <ul className="space-y-2">
+                {summary.partners_to_watch.map((partner, idx) => (
+                  <li key={idx} className="text-sm text-yellow-900 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-yellow-600 rounded-full"></span>
+                    {partner}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Recommended Actions */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            Recommended Actions
+          </h2>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            {summary?.recommended_actions && summary.recommended_actions.length > 0 ? (
+              <ol className="space-y-3">
+                {summary.recommended_actions.map((action, idx) => (
+                  <li key={idx} className="text-sm text-blue-900 flex gap-3">
+                    <span className="font-bold text-blue-600">{idx + 1}.</span>
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-sm text-blue-700">No specific actions required at this time</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

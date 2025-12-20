@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api-client';
+import { LeadershipNavigation } from '@/components/leadership/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 
 interface PartnerRisk {
   partner_id: number;
@@ -22,39 +26,62 @@ interface PartnerRisk {
 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<PartnerRisk[]>([]);
+  const [filteredPartners, setFilteredPartners] = useState<PartnerRisk[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [riskFilter, setRiskFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
 
   useEffect(() => {
     async function fetchPartners() {
       try {
         const response = await apiGet('/api/leadership/partners');
-        setPartners(response.data.partners);
+        const partnerData = response.data.partners || [];
+        setPartners(partnerData);
+        setFilteredPartners(partnerData);
         setLoading(false);
       } catch (err: any) {
-        setError(err.message || 'Failed to load partners');
+        console.error('Failed to load partners:', err);
         setLoading(false);
       }
     }
     fetchPartners();
   }, []);
 
+  useEffect(() => {
+    let filtered = partners;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(p => 
+        p.partner_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Risk filter
+    if (riskFilter !== 'all') {
+      filtered = filtered.filter(p => {
+        const risk = getRiskLevel(p);
+        return risk === riskFilter;
+      });
+    }
+
+    setFilteredPartners(filtered);
+  }, [searchQuery, riskFilter, partners]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading partner risk metrics...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          Error: {error}
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        <div className="container mx-auto p-6">
+          <div className="mb-6">
+            <Skeleton className="h-10 w-64 mb-2" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+          <div className="grid gap-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-48" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -77,27 +104,85 @@ export default function PartnersPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Partner Risk Intelligence</h1>
-        <p className="text-muted-foreground">
-          Operational risk assessment for all partners (last 12 months)
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <LeadershipNavigation />
+      
+      <div className="container mx-auto p-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Partner Health Intelligence</h1>
+          <p className="text-gray-600">
+            Real-time operational risk assessment for {partners.length} partners (last 12 months)
+          </p>
+        </div>
 
-      <div className="grid gap-4">
-        {partners.map((partner) => {
+        {/* Filters */}
+        <div className="bg-white rounded-lg border p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search partners by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(['all', 'critical', 'high', 'medium', 'low'] as const).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setRiskFilter(level)}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    riskFilter === level
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="mb-4 text-sm text-gray-600">
+          Showing {filteredPartners.length} of {partners.length} partners
+        </div>
+
+        {/* Partner Cards */}
+        <div className="grid gap-4">
+        {filteredPartners.length === 0 ? (
+          <div className="bg-white rounded-lg border p-12 text-center">
+            <p className="text-gray-500">No partners found matching your filters</p>
+          </div>
+        ) : (
+          filteredPartners.map((partner) => {
           const riskLevel = getRiskLevel(partner);
           const riskColor = getRiskColor(riskLevel);
+          const trendIcon = partner.trend_ratio && partner.trend_ratio > 1.5 
+            ? <TrendingUp className="h-4 w-4 text-red-600" />
+            : partner.trend_ratio && partner.trend_ratio < 0.7
+            ? <TrendingDown className="h-4 w-4 text-green-600" />
+            : null;
 
           return (
-            <div key={partner.partner_id} className={`border rounded-lg p-6 ${riskColor}`}>
+            <div key={partner.partner_id} className={`bg-white border rounded-lg p-6 hover:shadow-md transition-shadow ${riskColor}`}>
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold">{partner.partner_name}</h3>
-                  <p className="text-sm opacity-75">Partner ID: {partner.partner_id}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{partner.partner_name || 'Unknown Partner'}</h3>
+                    {trendIcon}
+                  </div>
+                  <p className="text-sm text-gray-500">Partner ID: {partner.partner_id}</p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-medium uppercase">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                  riskLevel === 'critical' ? 'bg-red-100 text-red-800' :
+                  riskLevel === 'high' ? 'bg-orange-100 text-orange-800' :
+                  riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
                   {riskLevel} Risk
                 </span>
               </div>
@@ -168,14 +253,10 @@ export default function PartnersPage() {
               )}
             </div>
           );
-        })}
+        })
+        )}
       </div>
-
-      {partners.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          No partner data available
-        </div>
-      )}
+      </div>
     </div>
   );
 }
