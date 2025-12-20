@@ -17,21 +17,25 @@ export async function pdfRoutes(fastify: FastifyInstance) {
       });
     }
 
+    let browser;
     try {
       // Dynamic import of puppeteer to avoid bundling issues
       const puppeteer = await import('puppeteer');
 
       logger.info({ url }, 'Generating PDF from URL');
 
-      // Launch browser
-      const browser = await puppeteer.default.launch({
+      // Launch browser with additional args for server environments
+      browser = await puppeteer.default.launch({
         headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
         ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       });
 
       const page = await browser.newPage();
@@ -43,19 +47,35 @@ export async function pdfRoutes(fastify: FastifyInstance) {
         deviceScaleFactor: 2,
       });
 
-      // Navigate to the URL
-      await page.goto(url, {
-        waitUntil: 'networkidle0',
-        timeout: 30000,
-      });
+      // Log navigation attempt
+      logger.info({ url }, 'Navigating to URL');
+
+      // Navigate to the URL with error handling
+      try {
+        await page.goto(url, {
+          waitUntil: 'networkidle2', // Changed from networkidle0 for better compatibility
+          timeout: 60000, // Increased timeout
+        });
+      } catch (navError) {
+        logger.error({ navError, url }, 'Navigation failed');
+        throw new Error(`Failed to navigate to URL: ${navError instanceof Error ? navError.message : 'Unknown error'}`);
+      }
 
       // Wait for map to load
-      await page.waitForSelector('.leaflet-container', { timeout: 10000 });
+      logger.info('Waiting for Leaflet map container');
+      try {
+        await page.waitForSelector('.leaflet-container', { timeout: 15000 });
+      } catch (selectorError) {
+        logger.error('Leaflet container not found');
+        // Continue anyway - page might still be usable
+      }
 
       // Additional wait for tiles to load
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      logger.info('Waiting for tiles to load');
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Increased to 5s
 
       // Generate PDF
+      logger.info('Generating PDF');
       const pdf = await page.pdf({
         format: 'A4',
         landscape: true,
@@ -78,11 +98,21 @@ export async function pdfRoutes(fastify: FastifyInstance) {
 
       return reply.send(pdf);
     } catch (error) {
-      logger.error({ error, url }, 'Failed to generate PDF');
+      // Ensure browser is closed on error
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          logger.error({ closeError }, 'Failed to close browser');
+        }
+      }
+
+      logger.error({ error, url, stack: error instanceof Error ? error.stack : undefined }, 'Failed to generate PDF');
       return reply.status(500).send({
         success: false,
         error: 'Failed to generate PDF',
         message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined,
       });
     }
   });
