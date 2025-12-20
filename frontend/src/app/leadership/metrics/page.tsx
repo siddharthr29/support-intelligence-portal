@@ -68,6 +68,8 @@ export default function MetricsPage() {
     );
   }
 
+  const summary = metrics;
+
   const metricCategories = [
     {
       title: 'Program Risk',
