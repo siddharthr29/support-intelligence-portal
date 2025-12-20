@@ -26,19 +26,19 @@ const PriorityChart = lazy(() => import("@/components/dashboard/priority-chart")
 const StatusChart = lazy(() => import("@/components/dashboard/status-chart").then(m => ({ default: m.StatusChart })));
 const UnresolvedSummary = lazy(() => import("@/components/dashboard/unresolved-summary").then(m => ({ default: m.UnresolvedSummary })));
 
-// Loading skeleton for lazy components
+// Loading skeleton for lazy components - More visible with darker colors
 const ChartSkeleton = () => (
-  <div className="h-[300px] bg-white rounded-lg border p-6 shadow-sm">
-    <div className="h-6 w-48 bg-gray-300 rounded animate-pulse mb-4"></div>
-    <div className="h-[200px] w-full bg-gray-200 rounded animate-pulse"></div>
+  <div className="h-[300px] bg-white rounded-lg border p-6 shadow-md">
+    <div className="h-6 w-48 bg-gray-400 rounded animate-pulse mb-4"></div>
+    <div className="h-[200px] w-full bg-gray-300 rounded animate-pulse"></div>
   </div>
 );
 
 const MetricCardSkeleton = () => (
-  <div className="bg-white rounded-lg border p-6 shadow-sm">
-    <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-3"></div>
-    <div className="h-10 w-20 bg-gray-400 rounded animate-pulse mb-3"></div>
-    <div className="h-3 w-32 bg-gray-300 rounded animate-pulse"></div>
+  <div className="bg-white rounded-lg border p-6 shadow-md">
+    <div className="h-4 w-24 bg-gray-400 rounded animate-pulse mb-3"></div>
+    <div className="h-10 w-20 bg-gray-500 rounded animate-pulse mb-3"></div>
+    <div className="h-3 w-32 bg-gray-400 rounded animate-pulse"></div>
   </div>
 );
 

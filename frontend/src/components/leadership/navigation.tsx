@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LogOut, BarChart3, Users, TrendingUp, FileText, Settings } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, FileText, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import Image from 'next/image';
 
@@ -23,6 +23,7 @@ export function LeadershipNavigation() {
     { name: 'Trends', path: '/leadership/trends', icon: TrendingUp },
     { name: 'All Implementations', path: '/leadership/implementations', icon: BarChart3 },
     { name: 'Summary', path: '/leadership/summary', icon: FileText },
+    { name: 'Settings', path: '/leadership/settings', icon: Settings },
   ];
 
   const isActive = (path: string) => {
