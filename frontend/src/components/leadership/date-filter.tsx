@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar } from 'lucide-react';
-import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 
 interface DateFilterProps {
   onDateChange: (range: { from: Date; to: Date }) => void;
@@ -11,13 +9,7 @@ interface DateFilterProps {
 }
 
 export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: DateFilterProps) {
-  const [preset, setPreset] = useState<'30d' | '90d' | '6m' | '12m' | 'custom'>(defaultPreset);
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
-    const to = new Date();
-    const from = new Date();
-    from.setFullYear(from.getFullYear() - 1);
-    return { from, to };
-  });
+  const [preset, setPreset] = useState<'30d' | '90d' | '6m' | '12m'>(defaultPreset);
   
   const handlePreset = (p: '30d' | '90d' | '6m' | '12m') => {
     setPreset(p);
@@ -35,19 +27,8 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
     }
     
     const newRange = { from, to };
-    setDateRange(newRange);
     console.log('LeadershipDateFilter: Preset clicked', p, newRange);
     onDateChange(newRange);
-  };
-  
-  const handleCustomRange = (range: any) => {
-    setPreset('custom');
-    if (range?.from && range?.to) {
-      const newRange = { from: range.from, to: range.to };
-      setDateRange(newRange);
-      console.log('LeadershipDateFilter: Custom range selected', newRange);
-      onDateChange(newRange);
-    }
   };
   
   return (
@@ -80,11 +61,6 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
       >
         Last 12 Months
       </Button>
-      <DateRangePicker 
-        startDate={dateRange.from}
-        endDate={dateRange.to}
-        onSelect={handleCustomRange} 
-      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveTable } from '@/components/ui/responsive-table';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { IndiaMap } from '@/components/leadership/india-map';
+import { IndiaMapLeaflet } from '@/components/leadership/india-map-leaflet';
 import { useDebounce } from '@/hooks/useDebounce';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client';
 import { 
@@ -509,7 +509,7 @@ export default function ImplementationsPage() {
 
                 {/* India Map Visualization */}
                 <div className="mb-8">
-                  <IndiaMap 
+                  <IndiaMapLeaflet 
                     stateData={stateStats}
                     onStateClick={(state) => {
                       console.log('State clicked:', state);

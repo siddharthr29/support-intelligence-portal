@@ -171,22 +171,15 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={450}>
+              <ResponsiveContainer width="100%" height={500}>
                 <PieChart>
                   <Pie
                     data={ticketTypes as any}
                     cx="50%"
-                    cy="45%"
-                    labelLine={{
-                      stroke: '#64748b',
-                      strokeWidth: 1,
-                    }}
-                    label={(entry: any) => {
-                      // Only show label if percentage is > 2% to avoid clutter
-                      if (entry.percentage < 2) return '';
-                      return `${entry.type}: ${entry.percentage}%`;
-                    }}
-                    outerRadius={130}
+                    cy="40%"
+                    labelLine={false}
+                    label={false}
+                    outerRadius={140}
                     dataKey="count"
                   >
                     {ticketTypes.map((entry, index) => (
@@ -201,9 +194,10 @@ export default function TrendsPage() {
                   />
                   <Legend 
                     verticalAlign="bottom" 
-                    height={50}
-                    wrapperStyle={{ paddingTop: '20px' }}
+                    height={80}
+                    wrapperStyle={{ paddingTop: '30px' }}
                     formatter={(value, entry: any) => `${entry.payload.type}`}
+                    iconType="circle"
                   />
                 </PieChart>
               </ResponsiveContainer>
