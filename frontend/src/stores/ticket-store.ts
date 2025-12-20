@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { startOfYear, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { FRESHDESK_STATUS, FRESHDESK_PRIORITY, getCompanyName as getCompanyNameFromConstants, getGroupName as getGroupNameFromConstants } from '@/lib/constants';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { apiGet } from '@/lib/api-client';
 
 export interface TicketSummary {
   id: number;
@@ -213,16 +212,8 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       // Get current year from year store
       const currentYear = new Date().getFullYear();
       
-      // Use unified app-data endpoint with year parameter
-      const res = await fetch(`${API_BASE_URL}/api/app-data?year=${currentYear}`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch app data: ${res.status}`);
-      }
-      
-      const json = await res.json();
-      if (!json.success) {
-        throw new Error(json.error || 'Failed to fetch app data');
-      }
+      // Use authenticated API client (attaches Firebase token automatically)
+      const json = await apiGet(`/api/app-data?year=${currentYear}`);
       
       console.log('[TicketStore] Raw API response:', {
         ticketCount: json.data?.tickets?.length,
