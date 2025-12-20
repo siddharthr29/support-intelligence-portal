@@ -3,6 +3,7 @@ import { authMiddleware } from '../../middleware/auth';
 import { requireLeadership } from '../../middleware/role-check';
 import { logger } from '../../utils/logger';
 import { getPrismaClient } from '../../persistence/prisma-client';
+import { validateDateRange } from '../../middleware/request-validator';
 
 /**
  * Partner Intelligence Routes
@@ -20,6 +21,15 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
     const prisma = getPrismaClient();
 
     try {
+      // Validate date range
+      const dateValidation = validateDateRange(request.query.startDate, request.query.endDate);
+      if (!dateValidation.valid) {
+        return reply.status(400).send({
+          success: false,
+          error: dateValidation.error,
+        });
+      }
+
       // Use query params or fallback to defaults
       const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
       const startDate = request.query.startDate 
@@ -30,7 +40,7 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
       const thirtyDaysAgo = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(endDate.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-      logger.info({ startDate, endDate, thirtyDaysAgo, sixtyDaysAgo }, 'Fetching partners with date range');
+      logger.info({ startDate, endDate }, 'Fetching partners with date range');
 
       const partners = await prisma.$queryRaw<Array<any>>`
         SELECT 

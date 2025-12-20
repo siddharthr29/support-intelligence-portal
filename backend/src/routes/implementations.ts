@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth';
 import { requireLeadership } from '../middleware/role-check';
 import { logger } from '../utils/logger';
 import { getPrismaClient } from '../persistence/prisma-client';
+import { validateImplementationData, sanitizeString } from '../middleware/request-validator';
 
 export async function registerImplementationsRoutes(fastify: FastifyInstance): Promise<void> {
   
@@ -15,6 +16,16 @@ export async function registerImplementationsRoutes(fastify: FastifyInstance): P
     try {
       const implementations = await prisma.implementation.findMany({
         orderBy: { slNo: 'asc' },
+        select: {
+          id: true,
+          slNo: true,
+          organisationName: true,
+          sector: true,
+          projectName: true,
+          forType: true,
+          website: true,
+          state: true,
+        },
       });
 
       return reply.send({
@@ -49,7 +60,27 @@ export async function registerImplementationsRoutes(fastify: FastifyInstance): P
     const prisma = getPrismaClient();
 
     try {
+      // Validate input data
+      const validation = validateImplementationData(request.body);
+      if (!validation.valid) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Validation failed',
+          details: validation.errors,
+        });
+      }
+
       const { organisationName, sector, projectName, forType, website, state } = request.body;
+
+      // Sanitize inputs
+      const sanitizedData = {
+        organisationName: sanitizeString(organisationName),
+        sector: sanitizeString(sector),
+        projectName: sanitizeString(projectName),
+        forType: sanitizeString(forType || 'Self'),
+        website: website ? sanitizeString(website) : null,
+        state: sanitizeString(state),
+      };
 
       // Get next sl_no
       const maxSlNo = await prisma.implementation.findFirst({
@@ -62,12 +93,17 @@ export async function registerImplementationsRoutes(fastify: FastifyInstance): P
       const implementation = await prisma.implementation.create({
         data: {
           slNo: nextSlNo,
-          organisationName,
-          sector,
-          projectName,
-          forType: forType || 'Self',
-          website: website || null,
-          state,
+          ...sanitizedData,
+        },
+        select: {
+          id: true,
+          slNo: true,
+          organisationName: true,
+          sector: true,
+          projectName: true,
+          forType: true,
+          website: true,
+          state: true,
         },
       });
 
@@ -104,17 +140,48 @@ export async function registerImplementationsRoutes(fastify: FastifyInstance): P
 
     try {
       const id = parseInt(request.params.id);
+      
+      if (isNaN(id)) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Invalid implementation ID',
+        });
+      }
+
+      // Validate input data
+      const validation = validateImplementationData(request.body);
+      if (!validation.valid) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Validation failed',
+          details: validation.errors,
+        });
+      }
+
       const { organisationName, sector, projectName, forType, website, state } = request.body;
+
+      // Sanitize inputs
+      const sanitizedData = {
+        organisationName: sanitizeString(organisationName),
+        sector: sanitizeString(sector),
+        projectName: sanitizeString(projectName),
+        forType: sanitizeString(forType),
+        website: website ? sanitizeString(website) : null,
+        state: sanitizeString(state),
+      };
 
       const implementation = await prisma.implementation.update({
         where: { id },
-        data: {
-          organisationName,
-          sector,
-          projectName,
-          forType,
-          website: website || null,
-          state,
+        data: sanitizedData,
+        select: {
+          id: true,
+          slNo: true,
+          organisationName: true,
+          sector: true,
+          projectName: true,
+          forType: true,
+          website: true,
+          state: true,
         },
       });
 
@@ -143,6 +210,26 @@ export async function registerImplementationsRoutes(fastify: FastifyInstance): P
 
     try {
       const id = parseInt(request.params.id);
+      
+      if (isNaN(id)) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Invalid implementation ID',
+        });
+      }
+
+      // Check if exists before deleting
+      const exists = await prisma.implementation.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      if (!exists) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Implementation not found',
+        });
+      }
 
       await prisma.implementation.delete({
         where: { id },
