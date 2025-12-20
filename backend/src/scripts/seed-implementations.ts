@@ -1,6 +1,7 @@
 import { getPrismaClient } from '../persistence/prisma-client';
 import * as fs from 'fs';
 import * as path from 'path';
+// @ts-ignore - papaparse types not available in production
 import Papa from 'papaparse';
 
 interface ImplementationRow {
