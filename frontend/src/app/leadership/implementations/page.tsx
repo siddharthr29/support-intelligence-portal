@@ -241,6 +241,36 @@ export default function ImplementationsPage() {
         }
       });
       
+      // Remove all elements with lab() colors to prevent parsing errors
+      const allElements = clonedContainer.querySelectorAll('*');
+      allElements.forEach(element => {
+        const htmlElement = element as HTMLElement;
+        const computedStyle = window.getComputedStyle(htmlElement);
+        
+        // Check for lab() in various color properties
+        const hasLabColor = 
+          computedStyle.color?.includes('lab(') ||
+          computedStyle.backgroundColor?.includes('lab(') ||
+          computedStyle.borderColor?.includes('lab(') ||
+          computedStyle.outlineColor?.includes('lab(');
+        
+        if (hasLabColor) {
+          // Replace lab() colors with safe hex colors
+          if (computedStyle.color?.includes('lab(')) {
+            htmlElement.style.color = '#000000';
+          }
+          if (computedStyle.backgroundColor?.includes('lab(')) {
+            htmlElement.style.backgroundColor = '#ffffff';
+          }
+          if (computedStyle.borderColor?.includes('lab(')) {
+            htmlElement.style.borderColor = '#e5e7eb';
+          }
+          if (computedStyle.outlineColor?.includes('lab(')) {
+            htmlElement.style.outlineColor = '#e5e7eb';
+          }
+        }
+      });
+      
       // Add Avni logo
       const logoDiv = document.createElement('div');
       logoDiv.style.cssText = 'position: absolute; top: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
