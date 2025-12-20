@@ -50,7 +50,7 @@ export function LeadershipNavigation() {
               />
             </div>
             <div className="h-6 w-px bg-gray-300" />
-            <h1 className="text-lg font-semibold text-gray-900">Leadership Intelligence</h1>
+            <h1 className="text-lg font-semibold text-gray-900">SUPPORT OPERATIONAL DASHBOARD</h1>
           </div>
 
           {/* User & Logout */}

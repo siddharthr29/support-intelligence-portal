@@ -246,7 +246,12 @@ export default function ImplementationsPage() {
         logging: false,
         backgroundColor: '#ffffff',
         allowTaint: true,
-        foreignObjectRendering: true,
+        foreignObjectRendering: false,
+        ignoreElements: (element) => {
+          // Skip elements with lab() color functions
+          const computedStyle = window.getComputedStyle(element);
+          return computedStyle.color?.includes('lab(') || computedStyle.backgroundColor?.includes('lab(');
+        },
       });
       
       // Remove logo after capture
