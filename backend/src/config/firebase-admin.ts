@@ -20,18 +20,35 @@ export function initializeFirebaseAdmin(): admin.app.App {
       return firebaseApp;
     }
 
-    // Normalize private key - strip wrapping quotes and fix newlines
+    // Normalize private key - support both base64 and direct format
+    let normalizedPrivateKey: string | undefined;
     const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
-    const normalizedPrivateKey = rawPrivateKey
-      ?.replace(/\\n/g, '\n')  // Convert escaped newlines to actual newlines
-      ?.replace(/^"(.*)"$/, '$1')  // Strip wrapping quotes if present
-      ?.trim();
+    
+    // Try base64 format first (preferred for Render)
+    if (process.env.FIREBASE_PRIVATE_KEY_BASE64) {
+      try {
+        normalizedPrivateKey = Buffer.from(process.env.FIREBASE_PRIVATE_KEY_BASE64, 'base64').toString('utf-8');
+        logger.info('Using base64-encoded private key');
+      } catch (error) {
+        logger.error('Failed to decode base64 private key', { error });
+      }
+    }
+    
+    // Fall back to direct format
+    if (!normalizedPrivateKey && rawPrivateKey) {
+      normalizedPrivateKey = rawPrivateKey
+        ?.replace(/\\n/g, '\n')  // Convert escaped newlines to actual newlines
+        ?.replace(/^"(.*)"$/, '$1')  // Strip wrapping quotes if present
+        ?.trim();
+      logger.info('Using direct private key format');
+    }
 
     // Log environment variables (without sensitive data)
     logger.info('Initializing Firebase Admin SDK with environment variables', {
       hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
       hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
       hasPrivateKey: !!rawPrivateKey,
+      hasPrivateKeyBase64: !!process.env.FIREBASE_PRIVATE_KEY_BASE64,
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       rawPrivateKeyLength: rawPrivateKey?.length,
