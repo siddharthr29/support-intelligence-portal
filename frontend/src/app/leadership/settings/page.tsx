@@ -1,113 +1,292 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { LeadershipNavigation } from '@/components/leadership/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { apiGet, apiPost } from '@/lib/api-client';
-import { Loader2, Save, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LeadershipNavigation } from "@/components/leadership/navigation";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { 
+  Settings, 
+  Key, 
+  RefreshCcw, 
+  Shield, 
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileText,
+  Database,
+  Lock,
+  Loader2
+} from "lucide-react";
 
-interface EnvironmentVariables {
-  FRESHDESK_DOMAIN?: string;
-  FRESHDESK_API_KEY?: string;
-  METABASE_URL?: string;
-  METABASE_USERNAME?: string;
-  METABASE_PASSWORD?: string;
-  METABASE_SECRET_KEY?: string;
-  CONFIG_ENCRYPTION_KEY?: string;
-  DISCORD_WEBHOOK_URL?: string;
-  DATABASE_URL?: string;
-  FIREBASE_PROJECT_ID?: string;
-  FIREBASE_CLIENT_EMAIL?: string;
-  FIREBASE_PRIVATE_KEY_BASE64?: string;
+// Generate IST date-based passcode (DDMMYY format)
+function generateTodayPasscode(): string {
+  const now = new Date();
+  // Convert to IST (UTC+5:30)
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
+  
+  const day = String(istDate.getDate()).padStart(2, '0');
+  const month = String(istDate.getMonth() + 1).padStart(2, '0');
+  const year = String(istDate.getFullYear()).slice(-2);
+  
+  return `${day}${month}${year}`;
 }
 
-export default function LeadershipSettingsPage() {
-  const [envVars, setEnvVars] = useState<EnvironmentVariables>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+interface ActivityLog {
+  id: string;
+  activityType: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+  timestamp: string;
+}
 
-  const loadSettings = async () => {
-    setLoading(true);
-    try {
-      const response = await apiGet('/api/settings/environment');
-      setEnvVars(response.data || {});
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-      setError('Failed to load environment settings');
-    } finally {
-      setLoading(false);
+interface SyncResult {
+  service: string;
+  status: 'success' | 'error';
+  message: string;
+}
+
+export default function SettingsPage() {
+  const queryClient = useQueryClient();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<Record<string, string>>({});
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [passcodeError, setPasscodeError] = useState('');
+  
+  const [credentials, setCredentials] = useState({
+    // Freshdesk
+    freshdeskApiKey: '',
+    freshdeskDomain: '',
+    // Metabase
+    metabaseUrl: '',
+    metabaseUsername: '',
+    metabasePassword: '',
+    metabaseRftQuestionId: '',
+    // Google Sheets
+    googleSheetsUrl: '',
+    googleSheetsApiKey: '',
+    googleAppsScriptUrl: '',
+    // AI Chatbot
+    groqApiKey: '',
+    // Firebase Client (Frontend)
+    firebaseApiKey: '',
+    firebaseAuthDomain: '',
+    firebaseProjectId: '',
+    // Firebase Admin SDK (Backend)
+    firebaseAdminProjectId: '',
+    firebaseAdminClientEmail: '',
+    firebaseAdminPrivateKey: '',
+    // Discord
+    discordWebhookUrl: '',
+  });
+  
+  const [isTestingDiscord, setIsTestingDiscord] = useState(false);
+
+  const handlePasscodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const todayPasscode = generateTodayPasscode();
+    
+    if (passcode === todayPasscode) {
+      setIsUnlocked(true);
+      setPasscodeError('');
+      toast.success('Settings unlocked');
+    } else {
+      setPasscodeError('Invalid passcode. Hint: DDMMYY in Bengaluru time.');
+      setPasscode('');
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await apiPost('/api/settings/environment', envVars);
-      setSuccess('Environment variables updated successfully');
-      setTimeout(() => setSuccess(null), 3000);
-      loadSettings();
-    } catch (error: any) {
-      console.error('Failed to save settings:', error);
-      setError(error.response?.data?.message || 'Failed to save settings');
-      setTimeout(() => setError(null), 5000);
-    } finally {
-      setSaving(false);
+  const { data: settingsData, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/settings`);
+      if (!res.ok) throw new Error('Failed to fetch settings');
+      return res.json();
+    },
+  });
+
+  const { data: logsData, isLoading: isLoadingLogs } = useQuery({
+    queryKey: ['activityLogs'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/settings/logs?limit=20`);
+      if (!res.ok) throw new Error('Failed to fetch logs');
+      return res.json();
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/settings/sync`, { method: 'POST' });
+      if (!res.ok) throw new Error('Sync failed');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['activityLogs'] });
+      const results = data.data as SyncResult[];
+      const allSuccess = results.every(r => r.status === 'success');
+      if (allSuccess) {
+        toast.success('All services connected successfully');
+      } else {
+        toast.warning('Some services failed to connect');
+      }
+    },
+    onError: () => {
+      toast.error('Sync failed');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (creds: Record<string, string>) => {
+      const res = await fetch(`${API_BASE_URL}/api/settings/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...creds, confirmUpdate: true }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      queryClient.invalidateQueries({ queryKey: ['activityLogs'] });
+      toast.success(data.message || 'Credentials updated');
+      setCredentials({
+        freshdeskApiKey: '',
+        freshdeskDomain: '',
+        metabaseUrl: '',
+        metabaseUsername: '',
+        metabasePassword: '',
+        metabaseRftQuestionId: '',
+        googleSheetsUrl: '',
+        googleSheetsApiKey: '',
+        googleAppsScriptUrl: '',
+        groqApiKey: '',
+        firebaseApiKey: '',
+        firebaseAuthDomain: '',
+        firebaseProjectId: '',
+        firebaseAdminProjectId: '',
+        firebaseAdminClientEmail: '',
+        firebaseAdminPrivateKey: '',
+        discordWebhookUrl: '',
+      });
+      setShowConfirmDialog(false);
+    },
+    onError: () => {
+      toast.error('Failed to update credentials');
+      setShowConfirmDialog(false);
+    },
+  });
+
+  const handleSaveCredentials = () => {
+    const updates: Record<string, string> = {};
+    // Freshdesk
+    if (credentials.freshdeskApiKey) updates.freshdeskApiKey = credentials.freshdeskApiKey;
+    if (credentials.freshdeskDomain) updates.freshdeskDomain = credentials.freshdeskDomain;
+    // Metabase
+    if (credentials.metabaseUrl) updates.metabaseUrl = credentials.metabaseUrl;
+    if (credentials.metabaseUsername) updates.metabaseUsername = credentials.metabaseUsername;
+    if (credentials.metabasePassword) updates.metabasePassword = credentials.metabasePassword;
+    if (credentials.metabaseRftQuestionId) updates.metabaseRftQuestionId = credentials.metabaseRftQuestionId;
+    // Google Sheets
+    if (credentials.googleSheetsUrl) updates.googleSheetsUrl = credentials.googleSheetsUrl;
+    if (credentials.googleSheetsApiKey) updates.googleSheetsApiKey = credentials.googleSheetsApiKey;
+    if (credentials.googleAppsScriptUrl) updates.googleAppsScriptUrl = credentials.googleAppsScriptUrl;
+    // AI Chatbot
+    if (credentials.groqApiKey) updates.groqApiKey = credentials.groqApiKey;
+    // Firebase Client
+    if (credentials.firebaseApiKey) updates.firebaseApiKey = credentials.firebaseApiKey;
+    if (credentials.firebaseAuthDomain) updates.firebaseAuthDomain = credentials.firebaseAuthDomain;
+    if (credentials.firebaseProjectId) updates.firebaseProjectId = credentials.firebaseProjectId;
+    // Firebase Admin SDK
+    if (credentials.firebaseAdminProjectId) updates.firebaseAdminProjectId = credentials.firebaseAdminProjectId;
+    if (credentials.firebaseAdminClientEmail) updates.firebaseAdminClientEmail = credentials.firebaseAdminClientEmail;
+    if (credentials.firebaseAdminPrivateKey) updates.firebaseAdminPrivateKey = credentials.firebaseAdminPrivateKey;
+    // Discord
+    if (credentials.discordWebhookUrl) updates.discordWebhookUrl = credentials.discordWebhookUrl;
+
+    if (Object.keys(updates).length === 0) {
+      toast.error('No changes to save');
+      return;
     }
+
+    setPendingCredentials(updates);
+    setShowConfirmDialog(true);
   };
 
-  const toggleShowSecret = (key: string) => {
-    setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
+  const confirmSave = () => {
+    updateMutation.mutate(pendingCredentials);
   };
 
-  const renderInput = (key: keyof EnvironmentVariables, label: string, isSecret = false, placeholder = '') => {
-    const value = envVars[key] || '';
-    const isShown = showSecrets[key];
+  const settings = settingsData?.data || {};
+  const logs = (logsData?.data?.logs || []) as ActivityLog[];
 
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={key}>{label}</Label>
-        <div className="flex gap-2">
-          <Input
-            id={key}
-            type={isSecret && !isShown ? 'password' : 'text'}
-            value={value}
-            onChange={(e) => setEnvVars({ ...envVars, [key]: e.target.value })}
-            placeholder={placeholder}
-            className="flex-1"
-          />
-          {isSecret && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => toggleShowSecret(key)}
-            >
-              {isShown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  if (loading) {
+  // Passcode lock screen
+  if (!isUnlocked) {
     return (
       <div className="min-h-screen bg-gray-50">
         <LeadershipNavigation />
         <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center h-[400px]">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <Card className="w-full max-w-md">
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 p-4 bg-orange-100 rounded-full w-fit">
+                  <Lock className="h-8 w-8 text-orange-600" />
+                </div>
+                <CardTitle className="text-xl">Settings Protected</CardTitle>
+                <CardDescription>
+                  Enter today&apos;s passcode to access settings.
+                  <br />
+                  <span className="text-xs text-muted-foreground">Format: DDMMYY (Bengaluru date)</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasscodeSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="passcode">Passcode</Label>
+                    <Input
+                      id="passcode"
+                      type="password"
+                      placeholder="Enter 6-digit passcode"
+                      value={passcode}
+                      onChange={(e) => setPasscode(e.target.value)}
+                      maxLength={6}
+                      className="text-center text-2xl tracking-widest font-mono"
+                      autoFocus
+                    />
+                  </div>
+                  
+                  {passcodeError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                      {passcodeError}
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full" disabled={passcode.length !== 6}>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Unlock Settings
+                  </Button>
+                </form>
+
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -117,193 +296,627 @@ export default function LeadershipSettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <LeadershipNavigation />
-      
       <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">System Settings</h1>
-          <p className="text-gray-600">
-            Manage environment variables and system configuration. Changes require backend restart to take effect.
-          </p>
+        <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Settings className="h-7 w-7" />
+              Settings
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage API credentials and view system activity logs
+            </p>
+          </div>
+          <Button
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+            className="gap-2"
+          >
+            <RefreshCcw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+            Test Connections
+          </Button>
         </div>
 
-        {error && (
-          <Card className="mb-6 bg-red-50 border-red-200">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                <p className="text-sm text-red-800">{error}</p>
+        {/* Sync Results */}
+        {syncMutation.data && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Connection Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(syncMutation.data.data as SyncResult[]).map((result) => (
+                  <div
+                    key={result.service}
+                    className={`p-3 rounded-lg border ${
+                      result.status === 'success' 
+                        ? 'bg-green-500/10 border-green-500/20' 
+                        : 'bg-red-500/10 border-red-500/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {result.status === 'success' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className="font-medium">{result.service}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{result.message}</p>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {success && (
-          <Card className="mb-6 bg-green-50 border-green-200">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                <p className="text-sm text-green-800">{success}</p>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Credentials Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                API Credentials
+              </CardTitle>
+              <CardDescription>
+                Update API keys and credentials. Values are encrypted at rest.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
+              {/* Freshdesk Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  🎫 Freshdesk (Ticket System)
+                  {settings.freshdeskConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="freshdeskDomain">Domain</Label>
+                  <Input
+                    id="freshdeskDomain"
+                    type="text"
+                    placeholder={settings.freshdeskDomain || 'e.g., yourcompany.freshdesk.com'}
+                    value={credentials.freshdeskDomain}
+                    onChange={(e) => setCredentials({ ...credentials, freshdeskDomain: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="freshdeskApiKey" className="flex items-center gap-2">
+                    API Key
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <Input
+                    id="freshdeskApiKey"
+                    type="password"
+                    placeholder={settings.freshdeskApiKey || 'Enter Freshdesk API key'}
+                    value={credentials.freshdeskApiKey}
+                    onChange={(e) => setCredentials({ ...credentials, freshdeskApiKey: e.target.value })}
+                  />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        <Card className="mb-6 bg-yellow-50 border-yellow-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-yellow-900 mb-1">Important Security Notice</h3>
-                <p className="text-sm text-yellow-800">
-                  These settings contain sensitive credentials. Only authorized personnel should access this page.
-                  All changes are logged and require backend restart to take effect.
-                </p>
+              <Separator />
+
+              {/* Metabase Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  📊 Metabase (RFT Telemetry)
+                  {settings.metabaseConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="metabaseUrl">URL</Label>
+                  <Input
+                    id="metabaseUrl"
+                    type="url"
+                    placeholder={settings.metabaseUrl || 'e.g., https://metabase.yourcompany.com'}
+                    value={credentials.metabaseUrl}
+                    onChange={(e) => setCredentials({ ...credentials, metabaseUrl: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="metabaseUsername">Email</Label>
+                    <Input
+                      id="metabaseUsername"
+                      type="email"
+                      placeholder={settings.metabaseUsername || 'Enter email'}
+                      value={credentials.metabaseUsername}
+                      onChange={(e) => setCredentials({ ...credentials, metabaseUsername: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="metabasePassword">Password</Label>
+                    <Input
+                      id="metabasePassword"
+                      type="password"
+                      placeholder="Enter password"
+                      value={credentials.metabasePassword}
+                      onChange={(e) => setCredentials({ ...credentials, metabasePassword: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="metabaseRftQuestionId">RFT Question ID</Label>
+                  <Input
+                    id="metabaseRftQuestionId"
+                    type="text"
+                    placeholder={settings.metabaseRftQuestionId || 'e.g., 4848'}
+                    value={credentials.metabaseRftQuestionId}
+                    onChange={(e) => setCredentials({ ...credentials, metabaseRftQuestionId: e.target.value })}
+                  />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Tabs defaultValue="freshdesk" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="freshdesk">Freshdesk</TabsTrigger>
-            <TabsTrigger value="metabase">Metabase</TabsTrigger>
-            <TabsTrigger value="firebase">Firebase</TabsTrigger>
-            <TabsTrigger value="database">Database</TabsTrigger>
-            <TabsTrigger value="other">Other</TabsTrigger>
-          </TabsList>
+              <Separator />
 
-          <TabsContent value="freshdesk">
-            <Card>
-              <CardHeader>
-                <CardTitle>Freshdesk Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderInput('FRESHDESK_DOMAIN', 'Freshdesk Domain', false, 'your-domain.freshdesk.com')}
-                {renderInput('FRESHDESK_API_KEY', 'Freshdesk API Key', true, 'Enter your Freshdesk API key')}
-                <div className="pt-4">
-                  <Button onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
-                  </Button>
+              {/* Firebase Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  🔐 Firebase (Authentication)
+                  {settings.firebaseConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseProjectId">Project ID</Label>
+                  <Input
+                    id="firebaseProjectId"
+                    type="text"
+                    placeholder={settings.firebaseProjectId || 'e.g., my-project-id'}
+                    value={credentials.firebaseProjectId}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseProjectId: e.target.value })}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAuthDomain">Auth Domain</Label>
+                  <Input
+                    id="firebaseAuthDomain"
+                    type="text"
+                    placeholder={settings.firebaseAuthDomain || 'e.g., my-project.firebaseapp.com'}
+                    value={credentials.firebaseAuthDomain}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAuthDomain: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseApiKey" className="flex items-center gap-2">
+                    API Key
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <Input
+                    id="firebaseApiKey"
+                    type="password"
+                    placeholder={settings.firebaseApiKey || 'Enter Firebase API key'}
+                    value={credentials.firebaseApiKey}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseApiKey: e.target.value })}
+                  />
+                </div>
+              </div>
 
-          <TabsContent value="metabase">
-            <Card>
-              <CardHeader>
-                <CardTitle>Metabase Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderInput('METABASE_URL', 'Metabase URL', false, 'https://reporting.avniproject.org')}
-                {renderInput('METABASE_USERNAME', 'Metabase Username', false, 'your-email@example.com')}
-                {renderInput('METABASE_PASSWORD', 'Metabase Password', true, 'Enter your Metabase password')}
-                {renderInput('METABASE_SECRET_KEY', 'Metabase Secret Key (for embedding)', true, 'Enter embedding secret key from Metabase settings')}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">How to get Metabase Secret Key:</h4>
-                  <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                    <li>Go to Metabase Admin → Settings → Embedding</li>
-                    <li>Enable "Embedded analytics"</li>
-                    <li>Copy the "Embedding secret key"</li>
-                    <li>Paste it here</li>
-                  </ol>
-                </div>
-                <div className="pt-4">
-                  <Button onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              <Separator />
 
-          <TabsContent value="firebase">
-            <Card>
-              <CardHeader>
-                <CardTitle>Firebase Authentication Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderInput('FIREBASE_PROJECT_ID', 'Firebase Project ID', false, 'your-project-id')}
-                {renderInput('FIREBASE_CLIENT_EMAIL', 'Firebase Client Email', false, 'firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com')}
-                {renderInput('FIREBASE_PRIVATE_KEY_BASE64', 'Firebase Private Key (Base64)', true, 'Base64 encoded private key')}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">How to get Firebase credentials:</h4>
-                  <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                    <li>Go to Firebase Console → Project Settings → Service Accounts</li>
-                    <li>Click "Generate new private key"</li>
-                    <li>Download the JSON file</li>
-                    <li>Extract project_id, client_email, and private_key</li>
-                    <li>Encode private_key to Base64: <code className="bg-blue-100 px-1 rounded">echo "YOUR_KEY" | base64</code></li>
-                  </ol>
-                </div>
-                <div className="pt-4">
-                  <Button onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="database">
-            <Card>
-              <CardHeader>
-                <CardTitle>Database Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderInput('DATABASE_URL', 'Database URL', true, 'postgresql://user:password@host:port/database')}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-yellow-900 mb-2">⚠️ Warning:</h4>
-                  <p className="text-sm text-yellow-800">
-                    Changing the database URL will affect all data access. Ensure the new database is properly configured and migrated before changing this value.
+              {/* Firebase Admin SDK Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  🔐 Firebase Admin SDK (Backend Auth)
+                  {settings.firebaseAdminConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="p-3 rounded-lg bg-orange-50 border border-orange-200">
+                  <p className="text-xs text-orange-800 font-medium mb-1">⚠️ Critical Security Credentials</p>
+                  <p className="text-xs text-orange-700">
+                    These credentials enable backend authentication. Changes will reload the Firebase Admin SDK immediately.
+                    All API requests will be re-authenticated with new credentials.
                   </p>
                 </div>
-                <div className="pt-4">
-                  <Button onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAdminProjectId">Project ID</Label>
+                  <Input
+                    id="firebaseAdminProjectId"
+                    type="text"
+                    placeholder={settings.firebaseAdminProjectId || 'e.g., my-project-id'}
+                    value={credentials.firebaseAdminProjectId}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAdminProjectId: e.target.value })}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="other">
-            <Card>
-              <CardHeader>
-                <CardTitle>Other Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderInput('CONFIG_ENCRYPTION_KEY', 'Config Encryption Key', true, '32-character encryption key')}
-                {renderInput('DISCORD_WEBHOOK_URL', 'Discord Webhook URL (Optional)', true, 'https://discord.com/api/webhooks/...')}
-                <div className="pt-4">
-                  <Button onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAdminClientEmail" className="flex items-center gap-2">
+                    Client Email
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <Input
+                    id="firebaseAdminClientEmail"
+                    type="text"
+                    placeholder={settings.firebaseAdminClientEmail || 'firebase-adminsdk-xxxxx@project.iam.gserviceaccount.com'}
+                    value={credentials.firebaseAdminClientEmail}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAdminClientEmail: e.target.value })}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                <div className="space-y-2">
+                  <Label htmlFor="firebaseAdminPrivateKey" className="flex items-center gap-2">
+                    Private Key
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <textarea
+                    id="firebaseAdminPrivateKey"
+                    className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono text-xs"
+                    placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                    value={credentials.firebaseAdminPrivateKey}
+                    onChange={(e) => setCredentials({ ...credentials, firebaseAdminPrivateKey: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Paste the entire private key including BEGIN/END markers. Keep \n characters.
+                  </p>
+                </div>
+              </div>
 
-        <Card className="mt-6 bg-green-50 border-green-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-green-900 mb-1">After Saving Changes</h3>
-                <p className="text-sm text-green-800">
-                  Environment variables are saved to the database. To apply changes, you must restart the backend server.
-                  Contact your system administrator or redeploy the backend application.
-                </p>
+              <Separator />
+
+              {/* Google Sheets Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  📋 Google Sheets (Export)
+                  {settings.googleSheetsConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="googleSheetsUrl">Spreadsheet URL</Label>
+                  <Input
+                    id="googleSheetsUrl"
+                    type="url"
+                    placeholder={settings.googleSheetsUrl || 'Enter Google Sheets URL'}
+                    value={credentials.googleSheetsUrl}
+                    onChange={(e) => setCredentials({ ...credentials, googleSheetsUrl: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="googleSheetsApiKey" className="flex items-center gap-2">
+                    API Key / Service Account
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <Input
+                    id="googleSheetsApiKey"
+                    type="password"
+                    placeholder={settings.googleSheetsConfigured ? '********' : 'Enter API key or service account JSON'}
+                    value={credentials.googleSheetsApiKey}
+                    onChange={(e) => setCredentials({ ...credentials, googleSheetsApiKey: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="googleAppsScriptUrl">Apps Script Web App URL</Label>
+                  <Input
+                    id="googleAppsScriptUrl"
+                    type="url"
+                    placeholder={settings.googleAppsScriptUrl || 'e.g., https://script.google.com/macros/s/.../exec'}
+                    value={credentials.googleAppsScriptUrl}
+                    onChange={(e) => setCredentials({ ...credentials, googleAppsScriptUrl: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    For pushing data to Google Sheets via Apps Script
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Database Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  🗄️ Database (Supabase)
+                  <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                </h4>
+                <div className="p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Provider:</strong> Supabase (PostgreSQL)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>Host:</strong> db.tvckhedkcosjvdyafzia.supabase.co
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>Status:</strong> Active (Free tier - unlimited API calls)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Data syncs automatically every Friday at 4:30 PM IST.
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Groq AI Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  🤖 Groq AI (Chatbot)
+                  {settings.groqConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="groqApiKey" className="flex items-center gap-2">
+                    API Key
+                    <Badge variant="outline" className="text-xs">Encrypted</Badge>
+                  </Label>
+                  <Input
+                    id="groqApiKey"
+                    type="password"
+                    placeholder={settings.groqApiKey || 'Enter Groq API key'}
+                    value={credentials.groqApiKey}
+                    onChange={(e) => setCredentials({ ...credentials, groqApiKey: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Free tier available at{' '}
+                    <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      console.groq.com
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Discord Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  💬 Discord (Notifications)
+                  {settings.discordConfigured && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Connected</Badge>
+                  )}
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="discordWebhookUrl">Webhook URL</Label>
+                  <Input
+                    id="discordWebhookUrl"
+                    type="url"
+                    placeholder={settings.discordWebhookUrl || 'https://discord.com/api/webhooks/...'}
+                    value={credentials.discordWebhookUrl}
+                    onChange={(e) => setCredentials({ ...credentials, discordWebhookUrl: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Weekly report notifications sent every Friday at 5pm IST.
+                    Reminder to add engineer hours sent at 2pm IST.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    setIsTestingDiscord(true);
+                    try {
+                      const res = await fetch(`${API_BASE_URL}/api/discord/test`, { method: 'POST' });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success('Discord test message sent! Check your channel.');
+                      } else {
+                        toast.error(data.message || 'Discord test failed');
+                      }
+                    } catch {
+                      toast.error('Failed to test Discord connection');
+                    } finally {
+                      setIsTestingDiscord(false);
+                    }
+                  }}
+                  disabled={isTestingDiscord}
+                  className="gap-2"
+                >
+                  {isTestingDiscord ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Test Discord Connection
+                </Button>
+              </div>
+
+              <Button
+                onClick={handleSaveCredentials}
+                disabled={updateMutation.isPending}
+                className="w-full mt-4"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Save Credentials Securely
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Activity Logs Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Activity Logs
+              </CardTitle>
+              <CardDescription>
+                Immutable audit trail of system activities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingLogs ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse h-16 bg-muted rounded" />
+                  ))}
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No activity logs yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {logs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-3 rounded-lg bg-muted/50 border"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {log.activityType}
+                            </Badge>
+                          </div>
+                          <p className="text-sm mt-1 truncate">{log.description}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleString('en-IN', { 
+                            timeZone: 'Asia/Kolkata',
+                            dateStyle: 'short',
+                            timeStyle: 'short'
+                          })}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 font-mono">
+                        ID: {log.id}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Confirmation Dialog with Summary */}
+        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Confirm Credential Update
+              </DialogTitle>
+              <DialogDescription>
+                Review the changes below carefully. This action will be logged in the audit trail.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-4">
+              {/* Firebase Admin SDK Warning */}
+              {(pendingCredentials.firebaseAdminProjectId || 
+                pendingCredentials.firebaseAdminClientEmail || 
+                pendingCredentials.firebaseAdminPrivateKey) && (
+                <div className="p-4 rounded-lg bg-red-50 border-2 border-red-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-red-900">
+                        🔐 Critical: Firebase Admin SDK Update
+                      </p>
+                      <p className="text-xs text-red-800">
+                        Updating Firebase Admin credentials will:
+                      </p>
+                      <ul className="text-xs text-red-800 space-y-1 ml-4 list-disc">
+                        <li>Immediately reload the Firebase Admin SDK</li>
+                        <li>Re-authenticate all future API requests</li>
+                        <li>Affect backend authentication for all users</li>
+                        <li>Take effect within seconds of saving</li>
+                      </ul>
+                      <p className="text-xs text-red-900 font-medium mt-2">
+                        ⚠️ Ensure credentials are correct to avoid authentication failures!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Changes Summary */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold">Changes to be applied:</h4>
+                <div className="grid gap-2">
+                  {Object.entries(pendingCredentials).map(([key, value]) => {
+                    const isFirebaseAdmin = key.startsWith('firebaseAdmin');
+                    const isSensitive = key.toLowerCase().includes('key') || 
+                                       key.toLowerCase().includes('password') ||
+                                       key.toLowerCase().includes('private');
+                    
+                    return (
+                      <div 
+                        key={key} 
+                        className={`flex items-start gap-3 p-3 rounded-lg border ${
+                          isFirebaseAdmin ? 'bg-orange-50 border-orange-200' : 'bg-muted/50'
+                        }`}
+                      >
+                        <CheckCircle2 className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+                          isFirebaseAdmin ? 'text-orange-600' : 'text-green-600'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">
+                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                            {isFirebaseAdmin && (
+                              <Badge variant="outline" className="ml-2 text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                Backend Auth
+                              </Badge>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
+                            {isSensitive 
+                              ? '••••••••' + (value as string).slice(-4)
+                              : (value as string).length > 50 
+                                ? (value as string).slice(0, 50) + '...'
+                                : value
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Security Notice */}
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <div className="flex items-start gap-2">
+                  <Shield className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="text-xs text-blue-800">
+                    <p className="font-medium mb-1">Security & Audit</p>
+                    <ul className="space-y-1 ml-4 list-disc">
+                      <li>All credentials are encrypted with AES-256</li>
+                      <li>This action will be logged in the audit trail</li>
+                      <li>Configuration cache will be cleared</li>
+                      <li>Changes take effect immediately</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowConfirmDialog(false)}
+                disabled={updateMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmSave} 
+                disabled={updateMutation.isPending}
+                className="gap-2"
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4" />
+                    Confirm & Save Securely
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        </div>
       </div>
     </div>
   );

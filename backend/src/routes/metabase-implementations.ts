@@ -31,22 +31,34 @@ export async function registerMetabaseImplementationsRoutes(fastify: FastifyInst
       const endpoint = `/api/card/${questionId}/query/json`;
       const rawData = await (metabase as any).executeRequest(endpoint, 'POST') as (string | number)[][];
       
+      logger.info({ 
+        rawDataLength: rawData?.length, 
+        firstRow: rawData?.[0],
+        sampleRow: rawData?.[1] 
+      }, 'Raw Metabase data received');
+      
       // Transform the data
-      // Skip first row if it contains headers
+      // Metabase Question 816 columns (based on screenshot):
+      // [0] Sl.No, [1] Organisation, [2] Sector, [3] Program, [4] For, [5] Website
+      // We need to map these correctly
       const dataRows = Array.isArray(rawData) && rawData.length > 0 ? rawData : [];
       
-      const implementations = dataRows.map((row: any[]) => {
-        // Map columns based on Metabase question structure
-        // Adjust indices based on actual column order
+      const implementations = dataRows.map((row: any[], index: number) => {
+        // Based on the Metabase table screenshot:
+        // Column 1: Organisation name
+        // Column 2: Sector (e.g., Health, Water)
+        // Column 3: Program name
+        // Column 4: For (e.g., Self, M.P. Government)
+        // Column 5: Website URL
         return {
-          organisation_name: row[0] || 'Unknown',
-          state: row[1] || 'Unknown',
-          district: row[2] || 'Unknown',
+          organisation_name: row[1] || 'Unknown',
+          state: 'India', // Not in the data, default to India
+          district: row[2] || 'Unknown', // Using Sector as district for now
           project_name: row[3] || 'Unknown',
-          start_date: row[4] || new Date().toISOString(),
-          status: row[5] || 'Active',
-          users_count: Number(row[6]) || 0,
-          subjects_count: Number(row[7]) || 0,
+          start_date: new Date().toISOString(), // Not in the data
+          status: 'Active',
+          users_count: 0, // Not in this question
+          subjects_count: Number(row[0]) || index + 1, // Using Sl.No as a placeholder
         };
       });
       
