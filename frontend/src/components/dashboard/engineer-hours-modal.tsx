@@ -49,34 +49,46 @@ async function saveEngineerHour(data: {
   return res.json();
 }
 
-// Check if current week entry is unlocked (Friday 1PM IST)
+// Check if current week entry is unlocked
+// Unlocks: Friday 1PM IST
+// Locks: Friday 9PM IST (if data pushed to sheet) OR next Friday 1PM (if not pushed)
 function isCurrentWeekUnlocked(): boolean {
   const now = new Date();
   const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const dayOfWeek = istTime.getDay(); // 5 = Friday
   const hours = istTime.getHours();
   
-  // Unlocked if it's Friday (5) and after 1 PM (13:00)
-  return dayOfWeek === 5 && hours >= 13;
+  // Unlocked if it's Friday and between 1 PM (13:00) and 9 PM (21:00)
+  // After 9PM Friday, it locks (assuming data was pushed)
+  if (dayOfWeek === 5) {
+    return hours >= 13 && hours < 21;
+  }
+  
+  // Unlocked on Saturday if data was NOT pushed (allows late entry)
+  // This will be handled by backend check
+  return dayOfWeek === 6; // Allow Saturday entry if needed
 }
 
-// Get time until Friday 1PM IST
+// Get time until unlock
 function getTimeUntilUnlock(): string {
   const now = new Date();
   const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const dayOfWeek = istTime.getDay();
   const hours = istTime.getHours();
   
-  if (dayOfWeek === 5 && hours >= 13) return 'Unlocked';
+  if (dayOfWeek === 5 && hours >= 13 && hours < 21) return 'Unlocked';
+  if (dayOfWeek === 6) return 'Unlocked (late entry)';
   
   // Calculate next Friday 1PM IST
   let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
   if (daysUntilFriday === 0 && hours < 13) {
-    // It's Friday but before 1PM
     const hoursLeft = 13 - hours;
     return `${hoursLeft}h until unlock`;
   }
-  if (daysUntilFriday === 0) daysUntilFriday = 7; // Next week Friday
+  if (daysUntilFriday === 0 && hours >= 21) {
+    return '6 days until next Friday 1PM IST';
+  }
+  if (daysUntilFriday === 0) daysUntilFriday = 7;
   
   return `${daysUntilFriday} days until Friday 1PM IST`;
 }

@@ -201,6 +201,10 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
 
         logger.info({ snapshotId, totalHours }, 'Weekly report pushed to Google Sheet');
 
+        // Mark report as pushed to stop hourly reminders
+        const { markWeeklyReportPushed } = await import('../jobs/scheduler');
+        markWeeklyReportPushed();
+
         // Send Discord notification after successful Google Sheets push
         let discordSent = false;
         try {
@@ -238,6 +242,7 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
           message: 'Report pushed to Google Sheet successfully',
           rowsAppended: result.rowsAppended,
           discordNotificationSent: discordSent,
+          weeklyReportPushed: true,
         });
       } catch (error) {
         logger.error({ error }, 'Failed to push weekly report to Google Sheets');

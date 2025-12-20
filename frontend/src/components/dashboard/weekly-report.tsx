@@ -350,6 +350,17 @@ Pending: ${psPending}`;
         } else {
           toast.success('Report pushed to Google Sheet successfully!');
         }
+        
+        // Auto-advance to next week after successful push
+        if (json.weeklyReportPushed) {
+          // Move to next week (previous week in dropdown)
+          const weekOptions = getWeekOptions();
+          if (weekOptions.length > 1) {
+            // Select the second option (previous week)
+            setSelectedWeek(weekOptions[1].value);
+            toast.info('Week dropdown moved to next week');
+          }
+        }
       } else {
         const json = await res.json();
         toast.error(json.error || 'Failed to push to Google Sheet');
