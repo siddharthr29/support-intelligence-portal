@@ -36,8 +36,9 @@ async function seedImplementations() {
     // Insert new data
     console.log('Inserting implementations...');
     for (const row of result.data) {
-      if (!row.organisation_name || !row.sector || !row.project_name) {
-        console.warn('Skipping row with missing data:', row);
+      // Skip only if organisation_name is missing (most critical field)
+      if (!row.organisation_name || !row.organisation_name.trim()) {
+        console.warn('Skipping row with missing organisation_name:', row);
         continue;
       }
       
@@ -45,8 +46,8 @@ async function seedImplementations() {
         data: {
           slNo: parseInt(row.sl_no) || 0,
           organisationName: row.organisation_name.trim(),
-          sector: row.sector.trim(),
-          projectName: row.project_name.trim(),
+          sector: row.sector?.trim() || 'Not Specified',
+          projectName: row.project_name?.trim() || 'General Program',
           forType: row.for_type?.trim() || 'Self',
           website: row.website?.trim() || null,
           state: row.state?.trim() || 'Unknown',
