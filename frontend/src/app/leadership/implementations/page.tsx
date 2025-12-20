@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ResponsiveTable } from '@/components/ui/responsive-table';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { useDebounce } from '@/hooks/useDebounce';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client';
 import { 
   Building2, 
@@ -63,7 +66,6 @@ export default function ImplementationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [stateStats, setStateStats] = useState<Record<string, number>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingImpl, setEditingImpl] = useState<Implementation | null>(null);
   const [formData, setFormData] = useState<Partial<Implementation>>({});
@@ -72,32 +74,35 @@ export default function ImplementationsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Debounce search for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   useEffect(() => {
     fetchImplementations();
   }, []);
 
-  const fetchImplementations = async () => {
+  const fetchImplementations = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiGet('/api/implementations');
       const data = response.data.implementations || [];
       setImplementations(data);
-      calculateStateStats(data);
     } catch (error) {
       console.error('Failed to load implementations:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const calculateStateStats = (data: Implementation[]) => {
+  // Memoize state stats calculation
+  const stateStats = useMemo(() => {
     const stats: Record<string, number> = {};
-    data.forEach(impl => {
+    implementations.forEach(impl => {
       const state = impl.state || 'Unknown';
       stats[state] = (stats[state] || 0) + 1;
     });
-    setStateStats(stats);
-  };
+    return stats;
+  }, [implementations]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -218,30 +223,33 @@ export default function ImplementationsPage() {
     alert('Map link copied to clipboard!');
   };
 
-  const filteredImplementations = implementations.filter(impl => {
-    const query = searchQuery.toLowerCase();
-    return (
+  // Memoize filtered and sorted implementations
+  const filteredImplementations = useMemo(() => {
+    const query = debouncedSearchQuery.toLowerCase();
+    return implementations.filter(impl => (
       impl.organisationName.toLowerCase().includes(query) ||
       impl.sector.toLowerCase().includes(query) ||
       impl.projectName.toLowerCase().includes(query) ||
       impl.forType.toLowerCase().includes(query) ||
       impl.state.toLowerCase().includes(query) ||
       (impl.website && impl.website.toLowerCase().includes(query))
-    );
-  });
+    ));
+  }, [implementations, debouncedSearchQuery]);
 
-  const sortedImplementations = [...filteredImplementations].sort((a, b) => {
-    if (!sortField || !sortDirection) return 0;
+  const sortedImplementations = useMemo(() => {
+    if (!sortField || !sortDirection) return filteredImplementations;
     
-    const aValue = a[sortField] || '';
-    const bValue = b[sortField] || '';
-    
-    if (sortDirection === 'asc') {
-      return aValue.toString().localeCompare(bValue.toString());
-    } else {
-      return bValue.toString().localeCompare(aValue.toString());
-    }
-  });
+    return [...filteredImplementations].sort((a, b) => {
+      const aValue = a[sortField] || '';
+      const bValue = b[sortField] || '';
+      
+      if (sortDirection === 'asc') {
+        return aValue.toString().localeCompare(bValue.toString());
+      } else {
+        return bValue.toString().localeCompare(aValue.toString());
+      }
+    });
+  }, [filteredImplementations, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -275,10 +283,11 @@ export default function ImplementationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <LeadershipNavigation />
-      
-      <div className="container mx-auto p-6">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        
+        <div className="container mx-auto p-4 sm:p-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">All Avni Implementations</h1>
           <p className="text-gray-600">
@@ -375,9 +384,8 @@ export default function ImplementationsPage() {
             </p>
 
             {viewMode === 'table' && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+              <ResponsiveTable>
+                  <table className="w-full min-w-[800px]">
                     <thead className="bg-gray-50 border-b">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -485,8 +493,7 @@ export default function ImplementationsPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
+              </ResponsiveTable>
             )}
 
             {viewMode === 'map' && (
@@ -712,6 +719,7 @@ export default function ImplementationsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
