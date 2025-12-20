@@ -1,185 +1,174 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiGet } from '@/lib/api-client';
+import { LeadershipNavigation } from '@/components/leadership/navigation';
+import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface UserRoles {
-  support_engineer: boolean;
-  product_manager: boolean;
-  leadership: boolean;
-  founder: boolean;
-}
-
-interface DataRange {
-  earliest_date: string;
-  latest_date: string;
-  total_tickets: number;
-  years_available: number[];
-  coverage: string;
+interface MetricsSummary {
+  long_unresolved_blockers: number;
+  data_loss_incidents: number;
+  how_to_volume: number;
+  training_requests: number;
+  sla_breaches: number;
+  current_backlog: number;
+  total_tickets_30d: number;
+  avg_resolution_hours: number;
 }
 
 export default function LeadershipDashboard() {
-  const router = useRouter();
-  const [roles, setRoles] = useState<UserRoles | null>(null);
-  const [dataRange, setDataRange] = useState<DataRange | null>(null);
+  const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function checkAccess() {
+    async function loadData() {
       try {
-        // Check user roles
-        const rolesResponse = await apiGet('/api/leadership/user/roles');
-        const userRoles = rolesResponse.data.roles;
-        
-        // Verify leadership or founder access
-        if (!userRoles.leadership && !userRoles.founder) {
-          setError('Leadership access required. Please contact your administrator.');
-          setLoading(false);
-          return;
-        }
-
-        setRoles(userRoles);
-
-        // Get data range
-        const rangeResponse = await apiGet('/api/leadership/data-range');
-        setDataRange(rangeResponse.data);
-
-        setLoading(false);
+        const response = await apiGet('/api/leadership/metrics/summary');
+        setMetrics(response.data);
       } catch (err) {
-        console.error('Failed to load leadership dashboard:', err);
-        setError('Failed to load dashboard. Please try again.');
+        console.error('Failed to load metrics:', err);
+      } finally {
         setLoading(false);
       }
     }
-
-    checkAccess();
+    loadData();
   }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading leadership intelligence...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md">
-          <div className="text-destructive text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Return to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Leadership Intelligence</h1>
-        <p className="text-muted-foreground">
-          Partner-aware support intelligence for founders and leadership
-        </p>
-      </div>
-
-      {/* User Info */}
-      <div className="bg-card rounded-lg border p-4 mb-6">
-        <h2 className="text-sm font-medium text-muted-foreground mb-2">Your Access Level</h2>
-        <div className="flex gap-2">
-          {roles?.founder && (
-            <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-              Founder
-            </span>
-          )}
-          {roles?.leadership && (
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-              Leadership
-            </span>
-          )}
-          {roles?.product_manager && (
-            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-              Product Manager
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Data Coverage */}
-      {dataRange && (
-        <div className="bg-card rounded-lg border p-4 mb-6">
-          <h2 className="text-sm font-medium text-muted-foreground mb-2">Data Coverage</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-2xl font-bold">{dataRange.total_tickets.toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground">Total Tickets</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{dataRange.years_available.length}</p>
-              <p className="text-sm text-muted-foreground">Years Available</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">{dataRange.coverage}</p>
-              <p className="text-sm text-muted-foreground">Date Range</p>
-            </div>
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        <div className="container mx-auto p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
           </div>
         </div>
-      )}
-
-      {/* Feature Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-lg border p-6 hover:border-primary cursor-pointer" onClick={() => router.push('/leadership/partners')}>
-          <h3 className="text-lg font-semibold mb-2">Partner Risk Metrics</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Identify partners with operational risks, data loss patterns, and adoption challenges
-          </p>
-          <button className="text-sm text-primary font-medium">View Partners →</button>
-        </div>
-
-        <div className="bg-card rounded-lg border p-6 hover:border-primary cursor-pointer" onClick={() => router.push('/leadership/metrics')}>
-          <h3 className="text-lg font-semibold mb-2">Social Sector Metrics</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Program risk, adoption signals, platform reliability, and support capacity metrics
-          </p>
-          <button className="text-sm text-primary font-medium">View Metrics →</button>
-        </div>
-
-        <div className="bg-card rounded-lg border p-6">
-          <h3 className="text-lg font-semibold mb-2">Action Playbooks</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            8 automated playbooks for signal detection and intervention
-          </p>
-          <div className="text-sm text-green-600 font-medium">✓ Active in Database</div>
-        </div>
-
-        <div className="bg-card rounded-lg border p-6 hover:border-primary cursor-pointer" onClick={() => router.push('/leadership/summary')}>
-          <h3 className="text-lg font-semibold mb-2">Weekly Founder Summary</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Low-noise, high-signal weekly intelligence summary with top risks and recommended actions
-          </p>
-          <button className="text-sm text-primary font-medium">View Summary →</button>
-        </div>
       </div>
+    );
+  }
 
-      {/* Phase 1 Complete Notice */}
-      <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-4">
-        <h3 className="text-green-800 font-semibold mb-2">✅ Phase 1 Complete: Authentication & Access</h3>
-        <p className="text-green-700 text-sm">
-          Role-based access control is now active. Leadership and founder roles can access this dashboard.
-          Support engineers will continue using the existing operational dashboards without any changes.
-        </p>
+  const criticalAlerts = [
+    metrics && metrics.sla_breaches > 0 && {
+      type: 'critical',
+      message: `${metrics.sla_breaches} SLA breaches in last 24h`,
+      icon: AlertCircle,
+    },
+    metrics && metrics.data_loss_incidents > 0 && {
+      type: 'critical',
+      message: `${metrics.data_loss_incidents} data loss incidents (30d)`,
+      icon: AlertTriangle,
+    },
+    metrics && metrics.long_unresolved_blockers > 0 && {
+      type: 'warning',
+      message: `${metrics.long_unresolved_blockers} long-unresolved blockers (>7d)`,
+      icon: Clock,
+    },
+  ].filter(Boolean);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <LeadershipNavigation />
+      
+      <div className="container mx-auto p-6">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Executive Overview</h1>
+          <p className="text-gray-600">Real-time support intelligence and partner health metrics</p>
+        </div>
+
+        {/* Critical Alerts */}
+        {criticalAlerts.length > 0 && (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 className="text-red-900 font-semibold mb-3 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Critical Alerts
+            </h3>
+            <div className="space-y-2">
+              {criticalAlerts.map((alert: any, idx) => {
+                const Icon = alert.icon;
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-sm text-red-800">
+                    <Icon className="h-4 w-4" />
+                    {alert.message}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Active Tickets</span>
+              <Users className="h-5 w-5 text-gray-400" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900">{metrics?.total_tickets_30d || 0}</div>
+            <p className="text-sm text-gray-500 mt-1">Last 30 days</p>
+          </div>
+
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Current Backlog</span>
+              <TrendingUp className="h-5 w-5 text-orange-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900">{metrics?.current_backlog || 0}</div>
+            <p className="text-sm text-gray-500 mt-1">Unresolved tickets</p>
+          </div>
+
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Avg Resolution</span>
+              <Clock className="h-5 w-5 text-blue-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900">
+              {metrics?.avg_resolution_hours ? Math.round(metrics.avg_resolution_hours) : 0}h
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Time to resolve</p>
+          </div>
+
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Critical Issues</span>
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="text-3xl font-bold text-red-600">
+              {(metrics?.sla_breaches || 0) + (metrics?.data_loss_incidents || 0)}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Needs attention</p>
+          </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <a href="/leadership/partners" className="bg-white rounded-lg border p-6 hover:border-green-600 hover:shadow-md transition-all">
+            <h3 className="text-lg font-semibold mb-2">Partner Health</h3>
+            <p className="text-gray-600 text-sm mb-4">
+              View partner risk scores, engagement patterns, and operational health metrics
+            </p>
+            <span className="text-green-600 font-medium text-sm">View Partners →</span>
+          </a>
+
+          <a href="/leadership/metrics" className="bg-white rounded-lg border p-6 hover:border-green-600 hover:shadow-md transition-all">
+            <h3 className="text-lg font-semibold mb-2">Deep Analytics</h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Program risk, adoption signals, platform reliability, and capacity metrics
+            </p>
+            <span className="text-green-600 font-medium text-sm">View Metrics →</span>
+          </a>
+
+          <a href="/leadership/summary" className="bg-white rounded-lg border p-6 hover:border-green-600 hover:shadow-md transition-all">
+            <h3 className="text-lg font-semibold mb-2">Weekly Summary</h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Executive intelligence summary with top risks and recommended actions
+            </p>
+            <span className="text-green-600 font-medium text-sm">View Summary →</span>
+          </a>
+        </div>
       </div>
     </div>
   );
