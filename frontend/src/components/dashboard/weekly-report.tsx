@@ -166,7 +166,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
 
   const generateReport = (): string => {
     if (weekStatsError) return `Error loading data: ${String(weekStatsError)}`;
-    if (!weekStats) return isWeekStatsLoading ? '' : 'No data available. Check console for errors.';
+    if (!weekStats) return isWeekStatsLoading ? 'Loading week data...' : 'No data available. Check console for errors.';
 
     // Week runs Friday 5pm to Friday 5pm
     const weekStartDate = effectiveWeekStartDate;
