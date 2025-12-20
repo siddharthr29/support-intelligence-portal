@@ -34,10 +34,13 @@ export function initializeFirebaseAdmin(): admin.app.App {
 
     firebaseApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      projectId: serviceAccount.projectId, // Explicitly set project ID
     });
 
-    logger.info('Firebase Admin SDK initialized successfully', {
+    logger.info('✅ Firebase Admin SDK initialized successfully', {
       projectId: serviceAccount.projectId,
+      clientEmail: serviceAccount.clientEmail,
+      hasPrivateKey: !!serviceAccount.privateKey,
     });
 
     return firebaseApp;
