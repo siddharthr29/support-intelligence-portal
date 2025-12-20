@@ -52,11 +52,13 @@ export async function authMiddleware(
   // Require token
   if (!idToken) {
     logger.warn({ path }, 'No authentication token provided');
-    return reply.status(401).send({
+    reply.status(401).send({
       success: false,
       error: 'Unauthorized. Please provide a valid Firebase authentication token.',
       code: 'AUTH_TOKEN_MISSING',
     });
+    // CRITICAL: Throw error to stop Fastify from executing the route handler
+    throw new Error('AUTH_TOKEN_MISSING');
   }
 
   // Verify Firebase ID token
@@ -92,12 +94,15 @@ export async function authMiddleware(
       statusCode = 403;
     }
     
-    return reply.status(statusCode).send({
+    reply.status(statusCode).send({
       success: false,
       error: 'Authentication failed. Please log in again.',
       code: errorCode,
       details: process.env.NODE_ENV !== 'production' ? errorMessage : undefined,
     });
+    
+    // CRITICAL: Throw error to stop Fastify from executing the route handler
+    throw new Error(errorCode);
   }
 }
 
