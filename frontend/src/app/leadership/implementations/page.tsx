@@ -222,204 +222,34 @@ export default function ImplementationsPage() {
     
     setIsDownloading(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      
-      // Step 1: Capture Leaflet map as static image using leaflet-image or manual canvas capture
-      let mapSnapshotDataUrl: string | null = null;
-      const leafletMapContainer = mapRef.current.querySelector('.leaflet-container');
-      
-      if (leafletMapContainer) {
-        try {
-          // Use Leaflet's built-in canvas rendering if available
-          // @ts-ignore - Leaflet map instance
-          const leafletMap = (leafletMapContainer as any)._leaflet_map;
-          
-          if (leafletMap) {
-            // Create a temporary canvas to capture the map tiles
-            const mapCanvas = document.createElement('canvas');
-            const mapSize = leafletMap.getSize();
-            mapCanvas.width = mapSize.x;
-            mapCanvas.height = mapSize.y;
-            const ctx = mapCanvas.getContext('2d');
-            
-            if (ctx) {
-              // Fill with background
-              ctx.fillStyle = '#f3f4f6';
-              ctx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
-              
-              // Get all tile images from the map
-              const tiles = leafletMapContainer.querySelectorAll('.leaflet-tile-pane img');
-              const tilePromises: Promise<void>[] = [];
-              
-              tiles.forEach((tile: any) => {
-                if (tile.complete && tile.naturalWidth > 0) {
-                  const promise = new Promise<void>((resolve) => {
-                    try {
-                      const tileStyle = window.getComputedStyle(tile);
-                      const transform = tileStyle.transform;
-                      
-                      // Parse transform matrix to get position
-                      if (transform && transform !== 'none') {
-                        const matrix = transform.match(/matrix\((.+)\)/);
-                        if (matrix) {
-                          const values = matrix[1].split(', ');
-                          const x = parseFloat(values[4]);
-                          const y = parseFloat(values[5]);
-                          ctx.drawImage(tile, x, y, tile.width, tile.height);
-                        }
-                      }
-                    } catch (e) {
-                      // Skip tiles that fail to draw
-                    }
-                    resolve();
-                  });
-                  tilePromises.push(promise);
-                }
-              });
-              
-              await Promise.all(tilePromises);
-              
-              // Draw markers on top
-              const markers = leafletMapContainer.querySelectorAll('.leaflet-marker-icon');
-              markers.forEach((marker: any) => {
-                try {
-                  const markerStyle = window.getComputedStyle(marker);
-                  const transform = markerStyle.transform;
-                  
-                  if (transform && transform !== 'none') {
-                    const matrix = transform.match(/matrix\((.+)\)/);
-                    if (matrix) {
-                      const values = matrix[1].split(', ');
-                      const x = parseFloat(values[4]);
-                      const y = parseFloat(values[5]);
-                      
-                      // Draw a simple marker circle
-                      ctx.fillStyle = '#3b82f6';
-                      ctx.beginPath();
-                      ctx.arc(x + 12, y + 12, 8, 0, 2 * Math.PI);
-                      ctx.fill();
-                      ctx.strokeStyle = '#ffffff';
-                      ctx.lineWidth = 2;
-                      ctx.stroke();
-                    }
-                  }
-                } catch (e) {
-                  // Skip markers that fail to draw
-                }
-              });
-              
-              mapSnapshotDataUrl = mapCanvas.toDataURL('image/png');
-            }
-          }
-        } catch (mapError) {
-          console.warn('Failed to capture Leaflet map, using placeholder:', mapError);
-        }
-      }
-      
-      // Step 2: Clone the container and replace map with snapshot
-      const mapContainer = mapRef.current;
-      const clonedContainer = mapContainer.cloneNode(true) as HTMLElement;
-      
-      // Find and replace Leaflet map with static snapshot
-      const leafletContainers = clonedContainer.querySelectorAll('.leaflet-container');
-      leafletContainers.forEach(container => {
-        const parent = container.parentElement;
-        if (parent) {
-          const placeholder = document.createElement('div');
-          placeholder.style.cssText = 'width: 100%; height: 600px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden;';
-          
-          if (mapSnapshotDataUrl) {
-            // Use captured map snapshot
-            const snapshotImg = document.createElement('img');
-            snapshotImg.src = mapSnapshotDataUrl;
-            snapshotImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-            placeholder.appendChild(snapshotImg);
-          } else {
-            // Fallback to text placeholder
-            placeholder.innerHTML = '<div style="text-align: center; color: #6b7280;"><h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Avni Implementations Map</h3><p style="font-size: 14px;">Interactive map view - see legend and state details below</p></div>';
-          }
-          
-          parent.replaceChild(placeholder, container);
-        }
+      // Call backend PDF generation endpoint
+      const currentUrl = window.location.href;
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/pdf/generate-map`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: currentUrl,
+        }),
       });
-      
-      // Step 3: Remove lab() colors
-      const allElements = clonedContainer.querySelectorAll('*');
-      allElements.forEach(element => {
-        const htmlElement = element as HTMLElement;
-        try {
-          const computedStyle = window.getComputedStyle(htmlElement);
-          
-          const hasLabColor = 
-            computedStyle.color?.includes('lab(') ||
-            computedStyle.backgroundColor?.includes('lab(') ||
-            computedStyle.borderColor?.includes('lab(') ||
-            computedStyle.outlineColor?.includes('lab(');
-          
-          if (hasLabColor) {
-            if (computedStyle.color?.includes('lab(')) htmlElement.style.color = '#000000';
-            if (computedStyle.backgroundColor?.includes('lab(')) htmlElement.style.backgroundColor = '#ffffff';
-            if (computedStyle.borderColor?.includes('lab(')) htmlElement.style.borderColor = '#e5e7eb';
-            if (computedStyle.outlineColor?.includes('lab(')) htmlElement.style.outlineColor = '#e5e7eb';
-          }
-        } catch (e) {
-          // Skip elements that cause errors
-        }
-      });
-      
-      // Step 4: Add Avni logo
-      const logoDiv = document.createElement('div');
-      logoDiv.style.cssText = 'position: absolute; top: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
-      const logoImg = document.createElement('img');
-      logoImg.src = '/avni-logo.png';
-      logoImg.style.cssText = 'height: 40px; width: auto;';
-      logoDiv.appendChild(logoImg);
-      
-      clonedContainer.style.position = 'relative';
-      clonedContainer.style.backgroundColor = '#ffffff';
-      clonedContainer.style.padding = '20px';
-      clonedContainer.insertBefore(logoDiv, clonedContainer.firstChild);
-      
-      // Step 5: Render off-screen
-      clonedContainer.style.position = 'absolute';
-      clonedContainer.style.left = '-9999px';
-      clonedContainer.style.top = '0';
-      document.body.appendChild(clonedContainer);
-      
-      await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Step 6: Capture with html2canvas
-      const canvas = await html2canvas(clonedContainer, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        allowTaint: true,
-        windowWidth: clonedContainer.scrollWidth,
-        windowHeight: clonedContainer.scrollHeight,
-      });
+      if (!response.ok) {
+        throw new Error(`PDF generation failed: ${response.statusText}`);
+      }
+
+      // Get PDF blob from response
+      const blob = await response.blob();
       
-      // Step 7: Cleanup
-      document.body.removeChild(clonedContainer);
-      
-      // Step 8: Generate PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
-      
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-      pdf.save(`avni-implementations-map-${new Date().toISOString().split('T')[0]}.pdf`);
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `avni-implementations-map-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download map:', error);
       alert(`Failed to download map: ${error instanceof Error ? error.message : 'Unknown error'}`);

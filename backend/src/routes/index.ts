@@ -24,6 +24,7 @@ import { registerMetabaseImplementationsRoutes } from './metabase-implementation
 import { registerMetabaseEmbedRoutes } from './metabase-embed';
 import { registerEnvironmentSettingsRoutes } from './environment-settings';
 import shareLinksRoutes from './share-links';
+import { pdfRoutes } from './pdf';
 
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerStatsRoutes(fastify);
@@ -51,4 +52,5 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerMetabaseEmbedRoutes(fastify);
   await registerEnvironmentSettingsRoutes(fastify);
   await shareLinksRoutes(fastify);
+  await pdfRoutes(fastify);
 }

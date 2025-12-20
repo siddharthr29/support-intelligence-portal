@@ -46,6 +46,7 @@
     "papaparse": "^5.5.3",
     "pino": "^8.17.0",
     "prisma": "^5.7.0",
+    "puppeteer": "^24.34.0",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0"
   },
