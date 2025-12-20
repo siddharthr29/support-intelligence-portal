@@ -138,38 +138,38 @@ export default function LeadershipDashboard() {
         </div>
       )}
 
-      {/* Coming Soon Sections */}
+      {/* Feature Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-lg border p-6">
+        <div className="bg-card rounded-lg border p-6 hover:border-primary cursor-pointer" onClick={() => router.push('/leadership/partners')}>
           <h3 className="text-lg font-semibold mb-2">Partner Risk Metrics</h3>
           <p className="text-muted-foreground text-sm mb-4">
             Identify partners with operational risks, data loss patterns, and adoption challenges
           </p>
-          <div className="text-sm text-muted-foreground italic">Coming in Phase 4</div>
+          <button className="text-sm text-primary font-medium">View Partners →</button>
         </div>
 
-        <div className="bg-card rounded-lg border p-6">
-          <h3 className="text-lg font-semibold mb-2">Program Health</h3>
+        <div className="bg-card rounded-lg border p-6 hover:border-primary cursor-pointer" onClick={() => router.push('/leadership/metrics')}>
+          <h3 className="text-lg font-semibold mb-2">Social Sector Metrics</h3>
           <p className="text-muted-foreground text-sm mb-4">
-            Track program-level metrics, deployment health, and geographic trends
+            Program risk, adoption signals, platform reliability, and support capacity metrics
           </p>
-          <div className="text-sm text-muted-foreground italic">Coming in Phase 4</div>
+          <button className="text-sm text-primary font-medium">View Metrics →</button>
         </div>
 
         <div className="bg-card rounded-lg border p-6">
           <h3 className="text-lg font-semibold mb-2">Action Playbooks</h3>
           <p className="text-muted-foreground text-sm mb-4">
-            Automated signal detection with recommended interventions and escalation workflows
+            8 automated playbooks for signal detection and intervention
           </p>
-          <div className="text-sm text-muted-foreground italic">Coming in Phase 6</div>
+          <div className="text-sm text-green-600 font-medium">✓ Active in Database</div>
         </div>
 
-        <div className="bg-card rounded-lg border p-6">
+        <div className="bg-card rounded-lg border p-6 hover:border-primary cursor-pointer" onClick={() => router.push('/leadership/summary')}>
           <h3 className="text-lg font-semibold mb-2">Weekly Founder Summary</h3>
           <p className="text-muted-foreground text-sm mb-4">
             Low-noise, high-signal weekly intelligence summary with top risks and recommended actions
           </p>
-          <div className="text-sm text-muted-foreground italic">Coming in Phase 7</div>
+          <button className="text-sm text-primary font-medium">View Summary →</button>
         </div>
       </div>
 
