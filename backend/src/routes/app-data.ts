@@ -44,6 +44,10 @@ export async function registerAppDataRoutes(fastify: FastifyInstance): Promise<v
     Querystring: { year?: string };
   }>('/api/app-data', {
     preHandler: async (request, reply) => {
+      // Apply authentication
+      const { authMiddleware } = await import('../middleware/auth');
+      await authMiddleware(request, reply);
+      
       // Apply rate limiting for year switches
       const { yearRateLimitMiddleware } = await import('../middleware/year-rate-limit');
       if (request.query.year) {

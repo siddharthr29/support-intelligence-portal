@@ -125,9 +125,8 @@ async function bootstrap(): Promise<void> {
       return payload;
     });
 
-    // SECURITY: Firebase Authentication middleware (global)
-    const { authMiddleware } = await import('./middleware/auth');
-    fastify.addHook('preHandler', authMiddleware);
+    // SECURITY: Firebase Authentication middleware will be applied per-route
+    // NOT globally to allow public endpoints like /health and /
 
     // SECURITY: Input sanitization hook
     fastify.addHook('preHandler', async (request) => {
@@ -180,6 +179,15 @@ async function bootstrap(): Promise<void> {
         message: 'An unexpected error occurred',
         statusCode: 500,
       });
+    });
+
+    // Root endpoint - completely public for Render health checks
+    fastify.get('/', async () => {
+      return {
+        status: 'ok',
+        service: 'Freshdesk Weekly Support Intelligence Platform',
+        version: '1.0.0',
+      };
     });
 
     fastify.get('/health', async () => {
