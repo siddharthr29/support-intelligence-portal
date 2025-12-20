@@ -45,20 +45,26 @@ export async function registerMetabaseImplementationsRoutes(fastify: FastifyInst
       
       const implementations = dataRows.map((row: any[], index: number) => {
         // Based on the Metabase table screenshot:
-        // Column 1: Organisation name
-        // Column 2: Sector (e.g., Health, Water)
-        // Column 3: Program name
-        // Column 4: For (e.g., Self, M.P. Government)
-        // Column 5: Website URL
+        // [0] Sl.No
+        // [1] Organisation name
+        // [2] Sector (e.g., Health, Water, Waste Management)
+        // [3] Program name
+        // [4] For (e.g., Self, M.P. Government, State NGOs Partnership)
+        // [5] Website URL
         return {
+          sl_no: Number(row[0]) || index + 1,
           organisation_name: row[1] || 'Unknown',
-          state: 'India', // Not in the data, default to India
-          district: row[2] || 'Unknown', // Using Sector as district for now
+          sector: row[2] || 'Unknown',
           project_name: row[3] || 'Unknown',
-          start_date: new Date().toISOString(), // Not in the data
+          for_type: row[4] || 'Self',
+          website: row[5] || null,
+          // Legacy fields for compatibility
+          state: 'India',
+          district: row[2] || 'Unknown',
+          start_date: new Date().toISOString(),
           status: 'Active',
-          users_count: 0, // Not in this question
-          subjects_count: Number(row[0]) || index + 1, // Using Sl.No as a placeholder
+          users_count: 0,
+          subjects_count: 0,
         };
       });
       
