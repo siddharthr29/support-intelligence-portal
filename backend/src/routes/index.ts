@@ -21,6 +21,7 @@ import { registerCleanupRoutes } from './cleanup';
 import { registerLeadershipRoutes } from './leadership';
 import { registerTicketRoutes } from './leadership/tickets';
 import { registerMetabaseImplementationsRoutes } from './metabase-implementations';
+import { registerMetabaseEmbedRoutes } from './metabase-embed';
 
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerStatsRoutes(fastify);
@@ -45,4 +46,5 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerLeadershipRoutes(fastify);
   await registerTicketRoutes(fastify);
   await registerMetabaseImplementationsRoutes(fastify);
+  await registerMetabaseEmbedRoutes(fastify);
 }

@@ -12,13 +12,19 @@ import { getPrismaClient } from '../../persistence/prisma-client';
 export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<void> {
   
   // Get ticket type distribution
-  fastify.get('/api/leadership/trends/ticket-types', {
+  fastify.get<{
+    Querystring: { startDate?: string; endDate?: string };
+  }>('/api/leadership/trends/ticket-types', {
     preHandler: [authMiddleware, requireLeadership],
   }, async (request, reply) => {
     const prisma = getPrismaClient();
 
     try {
-      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
+      const startDate = request.query.startDate 
+        ? new Date(request.query.startDate) 
+        : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const twelveMonthsAgo = startDate;
 
       // Categorize tickets by title and tags
       const ticketTypes = await prisma.$queryRaw<Array<any>>`
@@ -114,15 +120,21 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
   });
 
   // Get company-wise ticket breakdown
-  fastify.get('/api/leadership/trends/companies', {
+  fastify.get<{
+    Querystring: { startDate?: string; endDate?: string };
+  }>('/api/leadership/trends/companies', {
     preHandler: [authMiddleware, requireLeadership],
   }, async (request, reply) => {
     const prisma = getPrismaClient();
 
     try {
-      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
+      const startDate = request.query.startDate 
+        ? new Date(request.query.startDate) 
+        : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const twelveMonthsAgo = startDate;
+      const thirtyDaysAgo = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(endDate.getTime() - 60 * 24 * 60 * 60 * 1000);
 
       const companies = await prisma.$queryRaw<Array<any>>`
         SELECT 
@@ -181,13 +193,18 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
   });
 
   // Get tag analysis
-  fastify.get('/api/leadership/trends/tags', {
+  fastify.get<{
+    Querystring: { startDate?: string; endDate?: string };
+  }>('/api/leadership/trends/tags', {
     preHandler: [authMiddleware, requireLeadership],
   }, async (request, reply) => {
     const prisma = getPrismaClient();
 
     try {
-      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const startDate = request.query.startDate 
+        ? new Date(request.query.startDate) 
+        : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const twelveMonthsAgo = startDate;
 
       const tags = await prisma.$queryRaw<Array<any>>`
         SELECT 
@@ -220,13 +237,18 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
   });
 
   // Get timeline trends
-  fastify.get('/api/leadership/trends/timeline', {
+  fastify.get<{
+    Querystring: { startDate?: string; endDate?: string };
+  }>('/api/leadership/trends/timeline', {
     preHandler: [authMiddleware, requireLeadership],
   }, async (request, reply) => {
     const prisma = getPrismaClient();
 
     try {
-      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const startDate = request.query.startDate 
+        ? new Date(request.query.startDate) 
+        : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const twelveMonthsAgo = startDate;
 
       const timeline = await prisma.$queryRaw<Array<any>>`
         SELECT 

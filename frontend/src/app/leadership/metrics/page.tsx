@@ -39,7 +39,7 @@ export default function MetricsPage() {
         });
         const response = await apiGet(`/api/leadership/metrics/summary?${params}`);
         console.log('Metrics data loaded:', response.data);
-        setMetrics(response.data.summary);
+        setMetrics(response.data);
       } catch (err: any) {
         console.error('Failed to load metrics:', err);
       } finally {
