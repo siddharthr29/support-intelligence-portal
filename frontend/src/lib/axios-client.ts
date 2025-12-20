@@ -152,16 +152,39 @@ axiosInstance.interceptors.response.use(
 
     // Handle 401 Unauthorized
     if (status === 401) {
-      // Only logout if auth is ready (prevents bootstrap-time logouts)
-      if (isAuthReady()) {
-        console.error('[axios-client] 401 Unauthorized after auth ready - logging out');
+      // Check if user is actually logged in
+      const user = auth.currentUser;
+      
+      // Only logout if:
+      // 1. Auth is ready (not in bootstrap phase)
+      // 2. User is actually logged in (has a valid session)
+      // 3. Token refresh failed (backend rejected the token)
+      if (isAuthReady() && user) {
+        console.error('[axios-client] 401 Unauthorized with valid user - token may be invalid');
+        
+        // Try to refresh the token once before logging out
         try {
-          await auth.signOut();
-        } catch (signOutError) {
-          console.error('[axios-client] Failed to sign out:', signOutError);
+          const freshToken = await user.getIdToken(true);
+          if (freshToken) {
+            console.log('[axios-client] Token refreshed successfully, retry the request');
+            // Don't logout - let the request retry with new token
+            return Promise.reject(error);
+          }
+        } catch (tokenError) {
+          console.error('[axios-client] Token refresh failed - logging out:', tokenError);
+          try {
+            await auth.signOut();
+          } catch (signOutError) {
+            console.error('[axios-client] Failed to sign out:', signOutError);
+          }
+          // Redirect to login
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
         }
-        // Redirect to login
-        if (typeof window !== 'undefined') {
+      } else if (!user) {
+        console.warn('[axios-client] 401 but no user logged in - redirecting to login');
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
       } else {

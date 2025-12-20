@@ -39,10 +39,14 @@ export async function authMiddleware(
     ? authHeader.substring(7) 
     : null;
 
-  // For development, allow requests without auth if Firebase is not configured
-  if (process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_PROJECT_ID) {
-    logger.debug({ path }, 'Development mode: Firebase not configured, allowing request');
-    return;
+  // Check if Firebase Admin is configured
+  if (!process.env.FIREBASE_PROJECT_ID) {
+    logger.error({ path }, 'Firebase Admin not configured - missing FIREBASE_PROJECT_ID');
+    return reply.status(500).send({
+      success: false,
+      error: 'Authentication service not configured',
+      code: 'AUTH_SERVICE_UNAVAILABLE',
+    });
   }
 
   // Require token
