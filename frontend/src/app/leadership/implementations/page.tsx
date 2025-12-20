@@ -224,38 +224,57 @@ export default function ImplementationsPage() {
     try {
       const { default: jsPDF } = await import('jspdf');
       
-      // Add Avni logo before capturing
+      // Clone the map container to avoid iframe issues
+      const mapContainer = mapRef.current;
+      const clonedContainer = mapContainer.cloneNode(true) as HTMLElement;
+      
+      // Remove Leaflet map elements that cause iframe issues
+      const leafletContainers = clonedContainer.querySelectorAll('.leaflet-container');
+      leafletContainers.forEach(container => {
+        const parent = container.parentElement;
+        if (parent) {
+          // Replace with static placeholder
+          const placeholder = document.createElement('div');
+          placeholder.style.cssText = 'width: 100%; height: 600px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; border-radius: 8px;';
+          placeholder.innerHTML = '<div style="text-align: center; color: #6b7280;"><h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Avni Implementations Map</h3><p style="font-size: 14px;">Interactive map view - see legend and state details below</p></div>';
+          parent.replaceChild(placeholder, container);
+        }
+      });
+      
+      // Add Avni logo
       const logoDiv = document.createElement('div');
       logoDiv.style.cssText = 'position: absolute; top: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
-      
-      // Use actual Avni logo image
       const logoImg = document.createElement('img');
       logoImg.src = '/avni-logo.png';
       logoImg.style.cssText = 'height: 40px; width: auto;';
       logoDiv.appendChild(logoImg);
       
-      mapRef.current.style.position = 'relative';
-      mapRef.current.insertBefore(logoDiv, mapRef.current.firstChild);
+      clonedContainer.style.position = 'relative';
+      clonedContainer.style.backgroundColor = '#ffffff';
+      clonedContainer.style.padding = '20px';
+      clonedContainer.insertBefore(logoDiv, clonedContainer.firstChild);
+      
+      // Temporarily add to DOM for rendering
+      clonedContainer.style.position = 'absolute';
+      clonedContainer.style.left = '-9999px';
+      clonedContainer.style.top = '0';
+      document.body.appendChild(clonedContainer);
+      
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Wait for logo to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const canvas = await html2canvas(mapRef.current, {
+      const canvas = await html2canvas(clonedContainer, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         allowTaint: true,
-        foreignObjectRendering: false,
-        ignoreElements: (element) => {
-          // Skip elements with lab() color functions
-          const computedStyle = window.getComputedStyle(element);
-          return computedStyle.color?.includes('lab(') || computedStyle.backgroundColor?.includes('lab(');
-        },
+        windowWidth: clonedContainer.scrollWidth,
+        windowHeight: clonedContainer.scrollHeight,
       });
       
-      // Remove logo after capture
-      logoDiv.remove();
+      // Remove cloned element
+      document.body.removeChild(clonedContainer);
       
       // Create PDF
       const imgData = canvas.toDataURL('image/png');
@@ -277,7 +296,7 @@ export default function ImplementationsPage() {
       pdf.save(`avni-implementations-map-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Failed to download map:', error);
-      alert('Failed to download map. Please try again.');
+      alert(`Failed to download map: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsDownloading(false);
     }
