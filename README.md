@@ -1,24 +1,31 @@
 # 🎯 Support Intelligence Platform
 
-**Enterprise-grade support analytics dashboard with zero-maintenance architecture and free-forever infrastructure.**
+**Enterprise-grade support analytics with leadership insights, automated data lifecycle, and free-forever infrastructure.**
 
-> Built for scale, designed for simplicity. Production-ready with 98/100 security score, Firebase authentication, and automated data lifecycle management.
+> Real-time support intelligence for NGOs and social sector organizations. Production-ready with 98/100 security score, role-based access, and zero operational overhead.
 
 [![Production Status](https://img.shields.io/badge/status-production-success)](https://avni-support.vercel.app)
 [![Security Score](https://img.shields.io/badge/security-98%2F100-success)](#security--compliance)
-[![Test Coverage](https://img.shields.io/badge/tests-100%25-success)](#testing--quality)
 [![Cost](https://img.shields.io/badge/cost-$0%2Fmonth-success)](#cost-analysis)
+[![Auto Deploy](https://img.shields.io/badge/deploy-automated-success)](#deployment)
 
 ## 🎯 Executive Summary
 
-**Problem Solved:** Real-time support intelligence for Freshdesk with automated data retention, multi-user authentication, and zero operational overhead.
+**Problem Solved:** Real-time support intelligence for NGOs with leadership insights, partner risk analysis, and automated data lifecycle management.
 
-**Key Differentiators:**
+**Latest Features (Dec 2025):**
+- 🎯 **Leadership Dashboard**: Executive intelligence with partner health, trends analysis, and Metabase integration
+- 📊 **Last 30 Tickets History**: Auto-updating table with CSV export (updates after Friday sync)
+- 📅 **Date Filters**: Dynamic date range filtering across all leadership pages (30d, 90d, 6m, 12m, custom)
+- 🔒 **Role-Based Access**: Leadership and support engineer roles with granular permissions
+- 💀 **Skeleton Loading**: Professional loading states across all portals
+
+**Core Benefits:**
 - ✅ **Free Forever**: $0/month infrastructure (Vercel, Render, Supabase free tiers)
 - ✅ **Zero Maintenance**: Auto-scales, auto-cleans, auto-updates
-- ✅ **Production Hardened**: 98/100 security score, 100% test coverage
-- ✅ **Enterprise Auth**: Firebase multi-user with token verification
-- ✅ **Smart Data Lifecycle**: Automatic 1-year retention with audit trails
+- ✅ **Production Hardened**: 98/100 security score, Firebase authentication
+- ✅ **Smart Data Lifecycle**: Automatic weekly sync with incremental updates
+- ✅ **NGO-Focused**: Designed for social sector support operations
 
 ## 🏗️ System Architecture
 
@@ -86,21 +93,55 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant FD as Freshdesk
 
-    U->>F: Login
+    U->>F: Login (Email/Password)
     F->>Auth: Authenticate
-    Auth-->>F: ID Token
+    Auth-->>F: ID Token + User Role
     
     U->>F: Request Dashboard
-    F->>A: GET /api/app-data?year=2025<br/>(Bearer Token)
-    A->>Auth: Verify Token
-    Auth-->>A: ✓ Valid User
-    A->>DB: Query YTD Tickets (year=2025)
-    DB-->>A: 2231 tickets + metadata
-    A-->>F: Unified Response (200 OK)
-    F-->>U: Render Dashboard
+    F->>A: GET /api/leadership/partners<br/>(Bearer Token)
+    A->>Auth: Verify Token + Check Role
+    Auth-->>A: ✓ Valid (Leadership Role)
+    A->>DB: Query ytd_tickets + company_cache
+    DB-->>A: Partners data (BigInt → Number)
+    A-->>F: JSON Response (200 OK)
+    F-->>U: Render Leadership Dashboard
 
-    Note over A,DB: Single Query Pattern<br/>Eliminates N+1 Problem
+    Note over A,DB: Weekly Sync Job (Friday 4:30 PM IST)<br/>Freshdesk → Database (Incremental)
+    Note over A,Auth: Role-Based Access Control<br/>Leadership & Founder roles
 ```
+
+### Authentication Flow
+
+**1. User Login:**
+- Frontend: Firebase Client SDK (email/password)
+- Backend: Firebase Admin SDK verifies ID token
+- Token attached to every API request via Axios interceptor
+
+**2. Role-Based Access:**
+- **Support Engineer**: Access to dashboard, tickets, reports
+- **Leadership**: Access to partner health, trends, analytics, metrics
+- **Founder**: Full access to all features including summary
+
+**3. Security Layers:**
+- Token verification on every request (stateless JWT)
+- Role check middleware (`requireLeadership`, `requireFounder`)
+- Rate limiting (10 req/min for sensitive endpoints)
+- No sensitive data in logs (tokens masked)
+
+### Data Sync Flow
+
+**Weekly Incremental Sync (Friday 4:30 PM IST):**
+1. Freshdesk API → Fetch tickets updated since last sync
+2. Validate all fields (BigInt conversion, NULL handling)
+3. Batch upsert to `ytd_tickets` table (100 tickets at a time)
+4. Cache company names in `company_cache` table
+5. Update `last_sync_timestamp` for next incremental sync
+
+**Benefits:**
+- Only fetches new/updated tickets (efficient)
+- No data loss (upsert handles duplicates)
+- Database always has latest data
+- Leadership portal never calls Freshdesk API directly
 
 ## Project Structure
 
@@ -140,6 +181,25 @@ SUPPORT/
 
 ## 💡 Core Features & Implementation
 
+### 🎯 Leadership Dashboard (New - Dec 2025)
+
+**Executive Intelligence Platform:**
+- **Partner Health**: Risk scoring, engagement patterns, ticket volume trends
+- **Metrics Dashboard**: Program risk, adoption signals, support capacity
+- **Trends Analysis**: Ticket type distribution, company breakdown, tag analysis, timeline charts
+- **Analytics Hub**: Metabase dashboard cards with category filtering
+- **Weekly Summary**: Top risks, partners to watch, recommended actions
+
+**Date Filtering:**
+- Dynamic date ranges: 30d, 90d, 6m, 12m, custom
+- Applied across Partners, Metrics, Trends pages
+- Real-time data updates based on selected range
+
+**Last 30 Tickets History:**
+- Auto-updating table (syncs every Friday 4:30 PM IST)
+- CSV export matching operational dashboard format
+- Available in both leadership and support portals
+
 ### Authentication & Authorization
 
 **Implementation:**
@@ -149,26 +209,17 @@ SUPPORT/
 - **Verification**: Backend validates token before data access
 - **Multi-User**: Concurrent sessions supported, each request independently validated
 
-**Security Measures:**
-- ✅ No global auth middleware (prevents route blocking)
-- ✅ Per-route authentication with early return on failure
-- ✅ Fastify lifecycle: auth → rate limit → controller
-- ✅ Token expiry: 1 hour (Firebase default)
-- ✅ No sensitive data logged (tokens, user objects, env vars)
+**Role-Based Access Control:**
+- **Support Engineer**: Dashboard, tickets, reports, engineer hours
+- **Leadership**: All support features + partner health, trends, metrics, analytics
+- **Founder**: All features + weekly summary, full system access
 
-**Code Pattern:**
-```typescript
-// Backend: Auth middleware throws on failure to stop execution
-export async function authMiddleware(request, reply) {
-  const token = request.headers.authorization?.substring(7);
-  if (!token) {
-    reply.status(401).send({ error: 'Unauthorized' });
-    throw new Error('AUTH_TOKEN_MISSING'); // Stops Fastify execution
-  }
-  const decoded = await verifyIdToken(token);
-  request.user = decoded; // Attach user to request
-}
-```
+**Security Measures:**
+- ✅ Per-route role verification (`requireLeadership`, `requireFounder`)
+- ✅ Token verification on every request (stateless JWT)
+- ✅ Rate limiting: 10 req/min (sensitive), 100 req/min (global)
+- ✅ No sensitive data logged (tokens masked, BigInt serialization fixed)
+- ✅ CORS configured for frontend domain only
 
 ### Data Lifecycle Management
 
@@ -659,15 +710,38 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=support-tech-ac46d
 
 **Total: ~1 hour/year** 🎉
 
+## 🏢 How It Helps Support Teams & Companies
+
+### For Support Engineers:
+- **Real-Time Dashboard**: Instant visibility into ticket status, priorities, and workload
+- **Quick Answers Chatbot**: Pre-defined questions for instant metrics (no manual counting)
+- **Weekly Reports**: Auto-generated format for Google Sheets (copy-paste ready)
+- **Engineer Hours Tracking**: Simple time entry with Friday 1 PM IST lock
+- **Last 30 Tickets History**: Quick reference with CSV export for analysis
+
+### For Leadership & Founders:
+- **Partner Health Monitoring**: Risk scoring and engagement patterns for all NGO partners
+- **Trend Analysis**: Identify recurring issues, training needs, and capacity gaps
+- **Data-Driven Decisions**: Metrics on program risk, adoption signals, support capacity
+- **Executive Summary**: Weekly intelligence report with top risks and recommended actions
+- **Cost Visibility**: Zero infrastructure cost with full transparency
+
+### For Companies/NGOs:
+- **Free Forever**: No licensing fees, no per-user costs, no hidden charges
+- **Zero Maintenance**: Automated sync, auto-scaling, no DevOps needed
+- **Secure & Compliant**: 98/100 security score, audit trails, role-based access
+- **Scalable**: Supports 50+ users on free tier, scales to enterprise
+- **Data Ownership**: Your data stays in your database (Supabase PostgreSQL)
+
 ## 📚 Documentation
 
 All detailed documentation is in the `/docs` folder:
-- Implementation guides
+- Implementation plans and guides
+- Data flow verification reports
+- Progress summaries
 - Security audit reports
-- Edge case test results
 - Firebase authentication setup
 - Deployment guides
-- API endpoint documentation
 
 ## 🎯 For Founders & Senior Engineers
 
