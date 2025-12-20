@@ -71,7 +71,16 @@ export default function TrendsPage() {
           apiGet(`/api/leadership/trends/timeline?${params}`),
         ]);
 
-        console.log('Trends data loaded:', { typesRes, companiesRes, tagsRes, timelineRes });
+        console.log('Trends data loaded:', { 
+          typesRes, 
+          companiesRes, 
+          tagsRes, 
+          timelineRes,
+          categoriesCount: typesRes.data.categories?.length,
+          companiesCount: companiesRes.data.companies?.length,
+          tagsCount: tagsRes.data.tags?.length,
+          timelineCount: timelineRes.data.monthly?.length
+        });
 
         setTicketTypes(typesRes.data.categories || []);
         setCompanies(companiesRes.data.companies || []);
@@ -80,6 +89,12 @@ export default function TrendsPage() {
           ...m,
           month: new Date(m.month),
         })) || []);
+        
+        // Log if any data is empty
+        if (!typesRes.data.categories?.length) console.warn('No ticket types data');
+        if (!companiesRes.data.companies?.length) console.warn('No companies data');
+        if (!tagsRes.data.tags?.length) console.warn('No tags data');
+        if (!timelineRes.data.monthly?.length) console.warn('No timeline data');
       } catch (err) {
         console.error('Failed to load trends:', err);
       } finally {
@@ -134,25 +149,34 @@ export default function TrendsPage() {
               <TrendingUp className="h-5 w-5 text-green-600" />
               <h2 className="text-xl font-semibold text-gray-900">Ticket Type Distribution</h2>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={ticketTypes as any}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry: any) => `${entry.type}: ${entry.percentage}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {ticketTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {ticketTypes.length === 0 ? (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                <div className="text-center">
+                  <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No ticket type data available for selected date range</p>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={ticketTypes as any}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry: any) => `${entry.type}: ${entry.percentage}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {ticketTypes.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
               {ticketTypes.map((type, idx) => (
                 <div key={idx} className="flex items-center gap-2">
@@ -169,15 +193,24 @@ export default function TrendsPage() {
               <Users className="h-5 w-5 text-blue-600" />
               <h2 className="text-xl font-semibold text-gray-900">Top 10 Companies by Volume</h2>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={companies} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="company_name" type="category" width={150} />
-                <Tooltip />
-                <Bar dataKey="total_tickets" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
+            {companies.length === 0 ? (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                <div className="text-center">
+                  <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No company data available for selected date range</p>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={companies} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="company_name" type="category" width={150} />
+                  <Tooltip />
+                  <Bar dataKey="total_tickets" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -187,23 +220,32 @@ export default function TrendsPage() {
             <Calendar className="h-5 w-5 text-purple-600" />
             <h2 className="text-xl font-semibold text-gray-900">Monthly Ticket Volume Trend</h2>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={timeline}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="month" 
-                tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
-              />
-              <YAxis />
-              <Tooltip 
-                labelFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              />
-              <Legend />
-              <Line type="monotone" dataKey="total_tickets" stroke="#8b5cf6" name="Total Tickets" strokeWidth={2} />
-              <Line type="monotone" dataKey="resolved" stroke="#22c55e" name="Resolved" strokeWidth={2} />
-              <Line type="monotone" dataKey="unresolved" stroke="#ef4444" name="Unresolved" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          {timeline.length === 0 ? (
+            <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="text-center">
+                <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No timeline data available for selected date range</p>
+              </div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={timeline}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="month" 
+                  tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                />
+                <YAxis />
+                <Tooltip 
+                  labelFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="total_tickets" stroke="#8b5cf6" name="Total Tickets" strokeWidth={2} />
+                <Line type="monotone" dataKey="resolved" stroke="#22c55e" name="Resolved" strokeWidth={2} />
+                <Line type="monotone" dataKey="unresolved" stroke="#ef4444" name="Unresolved" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Bottom Row: Tags & Priority Distribution */}
@@ -214,15 +256,24 @@ export default function TrendsPage() {
               <Tag className="h-5 w-5 text-orange-600" />
               <h2 className="text-xl font-semibold text-gray-900">Top 20 Tags</h2>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={tags}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="tag" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#f97316" />
-              </BarChart>
-            </ResponsiveContainer>
+            {tags.length === 0 ? (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                <div className="text-center">
+                  <Tag className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No tag data available for selected date range</p>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={tags}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="tag" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#f97316" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Priority Distribution Over Time */}
