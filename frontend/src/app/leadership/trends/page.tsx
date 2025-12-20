@@ -171,26 +171,38 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={450}>
                 <PieChart>
                   <Pie
                     data={ticketTypes as any}
                     cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    label={(entry: any) => `${entry.type}: ${entry.percentage}%`}
-                    outerRadius={120}
-                    fill="#8884d8"
+                    cy="45%"
+                    labelLine={{
+                      stroke: '#64748b',
+                      strokeWidth: 1,
+                    }}
+                    label={(entry: any) => {
+                      // Only show label if percentage is > 2% to avoid clutter
+                      if (entry.percentage < 2) return '';
+                      return `${entry.type}: ${entry.percentage}%`;
+                    }}
+                    outerRadius={130}
                     dataKey="count"
                   >
                     {ticketTypes.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    formatter={(value: any, name: any, props: any) => [
+                      `${value} tickets (${props.payload.percentage}%)`,
+                      props.payload.type
+                    ]}
+                  />
                   <Legend 
                     verticalAlign="bottom" 
-                    height={36}
+                    height={50}
+                    wrapperStyle={{ paddingTop: '20px' }}
                     formatter={(value, entry: any) => `${entry.payload.type}`}
                   />
                 </PieChart>
