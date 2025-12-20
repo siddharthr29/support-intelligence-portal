@@ -55,7 +55,7 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
           END as ticket_type,
           COUNT(*) as count
         FROM ytd_tickets
-        WHERE created_at >= ${twelveMonthsAgo}
+        WHERE created_at >= ${startDate} AND created_at <= ${endDate}
         GROUP BY ticket_type
         ORDER BY count DESC
       `;
@@ -98,7 +98,7 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
           END as ticket_type,
           COUNT(*) as count
         FROM ytd_tickets
-        WHERE created_at >= ${twelveMonthsAgo}
+        WHERE created_at >= ${startDate} AND created_at <= ${endDate}
         GROUP BY month, ticket_type
         ORDER BY month, count DESC
       `;
@@ -150,7 +150,7 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
           COUNT(*) FILTER (WHERE tags && ARRAY['bug', 'error']) as technical_issues
         FROM company_cache c
         LEFT JOIN ytd_tickets t ON t.company_id = c.freshdesk_company_id
-        WHERE t.created_at >= ${twelveMonthsAgo}
+        WHERE t.created_at >= ${startDate} AND t.created_at <= ${endDate}
         GROUP BY c.freshdesk_company_id, c.name
         HAVING COUNT(t.id) > 0
         ORDER BY total_tickets DESC
@@ -201,10 +201,10 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
     const prisma = getPrismaClient();
 
     try {
+      const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
       const startDate = request.query.startDate 
         ? new Date(request.query.startDate) 
         : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      const twelveMonthsAgo = startDate;
 
       const tags = await prisma.$queryRaw<Array<any>>`
         SELECT 
@@ -212,7 +212,7 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
           COUNT(*) as count
         FROM ytd_tickets,
         UNNEST(tags) as tag
-        WHERE created_at >= ${twelveMonthsAgo}
+        WHERE created_at >= ${startDate} AND created_at <= ${endDate}
         GROUP BY tag
         ORDER BY count DESC
         LIMIT 20
@@ -245,10 +245,10 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
     const prisma = getPrismaClient();
 
     try {
+      const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
       const startDate = request.query.startDate 
         ? new Date(request.query.startDate) 
         : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      const twelveMonthsAgo = startDate;
 
       const timeline = await prisma.$queryRaw<Array<any>>`
         SELECT 
@@ -261,7 +261,7 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
           COUNT(*) FILTER (WHERE priority = 2) as medium,
           COUNT(*) FILTER (WHERE priority = 1) as low
         FROM ytd_tickets
-        WHERE created_at >= ${twelveMonthsAgo}
+        WHERE created_at >= ${startDate} AND created_at <= ${endDate}
         GROUP BY month
         ORDER BY month
       `;
