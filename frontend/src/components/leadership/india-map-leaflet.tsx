@@ -102,12 +102,13 @@ export function IndiaMapLeaflet({ stateData, onStateClick }: IndiaMapLeafletProp
 
   return (
     <div className="w-full">
-      <div className="w-full h-[600px] rounded-lg overflow-hidden border">
+      <div className="w-full h-[600px] rounded-lg overflow-hidden border relative" style={{ zIndex: 1 }}>
         <MapContainer
           center={[20.5937, 78.9629]}
           zoom={5}
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: '100%', width: '100%', zIndex: 1 }}
           scrollWheelZoom={false}
+          zoomControl={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

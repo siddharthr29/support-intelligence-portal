@@ -196,32 +196,58 @@ export default function ImplementationsPage() {
     }
   };
 
-  const downloadMapAsPNG = async () => {
+  const downloadMapAsPDF = async () => {
     if (!mapRef.current) return;
     
     setIsDownloading(true);
     try {
+      const { default: jsPDF } = await import('jspdf');
+      
       // Add Avni logo before capturing
       const logoDiv = document.createElement('div');
       logoDiv.style.cssText = 'position: absolute; top: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
-      logoDiv.innerHTML = '<div style="font-size: 24px; font-weight: bold; color: #419372;">AVNI</div><div style="font-size: 12px; color: #666;">by Samanvay Foundation</div>';
+      
+      // Use actual Avni logo image
+      const logoImg = document.createElement('img');
+      logoImg.src = '/avni-logo.png';
+      logoImg.style.cssText = 'height: 40px; width: auto;';
+      logoDiv.appendChild(logoImg);
+      
       mapRef.current.style.position = 'relative';
       mapRef.current.insertBefore(logoDiv, mapRef.current.firstChild);
+
+      // Wait for logo to load
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(mapRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
+        allowTaint: true,
       });
       
       // Remove logo after capture
       logoDiv.remove();
       
-      const link = document.createElement('a');
-      link.download = `avni-implementations-map-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      // Create PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 0;
+      
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`avni-implementations-map-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Failed to download map:', error);
       alert('Failed to download map. Please try again.');
@@ -397,12 +423,12 @@ export default function ImplementationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={downloadMapAsPNG}
+                      onClick={downloadMapAsPDF}
                       disabled={isDownloading}
                       className="gap-2"
                     >
                       <Download className="h-4 w-4" />
-                      {isDownloading ? 'Downloading...' : 'Download PNG'}
+                      {isDownloading ? 'Downloading...' : 'Download PDF'}
                     </Button>
                   </>
                 )}
