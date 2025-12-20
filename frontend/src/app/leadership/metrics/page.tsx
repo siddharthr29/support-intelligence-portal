@@ -104,8 +104,15 @@ export default function MetricsPage() {
       <div className="container mx-auto p-6">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Social Sector Metrics</h1>
-          <p className="text-gray-600">Comprehensive analytics for NGO and social sector support operations</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Social Sector Metrics</h1>
+              <p className="text-gray-600">
+                {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </p>
+            </div>
+            <LeadershipDateFilter onDateChange={setDateRange} defaultPreset="12m" />
+          </div>
         </div>
 
         {/* Metric Categories */}

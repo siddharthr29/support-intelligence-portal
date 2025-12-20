@@ -21,6 +21,7 @@ export function LeadershipNavigation() {
     { name: 'Partners', path: '/leadership/partners', icon: Users },
     { name: 'Metrics', path: '/leadership/metrics', icon: TrendingUp },
     { name: 'Trends', path: '/leadership/trends', icon: TrendingUp },
+    { name: 'Analytics', path: '/leadership/analytics', icon: BarChart3 },
     { name: 'Summary', path: '/leadership/summary', icon: FileText },
   ];
 
