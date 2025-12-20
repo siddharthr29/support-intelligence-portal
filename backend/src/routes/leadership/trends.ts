@@ -33,11 +33,25 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
         WHERE created_at >= ${startDate} AND created_at <= ${endDate}
       `;
       
+      const totalInRange = Number(ticketCount[0]?.count || 0);
+      
       logger.info({ 
-        totalTickets: Number(ticketCount[0]?.count || 0),
+        totalTickets: totalInRange,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString()
       }, 'Total tickets in date range');
+
+      // If no tickets in ytd_tickets, return empty data
+      if (totalInRange === 0) {
+        logger.warn('No tickets found in ytd_tickets table for date range');
+        return reply.send({
+          success: true,
+          data: {
+            categories: [],
+            monthly_breakdown: [],
+          },
+        });
+      }
 
       // Categorize tickets by title and tags
       const ticketTypes = await prisma.$queryRaw<Array<any>>`
