@@ -93,9 +93,9 @@ export async function registerLeadershipRoutes(fastify: FastifyInstance): Promis
     }
   });
 
-  // Get weekly founder summary (founder only)
+  // Get weekly founder summary (leadership and founder)
   fastify.get('/api/leadership/summary/weekly', {
-    preHandler: [authMiddleware, requireFounder],
+    preHandler: [authMiddleware, requireLeadership],
   }, async (_request, reply) => {
     try {
       const summary = await generateWeeklySummary();
