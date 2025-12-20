@@ -114,12 +114,7 @@ export default function DashboardPage() {
               Support Intelligence Dashboard - {selectedYear}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {isStatsLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Loading live data from Freshdesk...
-                </span>
-              ) : (
+              {!isStatsLoading && (
                 <>
                   {dateRange.from && dateRange.to && (
                     <span>

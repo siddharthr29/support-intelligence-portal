@@ -24,7 +24,20 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
       const startDate = request.query.startDate 
         ? new Date(request.query.startDate) 
         : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      const twelveMonthsAgo = startDate;
+
+      logger.info({ startDate, endDate }, 'Fetching ticket types with date range');
+
+      // First check if we have any tickets in the date range
+      const ticketCount = await prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*) as count FROM ytd_tickets 
+        WHERE created_at >= ${startDate} AND created_at <= ${endDate}
+      `;
+      
+      logger.info({ 
+        totalTickets: Number(ticketCount[0]?.count || 0),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      }, 'Total tickets in date range');
 
       // Categorize tickets by title and tags
       const ticketTypes = await prisma.$queryRaw<Array<any>>`
