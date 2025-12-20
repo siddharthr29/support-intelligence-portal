@@ -175,7 +175,7 @@ export async function sendDiscordReminder(): Promise<boolean> {
         embeds: [
           {
             title: '⏰ Reminder: Add Engineer Hours',
-            description: 'Weekly report will be generated at **5:00 PM IST**.\n\nPlease add support engineer hours before then!',
+            description: 'Weekly report will be generated at **5:00 PM IST**.\n\nPlease add support engineer hours before then!\n\n🔗 **Dashboard**: https://avni-support.vercel.app/',
             color: 0xFFA500, // Orange
             fields: [
               {

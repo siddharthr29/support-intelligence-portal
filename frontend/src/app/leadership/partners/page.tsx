@@ -8,9 +8,10 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLeadership } from '@/contexts/leadership-context';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PartnerRisk {
   partner_id: number;
@@ -214,6 +215,7 @@ export default function PartnersPage() {
         </div>
 
         {/* Partner Cards */}
+        <TooltipProvider>
         <div className="grid gap-4">
         {filteredPartners.length === 0 ? (
           <div className="bg-white rounded-lg border p-12 text-center">
@@ -263,10 +265,22 @@ export default function PartnersPage() {
                   <p className="text-sm opacity-75">Urgent</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {partner.avg_resolution_hours ? Math.round(partner.avg_resolution_hours) : 'N/A'}h
-                  </p>
-                  <p className="text-sm opacity-75">Avg Resolution</p>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div>
+                        <p className="text-2xl font-bold flex items-center gap-1">
+                          {partner.avg_resolution_hours ? Math.round(partner.avg_resolution_hours) : 'N/A'}h
+                          <Info className="h-3 w-3 text-gray-400" />
+                        </p>
+                        <p className="text-sm opacity-75">Avg Resolution</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-xs font-semibold mb-1">Average time to resolve tickets</p>
+                      <p className="text-xs max-w-xs mb-1">Formula: SUM(resolved_at - created_at) / COUNT(resolved tickets)</p>
+                      <p className="text-xs max-w-xs text-gray-400">Only includes resolved tickets for this partner</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -317,8 +331,8 @@ export default function PartnersPage() {
           );
         })
         )}
-      </div>
-      </div>
+        </div>
+        </TooltipProvider>
       </div>
     </ErrorBoundary>
   );

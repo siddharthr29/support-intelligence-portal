@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, TrendingUp, Users, Clock, CheckCircle } from 'lucide-react';
+import { useLeadership } from '@/contexts/leadership-context';
 
 interface WeeklySummary {
   week_ending: string;
@@ -26,23 +27,43 @@ interface WeeklySummary {
 }
 
 export default function SummaryPage() {
+  const { isInitialLoad, setIsInitialLoad, cachedData, setCachedData } = useLeadership();
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isInitialLoad);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchSummary() {
-      try {
-        const response = await apiGet('/api/leadership/summary/weekly');
-        setSummary(response.data);
-        setLoading(false);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load summary');
-        setLoading(false);
+  const fetchSummary = useCallback(async () => {
+    const cacheKey = 'summary-weekly';
+    
+    // Check cache first
+    if (cachedData[cacheKey]) {
+      setSummary(cachedData[cacheKey]);
+      setLoading(false);
+      return;
+    }
+
+    // Only show loading on initial load
+    if (isInitialLoad) {
+      setLoading(true);
+    }
+
+    try {
+      const response = await apiGet('/api/leadership/summary/weekly');
+      setSummary(response.data);
+      setCachedData(cacheKey, response.data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load summary');
+    } finally {
+      setLoading(false);
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
       }
     }
+  }, [cachedData, setCachedData, isInitialLoad, setIsInitialLoad]);
+
+  useEffect(() => {
     fetchSummary();
-  }, []);
+  }, [fetchSummary]);
 
   if (loading) {
     return (

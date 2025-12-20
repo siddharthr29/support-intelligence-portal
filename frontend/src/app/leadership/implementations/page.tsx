@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { IndiaMapLeaflet } from '@/components/leadership/india-map-leaflet';
 import { useDebounce } from '@/hooks/useDebounce';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client';
+import { useLeadership } from '@/contexts/leadership-context';
 import { 
   Building2, 
   MapPin, 
@@ -61,8 +62,9 @@ const STATE_COLORS: Record<string, string> = {
 const INDIAN_STATES = Object.keys(STATE_COLORS);
 
 export default function ImplementationsPage() {
+  const { isInitialLoad, setIsInitialLoad, cachedData, setCachedData } = useLeadership();
   const [implementations, setImplementations] = useState<Implementation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isInitialLoad);
   const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField | null>(null);
@@ -74,26 +76,45 @@ export default function ImplementationsPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Debounce search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  useEffect(() => {
-    fetchImplementations();
-  }, []);
-
   const fetchImplementations = useCallback(async () => {
-    setLoading(true);
+    const cacheKey = 'implementations-all';
+    
+    // Check cache first
+    if (cachedData[cacheKey]) {
+      setImplementations(cachedData[cacheKey]);
+      setLoading(false);
+      return;
+    }
+
+    // Only show loading on initial load
+    if (isInitialLoad) {
+      setLoading(true);
+    }
+
     try {
       const response = await apiGet('/api/implementations');
       const data = response.data.implementations || [];
       setImplementations(data);
+      setCachedData(cacheKey, data);
     } catch (error) {
       console.error('Failed to load implementations:', error);
     } finally {
       setLoading(false);
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
     }
-  }, []);
+  }, [cachedData, setCachedData, isInitialLoad, setIsInitialLoad]);
+
+  useEffect(() => {
+    fetchImplementations();
+  }, [fetchImplementations]);
 
   // Memoize state stats calculation
   const stateStats = useMemo(() => {
@@ -217,7 +238,7 @@ export default function ImplementationsPage() {
       mapRef.current.insertBefore(logoDiv, mapRef.current.firstChild);
 
       // Wait for logo to load
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const canvas = await html2canvas(mapRef.current, {
         scale: 2,
@@ -225,6 +246,7 @@ export default function ImplementationsPage() {
         logging: false,
         backgroundColor: '#ffffff',
         allowTaint: true,
+        foreignObjectRendering: true,
       });
       
       // Remove logo after capture
@@ -436,10 +458,11 @@ export default function ImplementationsPage() {
             </div>
 
             <p className="text-sm text-gray-600 mb-4">
-              Showing {sortedImplementations.length} of {implementations.length} implementations
+              Showing {Math.min((currentPage - 1) * itemsPerPage + 1, sortedImplementations.length)}-{Math.min(currentPage * itemsPerPage, sortedImplementations.length)} of {sortedImplementations.length} implementations
             </p>
 
             {viewMode === 'table' && (
+              <>
               <ResponsiveTable>
                   <table className="w-full min-w-[800px]">
                     <thead className="bg-gray-50 border-b">
@@ -501,7 +524,148 @@ export default function ImplementationsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {sortedImplementations.map((impl) => (
+                      {sortedImplementations.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((impl) => (
+                        <tr key={impl.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">{impl.slNo}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{impl.organisationName}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{impl.sector}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{impl.projectName}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{impl.forType}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-gray-400" />
+                              {impl.state}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {impl.website && (
+                              <a
+                                href={impl.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                              >
+                                Visit
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEdit(impl)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(impl)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+              </ResponsiveTable>
+              
+              {/* Pagination Controls */}
+              {sortedImplementations.length > itemsPerPage && (
+                <div className="mt-4 flex items-center justify-between border-t pt-4">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {Math.ceil(sortedImplementations.length / itemsPerPage)}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(sortedImplementations.length / itemsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(sortedImplementations.length / itemsPerPage)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+              </>
+            )}
+
+            {viewMode === 'table' && false && (
+              <ResponsiveTable>
+                  <table className="w-full min-w-[800px]">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Sl. No
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('organisationName')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Organisation
+                            {getSortIcon('organisationName')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('sector')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Sector
+                            {getSortIcon('sector')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('projectName')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Program
+                            {getSortIcon('projectName')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('forType')}
+                        >
+                          <div className="flex items-center gap-2">
+                            For
+                            {getSortIcon('forType')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('state')}
+                        >
+                          <div className="flex items-center gap-2">
+                            State
+                            {getSortIcon('state')}
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Website
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {sortedImplementations.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((impl) => (
                         <tr key={impl.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm text-gray-900">{impl.slNo}</td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{impl.organisationName}</td>
