@@ -20,6 +20,7 @@ export function LeadershipNavigation() {
     { name: 'Overview', path: '/leadership', icon: BarChart3 },
     { name: 'Partners', path: '/leadership/partners', icon: Users },
     { name: 'Metrics', path: '/leadership/metrics', icon: TrendingUp },
+    { name: 'Trends', path: '/leadership/trends', icon: TrendingUp },
     { name: 'Summary', path: '/leadership/summary', icon: FileText },
   ];
 
