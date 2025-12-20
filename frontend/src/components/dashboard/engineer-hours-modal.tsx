@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Clock, Plus, Users } from "lucide-react";
+import { Clock, Plus, Users, Lock } from "lucide-react";
 
 interface EngineerHoursModalProps {
   snapshotId: string;
@@ -49,10 +49,54 @@ async function saveEngineerHour(data: {
   return res.json();
 }
 
+// Check if current week entry is unlocked (Friday 1PM IST)
+function isCurrentWeekUnlocked(): boolean {
+  const now = new Date();
+  const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const dayOfWeek = istTime.getDay(); // 5 = Friday
+  const hours = istTime.getHours();
+  
+  // Unlocked if it's Friday (5) and after 1 PM (13:00)
+  return dayOfWeek === 5 && hours >= 13;
+}
+
+// Get time until Friday 1PM IST
+function getTimeUntilUnlock(): string {
+  const now = new Date();
+  const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const dayOfWeek = istTime.getDay();
+  const hours = istTime.getHours();
+  
+  if (dayOfWeek === 5 && hours >= 13) return 'Unlocked';
+  
+  // Calculate next Friday 1PM IST
+  let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+  if (daysUntilFriday === 0 && hours < 13) {
+    // It's Friday but before 1PM
+    const hoursLeft = 13 - hours;
+    return `${hoursLeft}h until unlock`;
+  }
+  if (daysUntilFriday === 0) daysUntilFriday = 7; // Next week Friday
+  
+  return `${daysUntilFriday} days until Friday 1PM IST`;
+}
+
 export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHoursModalProps) {
   const [open, setOpen] = useState(false);
   const [newEngineer, setNewEngineer] = useState({ name: '', hours: '' });
+  const [isUnlocked, setIsUnlocked] = useState(isCurrentWeekUnlocked());
+  const [timeUntilUnlock, setTimeUntilUnlock] = useState(getTimeUntilUnlock());
   const queryClient = useQueryClient();
+  
+  // Update lock status every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsUnlocked(isCurrentWeekUnlocked());
+      setTimeUntilUnlock(getTimeUntilUnlock());
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: engineerHours = [] } = useQuery({
     queryKey: ['engineerHours', snapshotId],
@@ -91,9 +135,18 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Clock className="h-4 w-4" />
-          Enter Support Hours
+        <Button variant="outline" size="sm" className="gap-2" disabled={!isUnlocked}>
+          {isUnlocked ? (
+            <>
+              <Clock className="h-4 w-4" />
+              Enter Support Hours
+            </>
+          ) : (
+            <>
+              <Lock className="h-4 w-4" />
+              Locked ({timeUntilUnlock})
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
@@ -103,6 +156,21 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
             Support Engineer Hours
           </DialogTitle>
         </DialogHeader>
+
+        {!isUnlocked && (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800 mb-2">
+              <Lock className="h-4 w-4" />
+              <span className="font-medium">Entry Locked</span>
+            </div>
+            <p className="text-sm text-yellow-700">
+              Engineer hours entry unlocks on Friday at 1:00 PM IST (Asia/Kolkata).
+            </p>
+            <p className="text-sm text-yellow-600 mt-1">
+              Time until unlock: {timeUntilUnlock}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-4">
           {/* Summary */}
@@ -137,17 +205,19 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
                 placeholder="Name"
                 value={newEngineer.name}
                 onChange={(e) => setNewEngineer({ ...newEngineer, name: e.target.value })}
+                disabled={!isUnlocked}
               />
               <Input
                 type="number"
                 placeholder="Hours"
                 value={newEngineer.hours}
                 onChange={(e) => setNewEngineer({ ...newEngineer, hours: e.target.value })}
+                disabled={!isUnlocked}
               />
             </div>
             <Button
               onClick={handleAddEngineer}
-              disabled={mutation.isPending}
+              disabled={!isUnlocked || mutation.isPending}
               className="w-full gap-2"
             >
               <Plus className="h-4 w-4" />
