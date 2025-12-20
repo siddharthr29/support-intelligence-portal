@@ -23,7 +23,8 @@ import { YearSelector } from '@/components/year-selector';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Weekly Report', href: '/weekly', icon: Calendar },
+  { label: 'Weekly Report', href: '/reports/weekly', icon: Calendar },
+  { label: 'Yearly Report', href: '/reports/yearly', icon: BarChart3 },
   { label: 'Companies', href: '/companies', icon: Building2 },
   { label: 'RFT', href: '/rft', icon: Bug },
   { label: 'Errors', href: '/error-logs', icon: AlertTriangle },
