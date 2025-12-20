@@ -12,16 +12,25 @@ import { getPrismaClient } from '../../persistence/prisma-client';
 export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<void> {
   
   // Get all partners with risk metrics
-  fastify.get('/api/leadership/partners', {
+  fastify.get<{
+    Querystring: { startDate?: string; endDate?: string };
+  }>('/api/leadership/partners', {
     preHandler: [authMiddleware, requireLeadership],
   }, async (request, reply) => {
     const prisma = getPrismaClient();
 
     try {
-      // Fallback: Calculate partner metrics directly
-      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      // Use query params or fallback to defaults
+      const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
+      const startDate = request.query.startDate 
+        ? new Date(request.query.startDate) 
+        : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      
+      const twelveMonthsAgo = startDate;
+      const thirtyDaysAgo = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(endDate.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+      logger.info({ startDate, endDate, thirtyDaysAgo, sixtyDaysAgo }, 'Fetching partners with date range');
 
       const partners = await prisma.$queryRaw<Array<any>>`
         SELECT 
@@ -46,7 +55,7 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
           END as trend_ratio
         FROM company_cache c
         LEFT JOIN ytd_tickets t ON t.company_id = c.freshdesk_company_id
-        WHERE t.created_at >= ${twelveMonthsAgo} OR t.created_at IS NULL
+        WHERE (t.created_at >= ${twelveMonthsAgo} AND t.created_at <= ${endDate}) OR t.created_at IS NULL
         GROUP BY c.freshdesk_company_id, c.name
         HAVING COUNT(t.id) > 0
         ORDER BY unresolved_count DESC, urgent_tickets DESC
