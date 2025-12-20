@@ -37,6 +37,7 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
         variant={preset === '30d' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('30d')}
+        className={preset === '30d' ? 'bg-black text-white hover:bg-gray-800' : ''}
       >
         Last 30 Days
       </Button>
@@ -44,6 +45,7 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
         variant={preset === '90d' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('90d')}
+        className={preset === '90d' ? 'bg-black text-white hover:bg-gray-800' : ''}
       >
         Last 90 Days
       </Button>
@@ -51,6 +53,7 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
         variant={preset === '6m' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('6m')}
+        className={preset === '6m' ? 'bg-black text-white hover:bg-gray-800' : ''}
       >
         Last 6 Months
       </Button>
@@ -58,6 +61,7 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
         variant={preset === '12m' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('12m')}
+        className={preset === '12m' ? 'bg-black text-white hover:bg-gray-800' : ''}
       >
         Last 12 Months
       </Button>

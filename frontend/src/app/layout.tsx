@@ -9,8 +9,8 @@ import Script from "next/script";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Avni Support Intelligence",
-  description: "Weekly analytics and insights for Avni support data",
+  title: "Support Operational Dashboard and Insights",
+  description: "Operational dashboard and insights for Avni support data",
   icons: {
     icon: "/favicon.png",
   },

@@ -174,16 +174,23 @@ export default function TrendsPage() {
               <ResponsiveContainer width="100%" height={500}>
                 <PieChart>
                   <Pie
-                    data={ticketTypes as any}
+                    data={ticketTypes.map((item, index) => ({
+                      ...item,
+                      fill: COLORS[index % COLORS.length]
+                    }))}
                     cx="50%"
                     cy="40%"
                     labelLine={false}
                     label={false}
                     outerRadius={140}
                     dataKey="count"
+                    nameKey="type"
                   >
                     {ticketTypes.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip 
