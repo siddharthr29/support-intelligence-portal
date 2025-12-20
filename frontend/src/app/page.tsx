@@ -5,6 +5,7 @@ import { format, startOfWeek, endOfWeek, startOfYear } from "date-fns";
 import { Shell } from "@/components/layout/shell";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { RecentTicketsTable } from "@/components/tickets/recent-tickets-table";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -260,6 +261,11 @@ export default function DashboardPage() {
                 isLoading={isStatsLoading} 
               />
             </Suspense>
+
+            {/* Recent Tickets History */}
+            <div className="mt-6">
+              <RecentTicketsTable />
+            </div>
           </>
         )}
         </div>

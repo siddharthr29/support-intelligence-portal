@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
-import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle } from 'lucide-react';
+import { RecentTicketsTable } from '@/components/tickets/recent-tickets-table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle } from 'lucide-react';
 
 interface MetricsSummary {
   long_unresolved_blockers: number;
@@ -168,6 +169,11 @@ export default function LeadershipDashboard() {
             </p>
             <span className="text-green-600 font-medium text-sm">View Summary →</span>
           </a>
+        </div>
+
+        {/* Recent Tickets History */}
+        <div className="mt-8">
+          <RecentTicketsTable />
         </div>
       </div>
     </div>
