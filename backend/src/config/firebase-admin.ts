@@ -20,6 +20,16 @@ export function initializeFirebaseAdmin(): admin.app.App {
       return firebaseApp;
     }
 
+    // Log environment variables (without sensitive data)
+    logger.info('Initializing Firebase Admin SDK with environment variables', {
+      hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length,
+    });
+
     // Initialize with service account credentials
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -29,23 +39,39 @@ export function initializeFirebaseAdmin(): admin.app.App {
 
     // Validate required environment variables
     if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      throw new Error('Missing Firebase Admin credentials in environment variables');
+      const missing = [];
+      if (!serviceAccount.projectId) missing.push('FIREBASE_PROJECT_ID');
+      if (!serviceAccount.clientEmail) missing.push('FIREBASE_CLIENT_EMAIL');
+      if (!serviceAccount.privateKey) missing.push('FIREBASE_PRIVATE_KEY');
+      
+      logger.error('Missing Firebase Admin credentials', { missing });
+      throw new Error(`Missing Firebase Admin credentials: ${missing.join(', ')}`);
+    }
+
+    // Verify private key format
+    if (!serviceAccount.privateKey.includes('BEGIN PRIVATE KEY')) {
+      logger.error('Invalid private key format - missing BEGIN PRIVATE KEY marker');
+      throw new Error('Invalid FIREBASE_PRIVATE_KEY format');
     }
 
     firebaseApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      projectId: serviceAccount.projectId, // Explicitly set project ID
+      projectId: serviceAccount.projectId,
     });
 
     logger.info('✅ Firebase Admin SDK initialized successfully', {
       projectId: serviceAccount.projectId,
       clientEmail: serviceAccount.clientEmail,
-      hasPrivateKey: !!serviceAccount.privateKey,
     });
 
     return firebaseApp;
   } catch (error) {
-    logger.error({ error }, 'Failed to initialize Firebase Admin SDK');
+    logger.error('❌ Failed to initialize Firebase Admin SDK', {
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+      } : error,
+    });
     throw error;
   }
 }
