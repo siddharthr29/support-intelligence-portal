@@ -105,7 +105,8 @@ export async function pdfRoutes(fastify: FastifyInstance) {
         
         // Wait for tile images to be loaded
         await page.evaluate(() => {
-          return new Promise((resolve) => {
+          return new Promise<boolean>((resolve) => {
+            // @ts-ignore - document exists in browser context
             const tiles = document.querySelectorAll('.leaflet-tile-pane img');
             if (tiles.length === 0) {
               resolve(true);
