@@ -28,17 +28,17 @@ const UnresolvedSummary = lazy(() => import("@/components/dashboard/unresolved-s
 
 // Loading skeleton for lazy components
 const ChartSkeleton = () => (
-  <div className="h-[300px] bg-white rounded-lg border p-6">
-    <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
-    <div className="h-[200px] w-full bg-gray-100 rounded animate-pulse"></div>
+  <div className="h-[300px] bg-white rounded-lg border p-6 shadow-sm">
+    <div className="h-6 w-48 bg-gray-300 rounded animate-pulse mb-4"></div>
+    <div className="h-[200px] w-full bg-gray-200 rounded animate-pulse"></div>
   </div>
 );
 
 const MetricCardSkeleton = () => (
-  <div className="bg-white rounded-lg border p-6">
-    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
-    <div className="h-8 w-16 bg-gray-300 rounded animate-pulse mb-2"></div>
-    <div className="h-3 w-32 bg-gray-200 rounded animate-pulse"></div>
+  <div className="bg-white rounded-lg border p-6 shadow-sm">
+    <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-3"></div>
+    <div className="h-10 w-20 bg-gray-400 rounded animate-pulse mb-3"></div>
+    <div className="h-3 w-32 bg-gray-300 rounded animate-pulse"></div>
   </div>
 );
 

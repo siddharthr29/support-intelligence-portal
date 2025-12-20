@@ -12,14 +12,21 @@ import { getPrismaClient } from '../../persistence/prisma-client';
 export async function registerMetricsRoutes(fastify: FastifyInstance): Promise<void> {
   
   // Get leadership metrics summary
-  fastify.get('/api/leadership/metrics/summary', {
+  fastify.get<{
+    Querystring: { startDate?: string; endDate?: string };
+  }>('/api/leadership/metrics/summary', {
     preHandler: [authMiddleware, requireLeadership],
   }, async (request, reply) => {
     const prisma = getPrismaClient();
 
     try {
-      // Fallback: Calculate metrics directly if view doesn't exist
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      // Get date range from query params or default to last 30 days
+      const endDate = request.query.endDate ? new Date(request.query.endDate) : new Date();
+      const startDate = request.query.startDate 
+        ? new Date(request.query.startDate) 
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      
+      const thirtyDaysAgo = startDate;
       
       const [
         longUnresolvedBlockers,

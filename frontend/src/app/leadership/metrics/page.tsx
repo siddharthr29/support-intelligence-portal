@@ -37,7 +37,7 @@ export default function MetricsPage() {
           startDate: dateRange.from.toISOString(),
           endDate: dateRange.to.toISOString(),
         });
-        const response = await apiGet(`/api/leadership/metrics?${params}`);
+        const response = await apiGet(`/api/leadership/metrics/summary?${params}`);
         console.log('Metrics data loaded:', response.data);
         setMetrics(response.data.summary);
       } catch (err: any) {
