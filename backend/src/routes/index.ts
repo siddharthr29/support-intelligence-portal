@@ -23,6 +23,7 @@ import { registerTicketRoutes } from './leadership/tickets';
 import { registerMetabaseImplementationsRoutes } from './metabase-implementations';
 import { registerMetabaseEmbedRoutes } from './metabase-embed';
 import { registerEnvironmentSettingsRoutes } from './environment-settings';
+import shareLinksRoutes from './share-links';
 
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerStatsRoutes(fastify);
@@ -49,4 +50,5 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerMetabaseImplementationsRoutes(fastify);
   await registerMetabaseEmbedRoutes(fastify);
   await registerEnvironmentSettingsRoutes(fastify);
+  await shareLinksRoutes(fastify);
 }

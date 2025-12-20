@@ -176,10 +176,13 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
               <span className="font-medium">Entry Locked</span>
             </div>
             <p className="text-sm text-yellow-700">
-              Engineer hours entry unlocks on Friday at 1:00 PM IST (Asia/Kolkata).
+              Engineer hours entry unlocks on Friday at 1:00 PM IST and locks at 9:00 PM IST (if report pushed).
             </p>
             <p className="text-sm text-yellow-600 mt-1">
               Time until unlock: {timeUntilUnlock}
+            </p>
+            <p className="text-xs text-yellow-600 mt-2">
+              Note: You can add past week hours on Monday if report was not pushed by Friday.
             </p>
           </div>
         )}

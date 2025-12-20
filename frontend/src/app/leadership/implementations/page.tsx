@@ -201,11 +201,22 @@ export default function ImplementationsPage() {
     
     setIsDownloading(true);
     try {
+      // Add Avni logo before capturing
+      const logoDiv = document.createElement('div');
+      logoDiv.style.cssText = 'position: absolute; top: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+      logoDiv.innerHTML = '<div style="font-size: 24px; font-weight: bold; color: #419372;">AVNI</div><div style="font-size: 12px; color: #666;">by Samanvay Foundation</div>';
+      mapRef.current.style.position = 'relative';
+      mapRef.current.insertBefore(logoDiv, mapRef.current.firstChild);
+
       const canvas = await html2canvas(mapRef.current, {
-        backgroundColor: '#ffffff',
         scale: 2,
+        useCORS: true,
         logging: false,
+        backgroundColor: '#ffffff',
       });
+      
+      // Remove logo after capture
+      logoDiv.remove();
       
       const link = document.createElement('a');
       link.download = `avni-implementations-map-${new Date().toISOString().split('T')[0]}.png`;
@@ -213,15 +224,33 @@ export default function ImplementationsPage() {
       link.click();
     } catch (error) {
       console.error('Failed to download map:', error);
+      alert('Failed to download map. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const shareMap = () => {
-    const url = `${window.location.origin}/leadership/implementations?view=map`;
-    navigator.clipboard.writeText(url);
-    alert('Map link copied to clipboard!');
+  const shareMap = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/share/map`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        await navigator.clipboard.writeText(data.shareUrl);
+        alert(`Shareable link created and copied to clipboard!\n\nLink expires in 24 hours.\n\n${data.shareUrl}`);
+      } else {
+        throw new Error('Failed to create share link');
+      }
+    } catch (error) {
+      console.error('Failed to create share link:', error);
+      // Fallback to simple URL copy
+      const url = `${window.location.origin}/leadership/implementations?view=map`;
+      await navigator.clipboard.writeText(url);
+      alert('Map link copied to clipboard!');
+    }
   };
 
   // Memoize filtered and sorted implementations
