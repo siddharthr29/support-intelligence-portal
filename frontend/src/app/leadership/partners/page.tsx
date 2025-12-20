@@ -333,6 +333,7 @@ export default function PartnersPage() {
         )}
         </div>
         </TooltipProvider>
+        </div>
       </div>
     </ErrorBoundary>
   );
