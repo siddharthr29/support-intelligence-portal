@@ -5,6 +5,7 @@ import { logger } from '../../utils/logger';
 import { registerPartnerRoutes } from './partners';
 import { registerMetricsRoutes } from './metrics';
 import { registerTrendsRoutes } from './trends';
+import { registerImplementationsRoutes } from '../implementations';
 import { generateWeeklySummary } from '../../services/founder-summary';
 import { compressOldTickets, getRetentionStats } from '../../services/data-retention';
 
@@ -21,6 +22,7 @@ export async function registerLeadershipRoutes(fastify: FastifyInstance): Promis
   await registerPartnerRoutes(fastify);
   await registerMetricsRoutes(fastify);
   await registerTrendsRoutes(fastify);
+  await registerImplementationsRoutes(fastify);
   
   // Health check for leadership routes
   fastify.get('/api/leadership/health', async (_request, reply) => {

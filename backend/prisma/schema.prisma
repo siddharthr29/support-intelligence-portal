@@ -282,3 +282,20 @@ model GroupCache {
 
   @@map("group_cache")
 }
+
+model Implementation {
+  id                Int      @id @default(autoincrement())
+  slNo              Int      @unique @map("sl_no")
+  organisationName  String   @map("organisation_name")
+  sector            String
+  projectName       String   @map("project_name")
+  forType           String   @map("for_type")
+  website           String?
+  state             String
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([state])
+  @@index([sector])
+  @@map("implementations")
+}

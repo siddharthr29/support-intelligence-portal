@@ -58,3 +58,7 @@ backend/src/scripts/update-user-password.ts
 backend/src/scripts/update-user-email.ts
 backend/src/scripts/list-users.ts
 USER_MANAGEMENT.md
+
+# CSV data files (sensitive)
+all_impl.csv
+*.csv

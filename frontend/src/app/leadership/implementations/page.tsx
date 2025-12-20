@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client';
 import { 
-  Upload,
   Building2, 
   MapPin, 
   ExternalLink,
@@ -15,30 +15,29 @@ import {
   ArrowDown,
   Table as TableIcon,
   Map as MapIcon,
-  AlertCircle,
-  CheckCircle2,
-  Download,
   Plus,
   Edit,
   Trash2,
   Share2,
   X,
-  Save
+  Save,
+  Download,
+  Loader2
 } from 'lucide-react';
-import Papa from 'papaparse';
 import html2canvas from 'html2canvas';
 
 interface Implementation {
-  sl_no: number;
-  organisation_name: string;
+  id: number;
+  slNo: number;
+  organisationName: string;
   sector: string;
-  project_name: string;
-  for_type: string;
-  website: string;
+  projectName: string;
+  forType: string;
+  website: string | null;
   state: string;
 }
 
-type SortField = 'organisation_name' | 'sector' | 'project_name' | 'for_type' | 'state';
+type SortField = 'organisationName' | 'sector' | 'projectName' | 'forType' | 'state';
 type SortDirection = 'asc' | 'desc' | null;
 
 const STATE_COLORS: Record<string, string> = {
@@ -59,13 +58,11 @@ const INDIAN_STATES = Object.keys(STATE_COLORS);
 
 export default function ImplementationsPage() {
   const [implementations, setImplementations] = useState<Implementation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [stateStats, setStateStats] = useState<Record<string, number>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingImpl, setEditingImpl] = useState<Implementation | null>(null);
@@ -73,24 +70,24 @@ export default function ImplementationsPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const mapRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('avni_implementations');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setImplementations(data);
-        calculateStateStats(data);
-      } catch (e) {
-        console.error('Failed to load saved data:', e);
-      }
-    }
+    fetchImplementations();
   }, []);
 
-  const saveToLocalStorage = (data: Implementation[]) => {
-    localStorage.setItem('avni_implementations', JSON.stringify(data));
-    setImplementations(data);
-    calculateStateStats(data);
+  const fetchImplementations = async () => {
+    setLoading(true);
+    try {
+      const response = await apiGet('/api/implementations');
+      const data = response.data.implementations || [];
+      setImplementations(data);
+      calculateStateStats(data);
+    } catch (error) {
+      console.error('Failed to load implementations:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const calculateStateStats = (data: Implementation[]) => {
@@ -102,84 +99,17 @@ export default function ImplementationsPage() {
     setStateStats(stats);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadError(null);
-    setUploadSuccess(false);
-
-    if (!file.name.endsWith('.csv')) {
-      setUploadError('Please upload a CSV file');
-      return;
-    }
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        try {
-          const data = results.data as any[];
-          
-          const requiredColumns = ['sl_no', 'organisation_name', 'sector', 'project_name', 'for_type', 'website', 'state'];
-          const headers = Object.keys(data[0] || {});
-          const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-          
-          if (missingColumns.length > 0) {
-            setUploadError(`Missing required columns: ${missingColumns.join(', ')}`);
-            return;
-          }
-
-          const implementations: Implementation[] = data.map((row, index) => {
-            if (!row.organisation_name || !row.sector || !row.project_name) {
-              throw new Error(`Row ${index + 2}: Missing required fields`);
-            }
-
-            return {
-              sl_no: Number(row.sl_no) || index + 1,
-              organisation_name: String(row.organisation_name).trim(),
-              sector: String(row.sector).trim(),
-              project_name: String(row.project_name).trim(),
-              for_type: String(row.for_type || 'Self').trim(),
-              website: String(row.website || '').trim(),
-              state: String(row.state || 'Unknown').trim(),
-            };
-          });
-
-          if (implementations.length === 0) {
-            setUploadError('CSV file is empty or has no valid data');
-            return;
-          }
-
-          saveToLocalStorage(implementations);
-          setUploadSuccess(true);
-          setTimeout(() => setUploadSuccess(false), 3000);
-
-        } catch (error) {
-          setUploadError(error instanceof Error ? error.message : 'Failed to parse CSV file');
-        }
-      },
-      error: (error) => {
-        setUploadError(`CSV parsing error: ${error.message}`);
-      }
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     
-    if (!formData.organisation_name?.trim()) {
-      errors.organisation_name = 'Organisation name is required';
+    if (!formData.organisationName?.trim()) {
+      errors.organisationName = 'Organisation name is required';
     }
     if (!formData.sector?.trim()) {
       errors.sector = 'Sector is required';
     }
-    if (!formData.project_name?.trim()) {
-      errors.project_name = 'Program name is required';
+    if (!formData.projectName?.trim()) {
+      errors.projectName = 'Program name is required';
     }
     if (!formData.state?.trim()) {
       errors.state = 'State is required';
@@ -195,11 +125,10 @@ export default function ImplementationsPage() {
   const handleAddNew = () => {
     setEditingImpl(null);
     setFormData({
-      sl_no: implementations.length + 1,
-      organisation_name: '',
+      organisationName: '',
       sector: '',
-      project_name: '',
-      for_type: 'Self',
+      projectName: '',
+      forType: 'Self',
       website: '',
       state: ''
     });
@@ -214,53 +143,51 @@ export default function ImplementationsPage() {
     setShowAddModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
 
-    const newImpl: Implementation = {
-      sl_no: formData.sl_no || implementations.length + 1,
-      organisation_name: formData.organisation_name!.trim(),
-      sector: formData.sector!.trim(),
-      project_name: formData.project_name!.trim(),
-      for_type: formData.for_type || 'Self',
-      website: formData.website?.trim() || '',
-      state: formData.state!.trim(),
-    };
+    setSaving(true);
+    try {
+      if (editingImpl) {
+        await apiPut(`/api/implementations/${editingImpl.id}`, {
+          organisationName: formData.organisationName!.trim(),
+          sector: formData.sector!.trim(),
+          projectName: formData.projectName!.trim(),
+          forType: formData.forType || 'Self',
+          website: formData.website?.trim() || null,
+          state: formData.state!.trim(),
+        });
+      } else {
+        await apiPost('/api/implementations', {
+          organisationName: formData.organisationName!.trim(),
+          sector: formData.sector!.trim(),
+          projectName: formData.projectName!.trim(),
+          forType: formData.forType || 'Self',
+          website: formData.website?.trim() || null,
+          state: formData.state!.trim(),
+        });
+      }
 
-    let updatedData: Implementation[];
-    if (editingImpl) {
-      updatedData = implementations.map(impl => 
-        impl.sl_no === editingImpl.sl_no ? newImpl : impl
-      );
-    } else {
-      updatedData = [...implementations, newImpl];
+      await fetchImplementations();
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Failed to save implementation:', error);
+      alert('Failed to save implementation. Please try again.');
+    } finally {
+      setSaving(false);
     }
-
-    saveToLocalStorage(updatedData);
-    setShowAddModal(false);
-    setUploadSuccess(true);
-    setTimeout(() => setUploadSuccess(false), 2000);
   };
 
-  const handleDelete = (impl: Implementation) => {
-    if (confirm(`Delete ${impl.organisation_name}?`)) {
-      const updatedData = implementations.filter(i => i.sl_no !== impl.sl_no);
-      saveToLocalStorage(updatedData);
-    }
-  };
+  const handleDelete = async (impl: Implementation) => {
+    if (!confirm(`Delete ${impl.organisationName}?`)) return;
 
-  const downloadSampleCSV = () => {
-    const sample = `sl_no,organisation_name,sector,project_name,for_type,website,state
-1,Sample NGO,Health,Community Health Program,Self,https://example.com,Maharashtra
-2,Another Organization,Education,School Program,Government,https://example.org,Karnataka`;
-    
-    const blob = new Blob([sample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'avni_implementations_sample.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+    try {
+      await apiDelete(`/api/implementations/${impl.id}`);
+      await fetchImplementations();
+    } catch (error) {
+      console.error('Failed to delete implementation:', error);
+      alert('Failed to delete implementation. Please try again.');
+    }
   };
 
   const downloadMapAsPNG = async () => {
@@ -294,12 +221,12 @@ export default function ImplementationsPage() {
   const filteredImplementations = implementations.filter(impl => {
     const query = searchQuery.toLowerCase();
     return (
-      impl.organisation_name.toLowerCase().includes(query) ||
+      impl.organisationName.toLowerCase().includes(query) ||
       impl.sector.toLowerCase().includes(query) ||
-      impl.project_name.toLowerCase().includes(query) ||
-      impl.for_type.toLowerCase().includes(query) ||
+      impl.projectName.toLowerCase().includes(query) ||
+      impl.forType.toLowerCase().includes(query) ||
       impl.state.toLowerCase().includes(query) ||
-      impl.website.toLowerCase().includes(query)
+      (impl.website && impl.website.toLowerCase().includes(query))
     );
   });
 
@@ -336,12 +263,22 @@ export default function ImplementationsPage() {
     return <ArrowDown className="h-4 w-4" />;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        <div className="container mx-auto p-6 flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <LeadershipNavigation />
       
       <div className="container mx-auto p-6">
-        {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">All Avni Implementations</h1>
           <p className="text-gray-600">
@@ -349,77 +286,34 @@ export default function ImplementationsPage() {
           </p>
         </div>
 
-        {/* Upload Section */}
         <div className="bg-white rounded-lg border p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
               <h2 className="text-lg font-semibold mb-2">Manage Implementation Data</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Add implementations individually or upload CSV in bulk
+                Add, edit, or delete implementations
               </p>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  onClick={handleAddNew}
-                  className="gap-2 bg-green-600 hover:bg-green-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add New Implementation
-                </Button>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={downloadSampleCSV}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download Sample
-                </Button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
+              <Button
+                onClick={handleAddNew}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add New Implementation
+              </Button>
             </div>
             <div className="text-sm">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="font-semibold text-blue-900 mb-1">Current Data:</p>
                 <p className="text-blue-700">{implementations.length} implementations</p>
                 <p className="text-blue-700">{Object.keys(stateStats).length} states</p>
-                <p className="text-xs text-blue-600 mt-2">✓ Data persists in browser</p>
+                <p className="text-xs text-blue-600 mt-2">✓ Data stored in database</p>
               </div>
             </div>
           </div>
-
-          {uploadError && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-red-900">Upload Error</p>
-                <p className="text-sm text-red-700">{uploadError}</p>
-              </div>
-            </div>
-          )}
-          {uploadSuccess && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <p className="text-green-900 font-semibold">Success! Data updated.</p>
-            </div>
-          )}
         </div>
 
         {implementations.length > 0 && (
           <>
-            {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -480,7 +374,6 @@ export default function ImplementationsPage() {
               Showing {sortedImplementations.length} of {implementations.length} implementations
             </p>
 
-            {/* Table View */}
             {viewMode === 'table' && (
               <div className="bg-white rounded-lg border overflow-hidden">
                 <div className="overflow-x-auto">
@@ -492,11 +385,11 @@ export default function ImplementationsPage() {
                         </th>
                         <th 
                           className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('organisation_name')}
+                          onClick={() => handleSort('organisationName')}
                         >
                           <div className="flex items-center gap-2">
                             Organisation
-                            {getSortIcon('organisation_name')}
+                            {getSortIcon('organisationName')}
                           </div>
                         </th>
                         <th 
@@ -510,20 +403,20 @@ export default function ImplementationsPage() {
                         </th>
                         <th 
                           className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('project_name')}
+                          onClick={() => handleSort('projectName')}
                         >
                           <div className="flex items-center gap-2">
                             Program
-                            {getSortIcon('project_name')}
+                            {getSortIcon('projectName')}
                           </div>
                         </th>
                         <th 
                           className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('for_type')}
+                          onClick={() => handleSort('forType')}
                         >
                           <div className="flex items-center gap-2">
                             For
-                            {getSortIcon('for_type')}
+                            {getSortIcon('forType')}
                           </div>
                         </th>
                         <th 
@@ -544,13 +437,13 @@ export default function ImplementationsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {sortedImplementations.map((impl, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{impl.sl_no}</td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{impl.organisation_name}</td>
+                      {sortedImplementations.map((impl) => (
+                        <tr key={impl.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">{impl.slNo}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{impl.organisationName}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{impl.sector}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{impl.project_name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{impl.for_type}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{impl.projectName}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{impl.forType}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             <div className="flex items-center gap-1">
                               <MapPin className="h-3 w-3 text-gray-400" />
@@ -596,10 +489,8 @@ export default function ImplementationsPage() {
               </div>
             )}
 
-            {/* Map View */}
             {viewMode === 'map' && (
               <div ref={mapRef} className="bg-white rounded-lg border p-8">
-                {/* Avni Logo Header */}
                 <div className="flex items-center justify-center mb-6 pb-6 border-b">
                   <div className="text-center">
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">Avni Implementations Across India</h2>
@@ -608,7 +499,6 @@ export default function ImplementationsPage() {
                   </div>
                 </div>
 
-                {/* State Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {Object.entries(stateStats)
                     .sort((a, b) => b[1] - a[1])
@@ -636,14 +526,14 @@ export default function ImplementationsPage() {
                           {implementations
                             .filter(impl => impl.state === state)
                             .slice(0, 3)
-                            .map((impl, idx) => (
-                              <div key={idx} className="flex items-start gap-2">
+                            .map((impl) => (
+                              <div key={impl.id} className="flex items-start gap-2">
                                 <div 
                                   className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
                                   style={{ backgroundColor: STATE_COLORS[state] || '#6b7280' }}
                                 />
                                 <div className="text-xs text-gray-700 leading-tight">
-                                  <span className="font-semibold">{impl.organisation_name}</span>
+                                  <span className="font-semibold">{impl.organisationName}</span>
                                   <span className="text-gray-500"> • {impl.sector}</span>
                                 </div>
                               </div>
@@ -658,7 +548,6 @@ export default function ImplementationsPage() {
                     ))}
                 </div>
 
-                {/* Footer */}
                 <div className="mt-8 pt-6 border-t text-center">
                   <p className="text-sm text-gray-600">
                     <span className="font-semibold">Avni by Samanvay Foundation</span> • Building technology for social impact
@@ -674,22 +563,15 @@ export default function ImplementationsPage() {
           <div className="bg-white rounded-lg border p-12 text-center">
             <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Data Available</h3>
-            <p className="text-gray-600 mb-4">Add your first implementation or upload a CSV file</p>
-            <div className="flex gap-3 justify-center">
-              <Button onClick={handleAddNew} className="gap-2 bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4" />
-                Add New Implementation
-              </Button>
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload CSV File
-              </Button>
-            </div>
+            <p className="text-gray-600 mb-4">Add your first implementation</p>
+            <Button onClick={handleAddNew} className="gap-2 bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4" />
+              Add New Implementation
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -708,13 +590,13 @@ export default function ImplementationsPage() {
                   Organisation Name *
                 </label>
                 <Input
-                  value={formData.organisation_name || ''}
-                  onChange={(e) => setFormData({ ...formData, organisation_name: e.target.value })}
+                  value={formData.organisationName || ''}
+                  onChange={(e) => setFormData({ ...formData, organisationName: e.target.value })}
                   placeholder="Enter organisation name"
-                  className={formErrors.organisation_name ? 'border-red-500' : ''}
+                  className={formErrors.organisationName ? 'border-red-500' : ''}
                 />
-                {formErrors.organisation_name && (
-                  <p className="text-red-600 text-xs mt-1">{formErrors.organisation_name}</p>
+                {formErrors.organisationName && (
+                  <p className="text-red-600 text-xs mt-1">{formErrors.organisationName}</p>
                 )}
               </div>
 
@@ -739,8 +621,8 @@ export default function ImplementationsPage() {
                     For
                   </label>
                   <select
-                    value={formData.for_type || 'Self'}
-                    onChange={(e) => setFormData({ ...formData, for_type: e.target.value })}
+                    value={formData.forType || 'Self'}
+                    onChange={(e) => setFormData({ ...formData, forType: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="Self">Self</option>
@@ -756,13 +638,13 @@ export default function ImplementationsPage() {
                   Program Name *
                 </label>
                 <Input
-                  value={formData.project_name || ''}
-                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                  value={formData.projectName || ''}
+                  onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
                   placeholder="Enter program name"
-                  className={formErrors.project_name ? 'border-red-500' : ''}
+                  className={formErrors.projectName ? 'border-red-500' : ''}
                 />
-                {formErrors.project_name && (
-                  <p className="text-red-600 text-xs mt-1">{formErrors.project_name}</p>
+                {formErrors.projectName && (
+                  <p className="text-red-600 text-xs mt-1">{formErrors.projectName}</p>
                 )}
               </div>
 
@@ -805,15 +687,26 @@ export default function ImplementationsPage() {
               <Button
                 variant="outline"
                 onClick={() => setShowAddModal(false)}
+                disabled={saving}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
+                disabled={saving}
                 className="gap-2 bg-green-600 hover:bg-green-700"
               >
-                <Save className="h-4 w-4" />
-                {editingImpl ? 'Update' : 'Add'} Implementation
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    {editingImpl ? 'Update' : 'Add'} Implementation
+                  </>
+                )}
               </Button>
             </div>
           </div>
