@@ -12,9 +12,24 @@
  *   npm run set-roles -- support@avni.org support_engineer
  */
 
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { setUserRoles, type UserRole } from '../services/user-roles';
 import { logger } from '../utils/logger';
+
+// Initialize Firebase Admin with credentials
+const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+initializeApp({
+  credential: cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: privateKey,
+  }),
+});
 
 const VALID_ROLES: UserRole[] = ['support_engineer', 'product_manager', 'leadership', 'founder'];
 

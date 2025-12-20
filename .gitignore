@@ -51,3 +51,10 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# User management (sensitive)
+backend/src/scripts/create-firebase-user.ts
+backend/src/scripts/update-user-password.ts
+backend/src/scripts/update-user-email.ts
+backend/src/scripts/list-users.ts
+USER_MANAGEMENT.md

@@ -10,7 +10,11 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
-    "set-roles": "ts-node src/scripts/set-user-roles.ts"
+    "set-roles": "ts-node src/scripts/set-user-roles.ts",
+    "create-user": "ts-node src/scripts/create-firebase-user.ts",
+    "update-password": "ts-node src/scripts/update-user-password.ts",
+    "update-email": "ts-node src/scripts/update-user-email.ts",
+    "list-users": "ts-node src/scripts/list-users.ts"
   },
   "engines": {
     "node": ">=18.0.0"
