@@ -56,12 +56,14 @@ export default function TrendsPage() {
   });
 
   const handleDateChange = (range: { from: Date; to: Date }) => {
+    console.log('Date changed in trends:', range);
     setDateRange(range);
   };
 
   useEffect(() => {
     async function loadTrends() {
       setLoading(true);
+      console.log('Fetching trends with date range:', dateRange);
       try {
         const params = new URLSearchParams({
           startDate: dateRange.from.toISOString(),

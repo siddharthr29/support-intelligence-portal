@@ -29,9 +29,15 @@ export default function MetricsPage() {
     return { from, to };
   });
 
+  const handleDateChange = (range: { from: Date; to: Date }) => {
+    console.log('Date changed in metrics:', range);
+    setDateRange(range);
+  };
+
   useEffect(() => {
     async function fetchMetrics() {
       setLoading(true);
+      console.log('Fetching metrics with date range:', dateRange);
       try {
         const params = new URLSearchParams({
           startDate: dateRange.from.toISOString(),
@@ -113,7 +119,7 @@ export default function MetricsPage() {
                 {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={setDateRange} defaultPreset="12m" />
+            <LeadershipDateFilter onDateChange={handleDateChange} defaultPreset="12m" />
           </div>
         </div>
 

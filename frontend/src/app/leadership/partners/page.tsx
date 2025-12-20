@@ -40,12 +40,14 @@ export default function PartnersPage() {
   });
 
   const handleDateChange = (range: { from: Date; to: Date }) => {
+    console.log('Date changed in partners:', range);
     setDateRange(range);
   };
 
   useEffect(() => {
     async function fetchPartners() {
       setLoading(true);
+      console.log('Fetching partners with date range:', dateRange);
       try {
         const params = new URLSearchParams({
           startDate: dateRange.from.toISOString(),

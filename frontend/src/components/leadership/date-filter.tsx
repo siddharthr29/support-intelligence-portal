@@ -28,6 +28,7 @@ export function LeadershipDateFilter({ onDateChange, defaultPreset = '12m' }: Da
       from.setFullYear(from.getFullYear() - 1);
     }
     
+    console.log('LeadershipDateFilter: Preset clicked', p, { from, to });
     onDateChange({ from, to });
   };
   
