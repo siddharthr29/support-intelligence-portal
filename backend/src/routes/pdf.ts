@@ -34,9 +34,8 @@ export async function pdfRoutes(fastify: FastifyInstance) {
         
         browser = await puppeteer.default.launch({
           args: chromium.default.args,
-          defaultViewport: chromium.default.defaultViewport,
           executablePath: await chromium.default.executablePath(),
-          headless: chromium.default.headless,
+          headless: true,
         });
       } catch (chromiumError) {
         // Fallback to regular puppeteer (for local/development)
