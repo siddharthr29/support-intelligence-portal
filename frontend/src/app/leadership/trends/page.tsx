@@ -157,15 +157,15 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
                     data={ticketTypes as any}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
+                    labelLine={true}
                     label={(entry: any) => `${entry.type}: ${entry.percentage}%`}
-                    outerRadius={100}
+                    outerRadius={120}
                     fill="#8884d8"
                     dataKey="count"
                   >
@@ -174,6 +174,11 @@ export default function TrendsPage() {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    formatter={(value, entry: any) => `${entry.payload.type}`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
