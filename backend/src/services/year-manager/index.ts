@@ -21,29 +21,21 @@ export function getPreviousYear(): number {
 }
 
 /**
- * Get available years from the database
- * Returns distinct years from YtdTicket table
+ * Get available years for the dropdown
+ * Business Rule: Only show the immediately previous completed year
+ * - In 2025, show only 2025
+ * - In 2026, show only 2025
+ * - In 2027, show only 2026
+ * This ensures the dropdown always shows exactly ONE valid year
  */
 export async function getAvailableYears(): Promise<number[]> {
-  const prisma = getPrismaClient();
+  // Calculate the valid retention year (current year)
+  const validYear = getCurrentYear();
   
-  try {
-    const result = await prisma.ytdTicket.findMany({
-      select: { year: true },
-      distinct: ['year'],
-      orderBy: { year: 'desc' },
-    });
-    
-    const years = result.map(r => r.year);
-    
-    logger.info({ years }, 'Available years fetched');
-    
-    return years;
-  } catch (error) {
-    logger.error({ error }, 'Failed to fetch available years');
-    // Fallback to current year
-    return [getCurrentYear()];
-  }
+  logger.info({ validYear }, 'Returning single valid year for dropdown');
+  
+  // Return only the current year - no DB query needed
+  return [validYear];
 }
 
 /**

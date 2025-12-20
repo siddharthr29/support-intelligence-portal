@@ -1,7 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+/**
+ * Year Store - Manages year selection for data viewing
+ * Business Rule: Only ONE year is available at a time (current year)
+ * No persistence needed - year is always calculated from current date
+ */
 
 interface YearState {
   selectedYear: number;
@@ -13,39 +16,37 @@ interface YearState {
   fetchAvailableYears: () => Promise<void>;
 }
 
-export const useYearStore = create<YearState>()(
-  persist(
-    (set, get) => ({
-      selectedYear: new Date().getFullYear(),
-      availableYears: [],
-      currentYear: new Date().getFullYear(),
-      isLoading: false,
-      
-      setYear: (year: number) => {
-        set({ selectedYear: year });
-      },
-      
-      fetchAvailableYears: async () => {
-        set({ isLoading: true });
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/years`);
-          const json = await res.json();
-          
-          if (json.success) {
-            set({
-              availableYears: json.data.years,
-              currentYear: json.data.currentYear,
-            });
-          }
-        } catch (error) {
-          console.error('Failed to fetch available years:', error);
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-    }),
-    {
-      name: 'year-storage',
+/**
+ * Get the valid year for data viewing
+ * Always returns current year (which represents the data being viewed)
+ */
+function getValidYear(): number {
+  return new Date().getFullYear();
+}
+
+export const useYearStore = create<YearState>((set) => ({
+  selectedYear: getValidYear(),
+  availableYears: [getValidYear()],
+  currentYear: getValidYear(),
+  isLoading: false,
+  
+  setYear: (year: number) => {
+    // Only allow setting the valid year
+    const validYear = getValidYear();
+    if (year === validYear) {
+      set({ selectedYear: year });
     }
-  )
-);
+  },
+  
+  fetchAvailableYears: async () => {
+    // No API call needed - year is always calculated from current date
+    // This ensures the dropdown always shows exactly ONE valid year
+    const validYear = getValidYear();
+    set({
+      availableYears: [validYear],
+      currentYear: validYear,
+      selectedYear: validYear,
+      isLoading: false,
+    });
+  },
+}));

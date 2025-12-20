@@ -1,50 +1,26 @@
 'use client';
 
 import { useYearStore } from '@/stores/year-store';
-import { useAppDataStore } from '@/stores/app-data-store';
 import { useEffect } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
+/**
+ * Year Selector Component
+ * Business Rule: Only ONE year is available at a time (current year)
+ * Since there's only one year, we display it as static text instead of a dropdown
+ */
 export function YearSelector() {
-  const { selectedYear, availableYears, setYear, fetchAvailableYears } = useYearStore();
-  const { fetchAppData } = useAppDataStore();
+  const { selectedYear, fetchAvailableYears } = useYearStore();
   
   useEffect(() => {
     fetchAvailableYears();
   }, [fetchAvailableYears]);
   
-  const handleYearChange = async (year: string) => {
-    const yearNum = parseInt(year);
-    setYear(yearNum);
-    // Refetch data for new year
-    await fetchAppData(yearNum);
-  };
-  
-  if (availableYears.length === 0) {
-    return null;
-  }
-  
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">Year:</span>
-      <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-        <SelectTrigger className="w-[120px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {availableYears.map((year) => (
-            <SelectItem key={year} value={year.toString()}>
-              {year}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <span className="text-sm font-medium px-3 py-1.5 bg-secondary rounded-md">
+        {selectedYear}
+      </span>
     </div>
   );
 }
