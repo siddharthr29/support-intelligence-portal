@@ -48,6 +48,11 @@ export async function registerAppDataRoutes(fastify: FastifyInstance): Promise<v
       const { authMiddleware } = await import('../middleware/auth');
       await authMiddleware(request, reply);
       
+      // CRITICAL: Stop execution if auth middleware already sent a response (401/403/500)
+      if (reply.sent) {
+        return;
+      }
+      
       // Apply rate limiting for year switches
       const { yearRateLimitMiddleware } = await import('../middleware/year-rate-limit');
       if (request.query.year) {
