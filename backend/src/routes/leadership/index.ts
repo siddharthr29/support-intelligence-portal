@@ -33,6 +33,12 @@ export async function registerLeadershipRoutes(fastify: FastifyInstance): Promis
   fastify.get('/api/leadership/user/roles', {
     preHandler: [authMiddleware],
   }, async (request, reply) => {
+    // Log the entire decoded token for debugging
+    logger.info({
+      user: request.user,
+      customClaims: request.user?.customClaims,
+    }, 'DEBUG: Full decoded token');
+    
     const claims = request.user?.customClaims as Record<string, boolean> || {};
     
     const roles = {
@@ -48,6 +54,7 @@ export async function registerLeadershipRoutes(fastify: FastifyInstance): Promis
         uid: request.user?.uid,
         email: request.user?.email,
         roles,
+        debug_custom_claims: request.user?.customClaims, // Add debug info
       },
     });
   });
