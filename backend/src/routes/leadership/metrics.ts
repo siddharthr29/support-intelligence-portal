@@ -18,13 +18,93 @@ export async function registerMetricsRoutes(fastify: FastifyInstance): Promise<v
     const prisma = getPrismaClient();
 
     try {
-      const summary = await prisma.$queryRaw<Array<any>>`
-        SELECT * FROM leadership_metrics_summary
-      `;
+      // Fallback: Calculate metrics directly if view doesn't exist
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      
+      const [
+        longUnresolvedBlockers,
+        dataLossIncidents,
+        howToVolume,
+        trainingRequests,
+        slaBreaches,
+        currentBacklog,
+        totalTickets,
+        avgResolution
+      ] = await Promise.all([
+        // Long unresolved blockers
+        prisma.ytdTicket.count({
+          where: {
+            status: { in: [2, 3] },
+            priority: { gte: 3 },
+            updatedAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        // Data loss incidents
+        prisma.ytdTicket.count({
+          where: {
+            tags: { has: 'data-loss' },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        // How-to volume
+        prisma.ytdTicket.count({
+          where: {
+            tags: { has: 'how-to' },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        // Training requests
+        prisma.ytdTicket.count({
+          where: {
+            tags: { has: 'training' },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        // SLA breaches
+        prisma.ytdTicket.count({
+          where: {
+            priority: 4,
+            status: { in: [2, 3] },
+            updatedAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        // Current backlog
+        prisma.ytdTicket.count({
+          where: {
+            status: { in: [2, 3] },
+          },
+        }),
+        // Total tickets last 30 days
+        prisma.ytdTicket.count({
+          where: {
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        // Average resolution hours
+        prisma.$queryRaw<Array<{ avg_hours: number | null }>>`
+          SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600) as avg_hours
+          FROM ytd_tickets
+          WHERE created_at >= ${thirtyDaysAgo}
+            AND status IN (4, 5)
+        `
+      ]);
+
+      const summary = {
+        long_unresolved_blockers: longUnresolvedBlockers,
+        data_loss_incidents: dataLossIncidents,
+        how_to_volume: howToVolume,
+        training_requests: trainingRequests,
+        sla_breaches: slaBreaches,
+        current_backlog: currentBacklog,
+        total_tickets_30d: totalTickets,
+        avg_resolution_hours: avgResolution[0]?.avg_hours || 0,
+      };
 
       return reply.send({
         success: true,
-        data: summary[0] || {},
+        data: summary,
       });
     } catch (error) {
       logger.error({ error }, 'Failed to fetch metrics summary');

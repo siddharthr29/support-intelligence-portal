@@ -18,8 +18,37 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
     const prisma = getPrismaClient();
 
     try {
+      // Fallback: Calculate partner metrics directly
+      const twelveMonthsAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
       const partners = await prisma.$queryRaw<Array<any>>`
-        SELECT * FROM partner_risk_recent
+        SELECT 
+          c.freshdesk_company_id as partner_id,
+          c.name as partner_name,
+          COUNT(t.id) as total_tickets_12m,
+          COUNT(t.id) FILTER (WHERE t.created_at >= ${thirtyDaysAgo}) as tickets_last_30d,
+          COUNT(t.id) FILTER (WHERE t.created_at >= ${sixtyDaysAgo} AND t.created_at < ${thirtyDaysAgo}) as tickets_prev_30d,
+          AVG(EXTRACT(EPOCH FROM (t.updated_at - t.created_at))/3600) as avg_resolution_hours,
+          COUNT(*) FILTER (WHERE t.status IN (2, 3)) as unresolved_count,
+          COUNT(*) FILTER (WHERE t.priority = 4) as urgent_tickets,
+          COUNT(*) FILTER (WHERE t.priority = 3) as high_tickets,
+          COUNT(*) FILTER (WHERE 'data-loss' = ANY(t.tags)) as data_loss_tickets,
+          COUNT(*) FILTER (WHERE 'sync-failure' = ANY(t.tags)) as sync_failure_tickets,
+          COUNT(*) FILTER (WHERE 'how-to' = ANY(t.tags)) as how_to_tickets,
+          COUNT(*) FILTER (WHERE 'training' = ANY(t.tags)) as training_tickets,
+          CASE 
+            WHEN COUNT(t.id) FILTER (WHERE t.created_at >= ${sixtyDaysAgo} AND t.created_at < ${thirtyDaysAgo}) > 0
+            THEN COUNT(t.id) FILTER (WHERE t.created_at >= ${thirtyDaysAgo})::FLOAT /
+                 COUNT(t.id) FILTER (WHERE t.created_at >= ${sixtyDaysAgo} AND t.created_at < ${thirtyDaysAgo})
+            ELSE NULL
+          END as trend_ratio
+        FROM company_cache c
+        LEFT JOIN ytd_tickets t ON t.company_id = c.freshdesk_company_id
+        WHERE t.created_at >= ${twelveMonthsAgo} OR t.created_at IS NULL
+        GROUP BY c.freshdesk_company_id, c.name
+        HAVING COUNT(t.id) > 0
         ORDER BY unresolved_count DESC, urgent_tickets DESC
       `;
 
