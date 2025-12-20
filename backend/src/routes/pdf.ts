@@ -53,7 +53,7 @@ export async function pdfRoutes(fastify: FastifyInstance) {
       await page.waitForSelector('.leaflet-container', { timeout: 10000 });
 
       // Additional wait for tiles to load
-      await page.waitForTimeout(3000);
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Generate PDF
       const pdf = await page.pdf({
