@@ -19,24 +19,43 @@ export async function pdfRoutes(fastify: FastifyInstance) {
 
     let browser;
     try {
-      // Dynamic import of puppeteer to avoid bundling issues
-      const puppeteer = await import('puppeteer');
-
       logger.info({ url }, 'Generating PDF from URL');
 
-      // Launch browser with additional args for server environments
-      browser = await puppeteer.default.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--disable-software-rasterizer',
-          '--disable-extensions',
-        ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      });
+      // Use chrome-aws-lambda for serverless/Render.com environments
+      let chromium;
+      let puppeteer;
+      
+      try {
+        // Try chrome-aws-lambda first (for Render.com/serverless)
+        chromium = await import('@sparticuz/chromium');
+        puppeteer = await import('puppeteer-core');
+        
+        logger.info('Using chrome-aws-lambda for PDF generation');
+        
+        browser = await puppeteer.default.launch({
+          args: chromium.default.args,
+          defaultViewport: chromium.default.defaultViewport,
+          executablePath: await chromium.default.executablePath(),
+          headless: chromium.default.headless,
+        });
+      } catch (chromiumError) {
+        // Fallback to regular puppeteer (for local/development)
+        logger.info('chrome-aws-lambda not available, using puppeteer');
+        puppeteer = await import('puppeteer');
+        
+        browser = await puppeteer.default.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-extensions',
+          ],
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        });
+      }
 
       const page = await browser.newPage();
 

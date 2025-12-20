@@ -37,10 +37,10 @@ export function LeadershipNavigation() {
     <div className="border-b bg-white sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-6">
+        <div className="flex items-center justify-between h-16 px-4 sm:px-6">
           {/* Logo & Title */}
-          <div className="flex items-center gap-4">
-            <div className="relative h-8 w-32">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="relative h-6 w-24 sm:h-8 sm:w-32 flex-shrink-0">
               <Image
                 src="/avni-logo.png"
                 alt="Avni"
@@ -49,13 +49,13 @@ export function LeadershipNavigation() {
                 priority
               />
             </div>
-            <div className="h-6 w-px bg-gray-300" />
-            <h1 className="text-lg font-semibold text-gray-900">SUPPORT OPERATIONAL DASHBOARD</h1>
+            <div className="h-6 w-px bg-gray-300 hidden sm:block" />
+            <h1 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">SUPPORT OPERATIONAL DASHBOARD</h1>
           </div>
 
           {/* User & Logout */}
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-right">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <div className="text-xs sm:text-sm text-right hidden md:block">
               <div className="font-medium text-gray-900">{user?.email}</div>
               <div className="text-xs text-gray-500">Leadership Access</div>
             </div>
@@ -63,16 +63,16 @@ export function LeadershipNavigation() {
               variant="outline"
               size="sm"
               onClick={handleLogout}
-              className="gap-2"
+              className="gap-1 sm:gap-2"
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-6">
+        <div className="flex gap-1 px-6 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = isActive(tab.path);
@@ -82,8 +82,8 @@ export function LeadershipNavigation() {
                 key={tab.path}
                 onClick={() => router.push(tab.path)}
                 className={`
-                  flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors
-                  border-b-2 -mb-px
+                  flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap
+                  border-b-2 -mb-px flex-shrink-0
                   ${active 
                     ? 'border-green-600 text-green-600' 
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
@@ -91,7 +91,8 @@ export function LeadershipNavigation() {
                 `}
               >
                 <Icon className="h-4 w-4" />
-                {tab.name}
+                <span className="hidden sm:inline">{tab.name}</span>
+                <span className="sm:hidden">{tab.name.split(' ')[0]}</span>
               </button>
             );
           })}
