@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
+import { LeadershipDateFilter } from '@/components/leadership/date-filter';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 import { AlertCircle, TrendingUp, Clock, Users, AlertTriangle, BookOpen, GraduationCap, Activity } from 'lucide-react';
 
 interface MetricsSummary {
@@ -18,22 +20,34 @@ interface MetricsSummary {
 }
 
 export default function MetricsPage() {
-  const [summary, setSummary] = useState<MetricsSummary | null>(null);
+  const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setFullYear(from.getFullYear() - 1);
+    return { from, to };
+  });
 
   useEffect(() => {
     async function fetchMetrics() {
+      setLoading(true);
       try {
-        const response = await apiGet('/api/leadership/metrics/summary');
-        setSummary(response.data);
-        setLoading(false);
-      } catch (err) {
+        const params = new URLSearchParams({
+          startDate: dateRange.from.toISOString(),
+          endDate: dateRange.to.toISOString(),
+        });
+        const response = await apiGet(`/api/leadership/metrics?${params}`);
+        console.log('Metrics data loaded:', response.data);
+        setMetrics(response.data.summary);
+      } catch (err: any) {
         console.error('Failed to load metrics:', err);
+      } finally {
         setLoading(false);
       }
     }
     fetchMetrics();
-  }, []);
+  }, [dateRange]);
 
   if (loading) {
     return (

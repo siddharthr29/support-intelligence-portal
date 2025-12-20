@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
+import { LeadershipDateFilter } from '@/components/leadership/date-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, Tag, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface TicketType {
   type: string;
@@ -46,16 +48,30 @@ export default function TrendsPage() {
   const [tags, setTags] = useState<TagData[]>([]);
   const [timeline, setTimeline] = useState<TimelineData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setFullYear(from.getFullYear() - 1);
+    return { from, to };
+  });
 
   useEffect(() => {
     async function loadTrends() {
+      setLoading(true);
       try {
+        const params = new URLSearchParams({
+          startDate: dateRange.from.toISOString(),
+          endDate: dateRange.to.toISOString(),
+        });
+
         const [typesRes, companiesRes, tagsRes, timelineRes] = await Promise.all([
-          apiGet('/api/leadership/trends/ticket-types'),
-          apiGet('/api/leadership/trends/companies'),
-          apiGet('/api/leadership/trends/tags'),
-          apiGet('/api/leadership/trends/timeline'),
+          apiGet(`/api/leadership/trends/ticket-types?${params}`),
+          apiGet(`/api/leadership/trends/companies?${params}`),
+          apiGet(`/api/leadership/trends/tags?${params}`),
+          apiGet(`/api/leadership/trends/timeline?${params}`),
         ]);
+
+        console.log('Trends data loaded:', { typesRes, companiesRes, tagsRes, timelineRes });
 
         setTicketTypes(typesRes.data.categories || []);
         setCompanies(companiesRes.data.companies || []);
@@ -71,7 +87,7 @@ export default function TrendsPage() {
       }
     }
     loadTrends();
-  }, []);
+  }, [dateRange]);
 
   if (loading) {
     return (
@@ -99,10 +115,15 @@ export default function TrendsPage() {
       <div className="container mx-auto p-6">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Trends & Pattern Analysis</h1>
-          <p className="text-gray-600">
-            Comprehensive ticket analysis by type, company, and timeline (Last 12 months)
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Trends & Pattern Analysis</h1>
+              <p className="text-gray-600">
+                {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </p>
+            </div>
+            <LeadershipDateFilter onDateChange={setDateRange} defaultPreset="12m" />
+          </div>
         </div>
 
         {/* Top Row: Ticket Types & Top Companies */}

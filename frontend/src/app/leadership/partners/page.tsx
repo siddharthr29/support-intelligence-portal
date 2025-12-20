@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
+import { LeadershipDateFilter } from '@/components/leadership/date-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface PartnerRisk {
   partner_id: number;
@@ -30,22 +32,34 @@ export default function PartnersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setFullYear(from.getFullYear() - 1);
+    return { from, to };
+  });
 
   useEffect(() => {
     async function fetchPartners() {
+      setLoading(true);
       try {
-        const response = await apiGet('/api/leadership/partners');
+        const params = new URLSearchParams({
+          startDate: dateRange.from.toISOString(),
+          endDate: dateRange.to.toISOString(),
+        });
+        const response = await apiGet(`/api/leadership/partners?${params}`);
         const partnerData = response.data.partners || [];
+        console.log('Partners data loaded:', partnerData);
         setPartners(partnerData);
         setFilteredPartners(partnerData);
-        setLoading(false);
       } catch (err: any) {
         console.error('Failed to load partners:', err);
+      } finally {
         setLoading(false);
       }
     }
     fetchPartners();
-  }, []);
+  }, [dateRange]);
 
   useEffect(() => {
     let filtered = partners;
@@ -110,10 +124,15 @@ export default function PartnersPage() {
       <div className="container mx-auto p-6">
         {/* Page Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Partner Health Intelligence</h1>
-          <p className="text-gray-600">
-            Real-time operational risk assessment for {partners.length} partners (last 12 months)
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Partner Health Intelligence</h1>
+              <p className="text-gray-600">
+                {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </p>
+            </div>
+            <LeadershipDateFilter onDateChange={setDateRange} defaultPreset="12m" />
+          </div>
         </div>
 
         {/* Filters */}
