@@ -17,9 +17,16 @@ import {
   Map as MapIcon,
   AlertCircle,
   CheckCircle2,
-  Download
+  Download,
+  Plus,
+  Edit,
+  Trash2,
+  Share2,
+  X,
+  Save
 } from 'lucide-react';
 import Papa from 'papaparse';
+import html2canvas from 'html2canvas';
 
 interface Implementation {
   sl_no: number;
@@ -48,6 +55,8 @@ const STATE_COLORS: Record<string, string> = {
   'Ladakh': '#ef4444'
 };
 
+const INDIAN_STATES = Object.keys(STATE_COLORS);
+
 export default function ImplementationsPage() {
   const [implementations, setImplementations] = useState<Implementation[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
@@ -58,9 +67,14 @@ export default function ImplementationsPage() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stateStats, setStateStats] = useState<Record<string, number>>({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingImpl, setEditingImpl] = useState<Implementation | null>(null);
+  const [formData, setFormData] = useState<Partial<Implementation>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    // Load from localStorage on mount
     const saved = localStorage.getItem('avni_implementations');
     if (saved) {
       try {
@@ -72,6 +86,12 @@ export default function ImplementationsPage() {
       }
     }
   }, []);
+
+  const saveToLocalStorage = (data: Implementation[]) => {
+    localStorage.setItem('avni_implementations', JSON.stringify(data));
+    setImplementations(data);
+    calculateStateStats(data);
+  };
 
   const calculateStateStats = (data: Implementation[]) => {
     const stats: Record<string, number> = {};
@@ -101,7 +121,6 @@ export default function ImplementationsPage() {
         try {
           const data = results.data as any[];
           
-          // Validate required columns
           const requiredColumns = ['sl_no', 'organisation_name', 'sector', 'project_name', 'for_type', 'website', 'state'];
           const headers = Object.keys(data[0] || {});
           const missingColumns = requiredColumns.filter(col => !headers.includes(col));
@@ -111,10 +130,9 @@ export default function ImplementationsPage() {
             return;
           }
 
-          // Transform and validate data
           const implementations: Implementation[] = data.map((row, index) => {
             if (!row.organisation_name || !row.sector || !row.project_name) {
-              throw new Error(`Row ${index + 2}: Missing required fields (organisation_name, sector, or project_name)`);
+              throw new Error(`Row ${index + 2}: Missing required fields`);
             }
 
             return {
@@ -133,10 +151,7 @@ export default function ImplementationsPage() {
             return;
           }
 
-          // Save to state and localStorage
-          setImplementations(implementations);
-          localStorage.setItem('avni_implementations', JSON.stringify(implementations));
-          calculateStateStats(implementations);
+          saveToLocalStorage(implementations);
           setUploadSuccess(true);
           setTimeout(() => setUploadSuccess(false), 3000);
 
@@ -149,13 +164,133 @@ export default function ImplementationsPage() {
       }
     });
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Filter implementations
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.organisation_name?.trim()) {
+      errors.organisation_name = 'Organisation name is required';
+    }
+    if (!formData.sector?.trim()) {
+      errors.sector = 'Sector is required';
+    }
+    if (!formData.project_name?.trim()) {
+      errors.project_name = 'Program name is required';
+    }
+    if (!formData.state?.trim()) {
+      errors.state = 'State is required';
+    }
+    if (formData.website && !formData.website.match(/^https?:\/\/.+/)) {
+      errors.website = 'Website must be a valid URL (starting with http:// or https://)';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddNew = () => {
+    setEditingImpl(null);
+    setFormData({
+      sl_no: implementations.length + 1,
+      organisation_name: '',
+      sector: '',
+      project_name: '',
+      for_type: 'Self',
+      website: '',
+      state: ''
+    });
+    setFormErrors({});
+    setShowAddModal(true);
+  };
+
+  const handleEdit = (impl: Implementation) => {
+    setEditingImpl(impl);
+    setFormData({ ...impl });
+    setFormErrors({});
+    setShowAddModal(true);
+  };
+
+  const handleSave = () => {
+    if (!validateForm()) return;
+
+    const newImpl: Implementation = {
+      sl_no: formData.sl_no || implementations.length + 1,
+      organisation_name: formData.organisation_name!.trim(),
+      sector: formData.sector!.trim(),
+      project_name: formData.project_name!.trim(),
+      for_type: formData.for_type || 'Self',
+      website: formData.website?.trim() || '',
+      state: formData.state!.trim(),
+    };
+
+    let updatedData: Implementation[];
+    if (editingImpl) {
+      updatedData = implementations.map(impl => 
+        impl.sl_no === editingImpl.sl_no ? newImpl : impl
+      );
+    } else {
+      updatedData = [...implementations, newImpl];
+    }
+
+    saveToLocalStorage(updatedData);
+    setShowAddModal(false);
+    setUploadSuccess(true);
+    setTimeout(() => setUploadSuccess(false), 2000);
+  };
+
+  const handleDelete = (impl: Implementation) => {
+    if (confirm(`Delete ${impl.organisation_name}?`)) {
+      const updatedData = implementations.filter(i => i.sl_no !== impl.sl_no);
+      saveToLocalStorage(updatedData);
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const sample = `sl_no,organisation_name,sector,project_name,for_type,website,state
+1,Sample NGO,Health,Community Health Program,Self,https://example.com,Maharashtra
+2,Another Organization,Education,School Program,Government,https://example.org,Karnataka`;
+    
+    const blob = new Blob([sample], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'avni_implementations_sample.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadMapAsPNG = async () => {
+    if (!mapRef.current) return;
+    
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(mapRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `avni-implementations-map-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Failed to download map:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const shareMap = () => {
+    const url = `${window.location.origin}/leadership/implementations?view=map`;
+    navigator.clipboard.writeText(url);
+    alert('Map link copied to clipboard!');
+  };
+
   const filteredImplementations = implementations.filter(impl => {
     const query = searchQuery.toLowerCase();
     return (
@@ -168,7 +303,6 @@ export default function ImplementationsPage() {
     );
   });
 
-  // Sort implementations
   const sortedImplementations = [...filteredImplementations].sort((a, b) => {
     if (!sortField || !sortDirection) return 0;
     
@@ -202,20 +336,6 @@ export default function ImplementationsPage() {
     return <ArrowDown className="h-4 w-4" />;
   };
 
-  const downloadSampleCSV = () => {
-    const sample = `sl_no,organisation_name,sector,project_name,for_type,website,state
-1,Sample NGO,Health,Community Health Program,Self,https://example.com,Maharashtra
-2,Another Organization,Education,School Program,Government,https://example.org,Karnataka`;
-    
-    const blob = new Blob([sample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'avni_implementations_sample.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <LeadershipNavigation />
@@ -225,7 +345,7 @@ export default function ImplementationsPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">All Avni Implementations</h1>
           <p className="text-gray-600">
-            Upload CSV to view and manage Avni implementations across India
+            Manage and visualize Avni implementations across India
           </p>
         </div>
 
@@ -233,13 +353,21 @@ export default function ImplementationsPage() {
         <div className="bg-white rounded-lg border p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
-              <h2 className="text-lg font-semibold mb-2">Upload Implementation Data</h2>
+              <h2 className="text-lg font-semibold mb-2">Manage Implementation Data</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Upload a CSV file with columns: sl_no, organisation_name, sector, project_name, for_type, website, state
+                Add implementations individually or upload CSV in bulk
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={handleAddNew}
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New Implementation
+                </Button>
                 <Button
                   onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
                   className="gap-2"
                 >
                   <Upload className="h-4 w-4" />
@@ -267,11 +395,11 @@ export default function ImplementationsPage() {
                 <p className="font-semibold text-blue-900 mb-1">Current Data:</p>
                 <p className="text-blue-700">{implementations.length} implementations</p>
                 <p className="text-blue-700">{Object.keys(stateStats).length} states</p>
+                <p className="text-xs text-blue-600 mt-2">✓ Data persists in browser</p>
               </div>
             </div>
           </div>
 
-          {/* Error/Success Messages */}
           {uploadError && (
             <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -284,7 +412,7 @@ export default function ImplementationsPage() {
           {uploadSuccess && (
             <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <p className="text-green-900 font-semibold">CSV uploaded successfully! {implementations.length} implementations loaded.</p>
+              <p className="text-green-900 font-semibold">Success! Data updated.</p>
             </div>
           )}
         </div>
@@ -322,6 +450,29 @@ export default function ImplementationsPage() {
                   <MapIcon className="h-4 w-4" />
                   Map
                 </Button>
+                {viewMode === 'map' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={shareMap}
+                      className="gap-2"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadMapAsPNG}
+                      disabled={isDownloading}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      {isDownloading ? 'Downloading...' : 'Download PNG'}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -387,6 +538,9 @@ export default function ImplementationsPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                           Website
                         </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -416,6 +570,24 @@ export default function ImplementationsPage() {
                               </a>
                             )}
                           </td>
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEdit(impl)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(impl)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -426,49 +598,72 @@ export default function ImplementationsPage() {
 
             {/* Map View */}
             {viewMode === 'map' && (
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  Avni Implementations Across India
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div ref={mapRef} className="bg-white rounded-lg border p-8">
+                {/* Avni Logo Header */}
+                <div className="flex items-center justify-center mb-6 pb-6 border-b">
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Avni Implementations Across India</h2>
+                    <p className="text-gray-600">Empowering communities through technology • {implementations.length} Active Implementations</p>
+                    <p className="text-sm text-gray-500 mt-2">Generated on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </div>
+                </div>
+
+                {/* State Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {Object.entries(stateStats)
                     .sort((a, b) => b[1] - a[1])
                     .map(([state, count]) => (
                       <div
                         key={state}
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                        style={{ borderLeftWidth: '4px', borderLeftColor: STATE_COLORS[state] || '#6b7280' }}
+                        className="border-2 rounded-xl p-5 hover:shadow-lg transition-all duration-200"
+                        style={{ borderColor: STATE_COLORS[state] || '#6b7280' }}
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{state}</h3>
-                            <p className="text-sm text-gray-600">{count} implementation{count !== 1 ? 's' : ''}</p>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-gray-900 text-lg mb-1">{state}</h3>
+                            <p className="text-sm text-gray-600 font-medium">
+                              {count} implementation{count !== 1 ? 's' : ''}
+                            </p>
                           </div>
                           <div 
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
+                            className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md"
                             style={{ backgroundColor: STATE_COLORS[state] || '#6b7280' }}
                           >
                             {count}
                           </div>
                         </div>
-                        <div className="mt-3 space-y-1">
+                        <div className="mt-3 pt-3 border-t space-y-1.5">
                           {implementations
                             .filter(impl => impl.state === state)
                             .slice(0, 3)
                             .map((impl, idx) => (
-                              <div key={idx} className="text-xs text-gray-600 truncate">
-                                • {impl.organisation_name}
+                              <div key={idx} className="flex items-start gap-2">
+                                <div 
+                                  className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                                  style={{ backgroundColor: STATE_COLORS[state] || '#6b7280' }}
+                                />
+                                <div className="text-xs text-gray-700 leading-tight">
+                                  <span className="font-semibold">{impl.organisation_name}</span>
+                                  <span className="text-gray-500"> • {impl.sector}</span>
+                                </div>
                               </div>
                             ))}
                           {implementations.filter(impl => impl.state === state).length > 3 && (
-                            <div className="text-xs text-gray-500 italic">
-                              +{implementations.filter(impl => impl.state === state).length - 3} more
+                            <div className="text-xs text-gray-500 italic pl-3.5">
+                              +{implementations.filter(impl => impl.state === state).length - 3} more organizations
                             </div>
                           )}
                         </div>
                       </div>
                     ))}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-8 pt-6 border-t text-center">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Avni by Samanvay Foundation</span> • Building technology for social impact
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">www.avniproject.org</p>
                 </div>
               </div>
             )}
@@ -479,14 +674,151 @@ export default function ImplementationsPage() {
           <div className="bg-white rounded-lg border p-12 text-center">
             <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Data Available</h3>
-            <p className="text-gray-600 mb-4">Upload a CSV file to view Avni implementations</p>
-            <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
-              <Upload className="h-4 w-4" />
-              Upload CSV File
-            </Button>
+            <p className="text-gray-600 mb-4">Add your first implementation or upload a CSV file</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={handleAddNew} className="gap-2 bg-green-600 hover:bg-green-700">
+                <Plus className="h-4 w-4" />
+                Add New Implementation
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
+                <Upload className="h-4 w-4" />
+                Upload CSV File
+              </Button>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingImpl ? 'Edit Implementation' : 'Add New Implementation'}
+              </h2>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Organisation Name *
+                </label>
+                <Input
+                  value={formData.organisation_name || ''}
+                  onChange={(e) => setFormData({ ...formData, organisation_name: e.target.value })}
+                  placeholder="Enter organisation name"
+                  className={formErrors.organisation_name ? 'border-red-500' : ''}
+                />
+                {formErrors.organisation_name && (
+                  <p className="text-red-600 text-xs mt-1">{formErrors.organisation_name}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sector *
+                  </label>
+                  <Input
+                    value={formData.sector || ''}
+                    onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
+                    placeholder="e.g., Health, Education"
+                    className={formErrors.sector ? 'border-red-500' : ''}
+                  />
+                  {formErrors.sector && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.sector}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    For
+                  </label>
+                  <select
+                    value={formData.for_type || 'Self'}
+                    onChange={(e) => setFormData({ ...formData, for_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="Self">Self</option>
+                    <option value="Government">Government</option>
+                    <option value="State NGOs Partnership">State NGOs Partnership</option>
+                    <option value="M.P. Government">M.P. Government</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Program Name *
+                </label>
+                <Input
+                  value={formData.project_name || ''}
+                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                  placeholder="Enter program name"
+                  className={formErrors.project_name ? 'border-red-500' : ''}
+                />
+                {formErrors.project_name && (
+                  <p className="text-red-600 text-xs mt-1">{formErrors.project_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  State *
+                </label>
+                <select
+                  value={formData.state || ''}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${formErrors.state ? 'border-red-500' : 'border-gray-300'}`}
+                >
+                  <option value="">Select a state</option>
+                  {INDIAN_STATES.map(state => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+                {formErrors.state && (
+                  <p className="text-red-600 text-xs mt-1">{formErrors.state}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Website
+                </label>
+                <Input
+                  value={formData.website || ''}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://example.com"
+                  className={formErrors.website ? 'border-red-500' : ''}
+                />
+                {formErrors.website && (
+                  <p className="text-red-600 text-xs mt-1">{formErrors.website}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 justify-end border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <Save className="h-4 w-4" />
+                {editingImpl ? 'Update' : 'Add'} Implementation
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
