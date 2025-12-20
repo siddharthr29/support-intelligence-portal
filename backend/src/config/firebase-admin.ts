@@ -103,16 +103,32 @@ export function getFirebaseAuth(): admin.auth.Auth {
 export async function verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
   try {
     const auth = getFirebaseAuth();
+    
+    // Log token details for debugging (first 20 chars only)
+    logger.debug('Attempting to verify token', {
+      tokenPrefix: idToken.substring(0, 20) + '...',
+      tokenLength: idToken.length,
+    });
+    
     const decodedToken = await auth.verifyIdToken(idToken, true); // checkRevoked = true
     
-    logger.debug('Token verified successfully', {
+    logger.info('✅ Token verified successfully', {
       uid: decodedToken.uid,
       email: decodedToken.email,
+      aud: decodedToken.aud,
+      iss: decodedToken.iss,
     });
     
     return decodedToken;
   } catch (error) {
-    logger.warn({ error }, 'Token verification failed');
+    // Log detailed error information
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    } : { error };
+    
+    logger.error('❌ Token verification failed', errorDetails);
     throw error;
   }
 }
