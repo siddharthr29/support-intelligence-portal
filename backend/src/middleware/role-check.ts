@@ -27,8 +27,9 @@ export async function requireLeadership(
     throw new Error('AUTH_REQUIRED');
   }
 
-  const claims = request.user.customClaims as Record<string, boolean> || {};
-  const hasAccess = claims.leadership === true || claims.founder === true;
+  // Custom claims are at root level of decoded token
+  const user = request.user as any;
+  const hasAccess = user.leadership === true || user.founder === true;
 
   if (!hasAccess) {
     logger.warn({
@@ -70,8 +71,9 @@ export async function requireFounder(
     throw new Error('AUTH_REQUIRED');
   }
 
-  const claims = request.user.customClaims as Record<string, boolean> || {};
-  const hasAccess = claims.founder === true;
+  // Custom claims are at root level of decoded token
+  const user = request.user as any;
+  const hasAccess = user.founder === true;
 
   if (!hasAccess) {
     logger.warn({
@@ -113,10 +115,11 @@ export async function requireProductManager(
     throw new Error('AUTH_REQUIRED');
   }
 
-  const claims = request.user.customClaims as Record<string, boolean> || {};
-  const hasAccess = claims.product_manager === true || 
-                    claims.leadership === true || 
-                    claims.founder === true;
+  // Custom claims are at root level of decoded token
+  const user = request.user as any;
+  const hasAccess = user.product_manager === true || 
+                    user.leadership === true || 
+                    user.founder === true;
 
   if (!hasAccess) {
     logger.warn({
@@ -150,9 +153,10 @@ export function hasAnyRole(
 ): boolean {
   if (!request.user) return false;
 
-  const claims = request.user.customClaims as Record<string, boolean> || {};
+  // Custom claims are at root level of decoded token
+  const user = request.user as any;
   
-  return roles.some(role => claims[role] === true);
+  return roles.some(role => user[role] === true);
 }
 
 /**
@@ -161,13 +165,14 @@ export function hasAnyRole(
 export function getUserRoles(request: FastifyRequest): UserRole[] {
   if (!request.user) return [];
 
-  const claims = request.user.customClaims as Record<string, boolean> || {};
+  // Custom claims are at root level of decoded token
+  const user = request.user as any;
   const roles: UserRole[] = [];
 
-  if (claims.support_engineer) roles.push('support_engineer');
-  if (claims.product_manager) roles.push('product_manager');
-  if (claims.leadership) roles.push('leadership');
-  if (claims.founder) roles.push('founder');
+  if (user.support_engineer) roles.push('support_engineer');
+  if (user.product_manager) roles.push('product_manager');
+  if (user.leadership) roles.push('leadership');
+  if (user.founder) roles.push('founder');
 
   return roles;
 }

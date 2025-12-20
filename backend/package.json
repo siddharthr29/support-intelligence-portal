@@ -14,7 +14,8 @@
     "create-user": "ts-node src/scripts/create-firebase-user.ts",
     "update-password": "ts-node src/scripts/update-user-password.ts",
     "update-email": "ts-node src/scripts/update-user-email.ts",
-    "list-users": "ts-node src/scripts/list-users.ts"
+    "list-users": "ts-node src/scripts/list-users.ts",
+    "revoke-tokens": "ts-node src/scripts/revoke-user-tokens.ts"
   },
   "engines": {
     "node": ">=18.0.0"

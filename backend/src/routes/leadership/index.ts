@@ -33,19 +33,14 @@ export async function registerLeadershipRoutes(fastify: FastifyInstance): Promis
   fastify.get('/api/leadership/user/roles', {
     preHandler: [authMiddleware],
   }, async (request, reply) => {
-    // Log the entire decoded token for debugging
-    logger.info({
-      user: request.user,
-      customClaims: request.user?.customClaims,
-    }, 'DEBUG: Full decoded token');
-    
-    const claims = request.user?.customClaims as Record<string, boolean> || {};
+    // Custom claims are at root level of decoded token, not in customClaims property
+    const user = request.user as any;
     
     const roles = {
-      support_engineer: claims.support_engineer === true,
-      product_manager: claims.product_manager === true,
-      leadership: claims.leadership === true,
-      founder: claims.founder === true,
+      support_engineer: user?.support_engineer === true,
+      product_manager: user?.product_manager === true,
+      leadership: user?.leadership === true,
+      founder: user?.founder === true,
     };
 
     return reply.send({
@@ -54,7 +49,6 @@ export async function registerLeadershipRoutes(fastify: FastifyInstance): Promis
         uid: request.user?.uid,
         email: request.user?.email,
         roles,
-        debug_custom_claims: request.user?.customClaims, // Add debug info
       },
     });
   });
