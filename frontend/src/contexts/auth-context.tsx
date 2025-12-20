@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { onAuthChange, signIn, signOut } from '@/lib/firebase';
+import { markAuthReady } from '@/lib/axios-client';
 
 interface AuthContextType {
   user: User | null;
@@ -20,22 +21,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
-      setUser(user);
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = onAuthChange((firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
-      setAuthReady(true); // Auth is fully initialized
+      setAuthReady(true);
       
-      // Set global flag for API client to check
-      if (typeof window !== 'undefined') {
-        (window as any).__authReady = true;
-      }
+      // Mark auth as ready for API client
+      // This resolves the global authReady promise
+      markAuthReady();
+      
+      console.log('[AuthProvider] Auth state changed:', firebaseUser ? 'logged in' : 'logged out');
     });
 
     return () => {
-      // Clean up global flag on unmount
-      if (typeof window !== 'undefined') {
-        delete (window as any).__authReady;
-      }
       unsubscribe();
     };
   }, []);

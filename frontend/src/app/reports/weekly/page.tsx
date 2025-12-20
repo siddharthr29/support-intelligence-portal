@@ -2,11 +2,14 @@
 
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { Shell } from "@/components/layout/shell";
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { WeeklyReport } from "@/components/dashboard/weekly-report";
-import { fetchRftData } from "@/lib/api";
-import { FileText } from "lucide-react";
+import { fetchRftData } from "@/lib/api-client";
+import { FileText, Loader2 } from "lucide-react";
+
+// Lazy load the heavy WeeklyReport component
+const WeeklyReport = lazy(() => import("@/components/dashboard/weekly-report").then(m => ({ default: m.WeeklyReport })));
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -51,12 +54,18 @@ export default function WeeklyReportPage() {
             </p>
           </div>
 
-          <WeeklyReport 
-            rftData={rftData}
-            companyNames={companyNamesData || {}}
-            weekEndDate={effectiveEnd}
-            snapshotId={snapshotId}
-          />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            </div>
+          }>
+            <WeeklyReport 
+              rftData={rftData}
+              companyNames={companyNamesData || {}}
+              weekEndDate={effectiveEnd}
+              snapshotId={snapshotId}
+            />
+          </Suspense>
         </div>
       </Shell>
     </ProtectedRoute>

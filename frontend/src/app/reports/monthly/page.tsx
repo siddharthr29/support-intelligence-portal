@@ -1,9 +1,12 @@
 'use client';
 
+import { lazy, Suspense } from "react";
 import { Shell } from "@/components/layout/shell";
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { MonthlyReport } from "@/components/dashboard/monthly-report";
-import { Calendar } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
+
+// Lazy load the heavy MonthlyReport component
+const MonthlyReport = lazy(() => import("@/components/dashboard/monthly-report").then(m => ({ default: m.MonthlyReport })));
 
 export default function MonthlyReportPage() {
   return (
@@ -21,7 +24,13 @@ export default function MonthlyReportPage() {
             </p>
           </div>
 
-          <MonthlyReport />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+            </div>
+          }>
+            <MonthlyReport />
+          </Suspense>
         </div>
       </Shell>
     </ProtectedRoute>

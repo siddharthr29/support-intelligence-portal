@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Navbar } from './navbar';
-import { AiChat } from '@/components/dashboard/ai-chat';
 import { JobStatusBanner } from './job-status-banner';
 import { useAppDataStore } from '@/stores/app-data-store';
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
+
+// Lazy load AiChat component (heavy component with AI features)
+const AiChat = lazy(() => import('@/components/dashboard/ai-chat').then(m => ({ default: m.AiChat })));
 
 interface ShellProps {
   children: React.ReactNode;
@@ -54,7 +56,9 @@ export function Shell({ children }: ShellProps) {
           </p>
         </div>
       </footer>
-      <AiChat />
+      <Suspense fallback={null}>
+        <AiChat />
+      </Suspense>
     </div>
   );
 }

@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
   
   // Static optimization
   output: 'standalone',
+  
+  // Turbopack configuration (Next.js 16+)
+  turbopack: {},
+  
+  // Experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts'],
+  },
 };
 
 export default nextConfig;

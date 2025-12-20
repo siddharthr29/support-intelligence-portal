@@ -14,7 +14,7 @@ import type { RftData } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchLatestRftFetch } from "@/lib/api";
+import { fetchLatestRftFetch } from "@/lib/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 

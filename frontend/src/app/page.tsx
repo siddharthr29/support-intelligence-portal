@@ -17,7 +17,6 @@ import {
   Loader2,
   Calendar
 } from "lucide-react";
-import { AiChat } from "@/components/dashboard/ai-chat";
 import { useTicketStore } from "@/stores/ticket-store";
 import { useYearStore } from "@/stores/year-store";
 

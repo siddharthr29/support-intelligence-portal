@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchRftData, fetchLatestRftFetch } from "@/lib/api";
+import { fetchRftData, fetchLatestRftFetch } from "@/lib/api-client";
 import { toast } from "sonner";
 import { 
   Bug, 

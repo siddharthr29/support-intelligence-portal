@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Shell } from "@/components/layout/shell";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { TopCompaniesCard } from "@/components/dashboard/top-companies-card";
-import { fetchLiveStats } from "@/lib/api";
+import { fetchLiveStats } from "@/lib/api-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Building2, TrendingUp, CheckCircle2 } from "lucide-react";
 
