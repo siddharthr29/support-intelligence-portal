@@ -4,7 +4,8 @@ import {
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  User
+  User,
+  UserCredential
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -19,9 +20,8 @@ const auth = getAuth(app);
 
 export { auth };
 
-export async function signIn(email: string, password: string): Promise<User> {
-  const result = await signInWithEmailAndPassword(auth, email, password);
-  return result.user;
+export async function signIn(email: string, password: string): Promise<UserCredential> {
+  return await signInWithEmailAndPassword(auth, email, password);
 }
 
 export async function signOut(): Promise<void> {

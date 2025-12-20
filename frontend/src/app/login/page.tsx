@@ -35,9 +35,19 @@ function LoginContent() {
     setError('');
 
     try {
-      await login(email, password);
+      const userCredential = await login(email, password);
       toast.success('Welcome back!');
-      router.push(redirect);
+      
+      // Check user's role and redirect accordingly
+      const token = await userCredential.user.getIdTokenResult();
+      const claims = token.claims;
+      
+      // Redirect founder/leadership to leadership dashboard
+      if (claims.founder || claims.leadership) {
+        router.push('/leadership');
+      } else {
+        router.push(redirect);
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       if (errorMessage.includes('user-not-found') || errorMessage.includes('wrong-password')) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from 'firebase/auth';
+import { User, UserCredential } from 'firebase/auth';
 import { onAuthChange, signIn, signOut } from '@/lib/firebase';
 import { markAuthReady } from '@/lib/axios-client';
 
@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   authReady: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -45,8 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    await signIn(email, password);
+  const login = async (email: string, password: string): Promise<UserCredential> => {
+    return await signIn(email, password);
   };
 
   const logout = async () => {
