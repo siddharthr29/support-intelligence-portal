@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { Loader2, Save, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface EnvironmentVariables {
   FRESHDESK_DOMAIN?: string;
@@ -31,7 +30,8 @@ export default function LeadershipSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -44,11 +44,7 @@ export default function LeadershipSettingsPage() {
       setEnvVars(response.data || {});
     } catch (error) {
       console.error('Failed to load settings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load environment settings',
-        variant: 'destructive',
-      });
+      setError('Failed to load environment settings');
     } finally {
       setLoading(false);
     }
@@ -58,18 +54,13 @@ export default function LeadershipSettingsPage() {
     setSaving(true);
     try {
       await apiPost('/api/settings/environment', envVars);
-      toast({
-        title: 'Success',
-        description: 'Environment variables updated successfully',
-      });
+      setSuccess('Environment variables updated successfully');
+      setTimeout(() => setSuccess(null), 3000);
       loadSettings();
     } catch (error: any) {
       console.error('Failed to save settings:', error);
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to save settings',
-        variant: 'destructive',
-      });
+      setError(error.response?.data?.message || 'Failed to save settings');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setSaving(false);
     }
@@ -134,6 +125,28 @@ export default function LeadershipSettingsPage() {
             Manage environment variables and system configuration. Changes require backend restart to take effect.
           </p>
         </div>
+
+        {error && (
+          <Card className="mb-6 bg-red-50 border-red-200">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {success && (
+          <Card className="mb-6 bg-green-50 border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <p className="text-sm text-green-800">{success}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="mb-6 bg-yellow-50 border-yellow-200">
           <CardContent className="p-6">
