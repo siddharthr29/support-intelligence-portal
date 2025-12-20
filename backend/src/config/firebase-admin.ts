@@ -20,21 +20,32 @@ export function initializeFirebaseAdmin(): admin.app.App {
       return firebaseApp;
     }
 
+    // Normalize private key - strip wrapping quotes and fix newlines
+    const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const normalizedPrivateKey = rawPrivateKey
+      ?.replace(/\\n/g, '\n')  // Convert escaped newlines to actual newlines
+      ?.replace(/^"(.*)"$/, '$1')  // Strip wrapping quotes if present
+      ?.trim();
+
     // Log environment variables (without sensitive data)
     logger.info('Initializing Firebase Admin SDK with environment variables', {
       hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
       hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
-      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      hasPrivateKey: !!rawPrivateKey,
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length,
+      rawPrivateKeyLength: rawPrivateKey?.length,
+      normalizedPrivateKeyLength: normalizedPrivateKey?.length,
+      privateKeyPrefix: normalizedPrivateKey?.substring(0, 30) + '...',
+      privateKeyHasBeginMarker: normalizedPrivateKey?.includes('BEGIN PRIVATE KEY'),
+      privateKeyHasEndMarker: normalizedPrivateKey?.includes('END PRIVATE KEY'),
     });
 
     // Initialize with service account credentials
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      privateKey: normalizedPrivateKey,
     };
 
     // Validate required environment variables
