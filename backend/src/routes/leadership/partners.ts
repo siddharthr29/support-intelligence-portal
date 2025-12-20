@@ -52,11 +52,29 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
         ORDER BY unresolved_count DESC, urgent_tickets DESC
       `;
 
+      // Convert BigInt values to Numbers for JSON serialization
+      const partnersWithNumbers = partners.map(p => ({
+        partner_id: Number(p.partner_id),
+        partner_name: p.partner_name,
+        total_tickets_12m: Number(p.total_tickets_12m),
+        tickets_last_30d: Number(p.tickets_last_30d),
+        tickets_prev_30d: Number(p.tickets_prev_30d),
+        avg_resolution_hours: p.avg_resolution_hours ? Math.round(Number(p.avg_resolution_hours) * 10) / 10 : 0,
+        unresolved_count: Number(p.unresolved_count),
+        urgent_tickets: Number(p.urgent_tickets),
+        high_tickets: Number(p.high_tickets),
+        data_loss_tickets: Number(p.data_loss_tickets),
+        sync_failure_tickets: Number(p.sync_failure_tickets),
+        how_to_tickets: Number(p.how_to_tickets),
+        training_tickets: Number(p.training_tickets),
+        trend_ratio: p.trend_ratio ? Number(p.trend_ratio) : null,
+      }));
+
       return reply.send({
         success: true,
         data: {
-          partners,
-          count: partners.length,
+          partners: partnersWithNumbers,
+          count: partnersWithNumbers.length,
         },
       });
     } catch (error) {
@@ -79,10 +97,19 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
         SELECT * FROM top_partners_by_volume
       `;
 
+      // Convert BigInt values to Numbers for JSON serialization
+      const partnersWithNumbers = topPartners.map(p => ({
+        ...p,
+        partner_id: p.partner_id ? Number(p.partner_id) : null,
+        total_tickets: p.total_tickets ? Number(p.total_tickets) : 0,
+        unresolved: p.unresolved ? Number(p.unresolved) : 0,
+        urgent: p.urgent ? Number(p.urgent) : 0,
+      }));
+
       return reply.send({
         success: true,
         data: {
-          partners: topPartners,
+          partners: partnersWithNumbers,
         },
       });
     } catch (error) {
