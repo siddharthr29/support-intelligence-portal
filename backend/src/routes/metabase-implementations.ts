@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { authMiddleware } from '../middleware/auth';
 import { requireLeadership } from '../middleware/role-check';
 import { logger } from '../utils/logger';
-import { getMetabaseClient } from '../services/metabase';
+import { createMetabaseClient } from '../services/metabase';
 
 /**
  * Metabase Implementations Routes
@@ -22,15 +22,20 @@ export async function registerMetabaseImplementationsRoutes(fastify: FastifyInst
       
       logger.info({ force }, 'Fetching implementations from Metabase');
       
-      const metabase = await getMetabaseClient();
+      const metabase = createMetabaseClient();
       
       // Question ID 816 - All Avni Implementations
       const questionId = 816;
       
-      const result = await metabase.getQuestionData(questionId);
+      // Use the card query endpoint directly
+      const endpoint = `/api/card/${questionId}/query/json`;
+      const rawData = await (metabase as any).executeRequest(endpoint, 'POST') as (string | number)[][];
       
       // Transform the data
-      const implementations = result.data.rows.map((row: any[]) => {
+      // Skip first row if it contains headers
+      const dataRows = Array.isArray(rawData) && rawData.length > 0 ? rawData : [];
+      
+      const implementations = dataRows.map((row: any[]) => {
         // Map columns based on Metabase question structure
         // Adjust indices based on actual column order
         return {
