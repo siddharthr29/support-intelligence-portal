@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { LeadershipDateFilter } from '@/components/leadership/date-filter';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -28,7 +30,6 @@ interface PartnerRisk {
 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<PartnerRisk[]>([]);
-  const [filteredPartners, setFilteredPartners] = useState<PartnerRisk[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
@@ -39,41 +40,52 @@ export default function PartnersPage() {
     return { from, to };
   });
 
-  const handleDateChange = (range: { from: Date; to: Date }) => {
+  // Debounce search for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  const handleDateChange = useCallback((range: { from: Date; to: Date }) => {
     console.log('Date changed in partners:', range);
     setDateRange(range);
-  };
+  }, []);
 
-  useEffect(() => {
-    async function fetchPartners() {
-      setLoading(true);
-      console.log('Fetching partners with date range:', dateRange);
-      try {
-        const params = new URLSearchParams({
-          startDate: dateRange.from.toISOString(),
-          endDate: dateRange.to.toISOString(),
-        });
-        const response = await apiGet(`/api/leadership/partners?${params}`);
-        const partnerData = response.data.partners || [];
-        console.log('Partners data loaded:', partnerData);
-        setPartners(partnerData);
-        setFilteredPartners(partnerData);
-      } catch (err: any) {
-        console.error('Failed to load partners:', err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchPartners = useCallback(async () => {
+    setLoading(true);
+    console.log('Fetching partners with date range:', dateRange);
+    try {
+      const params = new URLSearchParams({
+        startDate: dateRange.from.toISOString(),
+        endDate: dateRange.to.toISOString(),
+      });
+      const response = await apiGet(`/api/leadership/partners?${params}`);
+      const partnerData = response.data.partners || [];
+      console.log('Partners data loaded:', partnerData);
+      setPartners(partnerData);
+    } catch (err: any) {
+      console.error('Failed to load partners:', err);
+    } finally {
+      setLoading(false);
     }
-    fetchPartners();
   }, [dateRange]);
 
   useEffect(() => {
+    fetchPartners();
+  }, [fetchPartners]);
+
+  const getRiskLevel = useCallback((partner: PartnerRisk): string => {
+    if (partner.data_loss_tickets > 2 || partner.urgent_tickets > 5) return 'critical';
+    if (partner.sync_failure_tickets > 1 || partner.unresolved_count > 10) return 'high';
+    if (partner.how_to_tickets > 10 || partner.training_tickets > 5) return 'medium';
+    return 'low';
+  }, []);
+
+  // Memoize filtered partners
+  const filteredPartners = useMemo(() => {
     let filtered = partners;
 
     // Search filter
-    if (searchQuery) {
+    if (debouncedSearchQuery) {
       filtered = filtered.filter(p => 
-        p.partner_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        p.partner_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 
@@ -85,8 +97,8 @@ export default function PartnersPage() {
       });
     }
 
-    setFilteredPartners(filtered);
-  }, [searchQuery, riskFilter, partners]);
+    return filtered;
+  }, [partners, debouncedSearchQuery, riskFilter, getRiskLevel]);
 
   if (loading) {
     return (
@@ -107,27 +119,21 @@ export default function PartnersPage() {
     );
   }
 
-  const getRiskLevel = (partner: PartnerRisk): string => {
-    if (partner.data_loss_tickets > 2 || partner.urgent_tickets > 5) return 'critical';
-    if (partner.sync_failure_tickets > 1 || partner.unresolved_count > 10) return 'high';
-    if (partner.how_to_tickets > 10 || partner.training_tickets > 5) return 'medium';
-    return 'low';
-  };
-
-  const getRiskColor = (level: string): string => {
+  const getRiskColor = useCallback((level: string): string => {
     switch (level) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-300';
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       default: return 'bg-green-100 text-green-800 border-green-300';
     }
-  };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <LeadershipNavigation />
-      
-      <div className="container mx-auto p-6">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        
+        <div className="container mx-auto p-4 sm:p-6">
         {/* Page Header */}
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -303,6 +309,7 @@ export default function PartnersPage() {
         )}
       </div>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

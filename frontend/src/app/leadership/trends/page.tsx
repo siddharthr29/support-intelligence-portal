@@ -1,11 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { LeadershipDateFilter } from '@/components/leadership/date-filter';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ChartLoadingSkeleton } from '@/components/leadership/loading-skeleton';
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  BarChart, 
+  Bar, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from '@/components/leadership/lazy-charts';
 import { TrendingUp, Users, Tag, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -55,60 +71,51 @@ export default function TrendsPage() {
     return { from, to };
   });
 
-  const handleDateChange = (range: { from: Date; to: Date }) => {
+  const handleDateChange = useCallback((range: { from: Date; to: Date }) => {
     console.log('Date changed in trends:', range);
     setDateRange(range);
-  };
+  }, []);
+
+  const loadTrends = useCallback(async () => {
+    setLoading(true);
+    console.log('Fetching trends with date range:', dateRange);
+    try {
+      const params = new URLSearchParams({
+        startDate: dateRange.from.toISOString(),
+        endDate: dateRange.to.toISOString(),
+      });
+
+      const [typesRes, companiesRes, tagsRes, timelineRes] = await Promise.all([
+        apiGet(`/api/leadership/trends/ticket-types?${params}`),
+        apiGet(`/api/leadership/trends/companies?${params}`),
+        apiGet(`/api/leadership/trends/tags?${params}`),
+        apiGet(`/api/leadership/trends/timeline?${params}`),
+      ]);
+
+      console.log('Trends data loaded:', { 
+        categoriesCount: typesRes.data.categories?.length,
+        companiesCount: companiesRes.data.companies?.length,
+        tagsCount: tagsRes.data.tags?.length,
+        timelineCount: timelineRes.data.monthly?.length
+      });
+
+      setTicketTypes(typesRes.data.categories || []);
+      setCompanies(companiesRes.data.companies || []);
+      setTags(tagsRes.data.tags || []);
+      setTimeline(timelineRes.data.monthly?.map((m: any) => ({
+        ...m,
+        month: new Date(m.month),
+      })) || []);
+    } catch (err) {
+      console.error('Failed to load trends:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange]);
 
   useEffect(() => {
-    async function loadTrends() {
-      setLoading(true);
-      console.log('Fetching trends with date range:', dateRange);
-      try {
-        const params = new URLSearchParams({
-          startDate: dateRange.from.toISOString(),
-          endDate: dateRange.to.toISOString(),
-        });
-
-        const [typesRes, companiesRes, tagsRes, timelineRes] = await Promise.all([
-          apiGet(`/api/leadership/trends/ticket-types?${params}`),
-          apiGet(`/api/leadership/trends/companies?${params}`),
-          apiGet(`/api/leadership/trends/tags?${params}`),
-          apiGet(`/api/leadership/trends/timeline?${params}`),
-        ]);
-
-        console.log('Trends data loaded:', { 
-          typesRes, 
-          companiesRes, 
-          tagsRes, 
-          timelineRes,
-          categoriesCount: typesRes.data.categories?.length,
-          companiesCount: companiesRes.data.companies?.length,
-          tagsCount: tagsRes.data.tags?.length,
-          timelineCount: timelineRes.data.monthly?.length
-        });
-
-        setTicketTypes(typesRes.data.categories || []);
-        setCompanies(companiesRes.data.companies || []);
-        setTags(tagsRes.data.tags || []);
-        setTimeline(timelineRes.data.monthly?.map((m: any) => ({
-          ...m,
-          month: new Date(m.month),
-        })) || []);
-        
-        // Log if any data is empty
-        if (!typesRes.data.categories?.length) console.warn('No ticket types data');
-        if (!companiesRes.data.companies?.length) console.warn('No companies data');
-        if (!tagsRes.data.tags?.length) console.warn('No tags data');
-        if (!timelineRes.data.monthly?.length) console.warn('No timeline data');
-      } catch (err) {
-        console.error('Failed to load trends:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadTrends();
-  }, [dateRange]);
+  }, [loadTrends]);
 
   if (loading) {
     return (
@@ -130,10 +137,11 @@ export default function TrendsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <LeadershipNavigation />
-      
-      <div className="container mx-auto p-6">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        
+        <div className="container mx-auto p-4 sm:p-6">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -353,6 +361,7 @@ export default function TrendsPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { LeadershipDateFilter } from '@/components/leadership/date-filter';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { AlertCircle, TrendingUp, Clock, Users, AlertTriangle, BookOpen, GraduationCap, Activity } from 'lucide-react';
@@ -29,31 +30,32 @@ export default function MetricsPage() {
     return { from, to };
   });
 
-  const handleDateChange = (range: { from: Date; to: Date }) => {
+  const handleDateChange = useCallback((range: { from: Date; to: Date }) => {
     console.log('Date changed in metrics:', range);
     setDateRange(range);
-  };
+  }, []);
+
+  const fetchMetrics = useCallback(async () => {
+    setLoading(true);
+    console.log('Fetching metrics with date range:', dateRange);
+    try {
+      const params = new URLSearchParams({
+        startDate: dateRange.from.toISOString(),
+        endDate: dateRange.to.toISOString(),
+      });
+      const response = await apiGet(`/api/leadership/metrics/summary?${params}`);
+      console.log('Metrics data loaded:', response.data);
+      setMetrics(response.data);
+    } catch (err: any) {
+      console.error('Failed to load metrics:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange]);
 
   useEffect(() => {
-    async function fetchMetrics() {
-      setLoading(true);
-      console.log('Fetching metrics with date range:', dateRange);
-      try {
-        const params = new URLSearchParams({
-          startDate: dateRange.from.toISOString(),
-          endDate: dateRange.to.toISOString(),
-        });
-        const response = await apiGet(`/api/leadership/metrics/summary?${params}`);
-        console.log('Metrics data loaded:', response.data);
-        setMetrics(response.data);
-      } catch (err: any) {
-        console.error('Failed to load metrics:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchMetrics();
-  }, [dateRange]);
+  }, [fetchMetrics]);
 
   if (loading) {
     return (
@@ -106,10 +108,11 @@ export default function MetricsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <LeadershipNavigation />
-      
-      <div className="container mx-auto p-6">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        
+        <div className="container mx-auto p-4 sm:p-6">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -212,6 +215,7 @@ export default function MetricsPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
