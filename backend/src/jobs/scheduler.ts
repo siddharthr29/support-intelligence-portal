@@ -69,6 +69,24 @@ export function startWeeklyScheduler(): void {
   );
   logger.info('Hourly Discord reminder scheduler started (Friday 2-8PM IST)');
 
+  // Monday reminders if report still not pushed (9AM-1PM IST)
+  cron.schedule(
+    '0 9-13 * * 1', // Every hour on Monday from 9AM to 1PM
+    async () => {
+      if (!weeklyReportPushed) {
+        logger.info('Sending Monday urgent reminder (report still not pushed)');
+        await sendDiscordReminder();
+      } else {
+        logger.info('Skipping Monday reminder - report already pushed');
+      }
+    },
+    {
+      timezone,
+      scheduled: true,
+    }
+  );
+  logger.info('Monday urgent reminder scheduler started (Monday 9AM-1PM IST)');
+
   // Discord weekly report notification at Friday 5pm IST (17:00)
   discordReportTask = cron.schedule(
     '0 17 * * 5', // Friday 5:00 PM
