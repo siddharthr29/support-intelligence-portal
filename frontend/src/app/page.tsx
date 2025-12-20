@@ -27,8 +27,17 @@ const UnresolvedSummary = lazy(() => import("@/components/dashboard/unresolved-s
 
 // Loading skeleton for lazy components
 const ChartSkeleton = () => (
-  <div className="h-[300px] bg-muted/50 rounded-lg animate-pulse flex items-center justify-center">
-    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  <div className="h-[300px] bg-white rounded-lg border p-6">
+    <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+    <div className="h-[200px] w-full bg-gray-100 rounded animate-pulse"></div>
+  </div>
+);
+
+const MetricCardSkeleton = () => (
+  <div className="bg-white rounded-lg border p-6">
+    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+    <div className="h-8 w-16 bg-gray-300 rounded animate-pulse mb-2"></div>
+    <div className="h-3 w-32 bg-gray-200 rounded animate-pulse"></div>
   </div>
 );
 
@@ -187,40 +196,46 @@ export default function DashboardPage() {
         {/* Key Metrics Grid */}
         {!hasNoData && (
           <>
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-              <MetricCard
-                title="New Tickets"
-                value={filteredStats?.ticketsCreated ?? 0}
-                subtitle={dateRange.from && dateRange.to ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}` : 'Select date range'}
-                icon={Ticket}
-                iconClassName="from-blue-500/20 to-blue-600/10"
-                infoText="Total new tickets created in the selected period."
-              />
-              <MetricCard
-                title="Completed"
-                value={(filteredStats?.ticketsResolved ?? 0) + (filteredStats?.ticketsClosed ?? 0)}
-                subtitle={`${filteredStats?.ticketsResolved ?? 0} resolved, ${filteredStats?.ticketsClosed ?? 0} closed`}
-                icon={CheckCircle2}
-                iconClassName="from-green-500/20 to-green-600/10"
-                infoText="Tickets resolved or closed in the selected period."
-              />
-              <MetricCard
-                title="High Priority"
-                value={(filteredStats?.urgentTickets ?? 0) + (filteredStats?.highTickets ?? 0)}
-                subtitle={`${filteredStats?.urgentTickets ?? 0} urgent, ${filteredStats?.highTickets ?? 0} high`}
-                icon={AlertTriangle}
-                iconClassName="from-red-500/20 to-red-600/10"
-                infoText="Urgent and High priority tickets requiring attention."
-              />
-              <MetricCard
-                title="Completion Rate"
-                value={`${resolutionRate}%`}
-                subtitle={`${filteredStats?.ticketsOpen ?? 0} open, ${filteredStats?.ticketsPending ?? 0} pending`}
-                icon={TrendingUp}
-                iconClassName="from-purple-500/20 to-purple-600/10"
-                infoText="Percentage of tickets completed (resolved + closed)."
-              />
-            </div>
+            {isStatsLoading ? (
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                {[1, 2, 3, 4].map((i) => <MetricCardSkeleton key={i} />)}
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                  title="New Tickets"
+                  value={filteredStats?.ticketsCreated ?? 0}
+                  subtitle={dateRange.from && dateRange.to ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}` : 'Select date range'}
+                  icon={Ticket}
+                  iconClassName="from-blue-500/20 to-blue-600/10"
+                  infoText="Total new tickets created in the selected period."
+                />
+                <MetricCard
+                  title="Completed"
+                  value={(filteredStats?.ticketsResolved ?? 0) + (filteredStats?.ticketsClosed ?? 0)}
+                  subtitle={`${filteredStats?.ticketsResolved ?? 0} resolved, ${filteredStats?.ticketsClosed ?? 0} closed`}
+                  icon={CheckCircle2}
+                  iconClassName="from-green-500/20 to-green-600/10"
+                  infoText="Tickets resolved or closed in the selected period."
+                />
+                <MetricCard
+                  title="High Priority"
+                  value={(filteredStats?.urgentTickets ?? 0) + (filteredStats?.highTickets ?? 0)}
+                  subtitle={`${filteredStats?.urgentTickets ?? 0} urgent, ${filteredStats?.highTickets ?? 0} high`}
+                  icon={AlertTriangle}
+                  iconClassName="from-red-500/20 to-red-600/10"
+                  infoText="Urgent and High priority tickets requiring attention."
+                />
+                <MetricCard
+                  title="Completion Rate"
+                  value={`${resolutionRate}%`}
+                  subtitle={`${filteredStats?.ticketsOpen ?? 0} open, ${filteredStats?.ticketsPending ?? 0} pending`}
+                  icon={TrendingUp}
+                  iconClassName="from-purple-500/20 to-purple-600/10"
+                  infoText="Percentage of tickets completed (resolved + closed)."
+                />
+              </div>
+            )}
 
             {/* Charts - Lazy loaded */}
             <div className="grid gap-6 md:grid-cols-2">
