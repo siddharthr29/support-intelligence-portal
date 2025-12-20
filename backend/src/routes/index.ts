@@ -18,6 +18,7 @@ import { registerAppDataRoutes } from './app-data';
 import { registerYearRoutes } from './years';
 import { registerAuditLogRoutes } from './audit-logs';
 import { registerCleanupRoutes } from './cleanup';
+import { registerLeadershipRoutes } from './leadership';
 
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerStatsRoutes(fastify);
@@ -39,4 +40,5 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerYearRoutes(fastify);
   await registerAuditLogRoutes(fastify);
   await registerCleanupRoutes(fastify);
+  await registerLeadershipRoutes(fastify);
 }
