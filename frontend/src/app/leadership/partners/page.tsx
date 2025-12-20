@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { useLeadership } from '@/contexts/leadership-context';
 
 interface PartnerRisk {
   partner_id: number;
@@ -29,28 +30,34 @@ interface PartnerRisk {
 }
 
 export default function PartnersPage() {
+  const { dateRange, setDateRange, isInitialLoad, setIsInitialLoad, cachedData, setCachedData } = useLeadership();
   const [partners, setPartners] = useState<PartnerRisk[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isInitialLoad);
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
-    const to = new Date();
-    const from = new Date();
-    from.setFullYear(from.getFullYear() - 1);
-    return { from, to };
-  });
 
   // Debounce search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const handleDateChange = useCallback((range: { from: Date; to: Date }) => {
-    console.log('Date changed in partners:', range);
     setDateRange(range);
-  }, []);
+  }, [setDateRange]);
 
   const fetchPartners = useCallback(async () => {
-    setLoading(true);
-    console.log('Fetching partners with date range:', dateRange);
+    const cacheKey = `partners-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`;
+    
+    // Check cache first
+    if (cachedData[cacheKey]) {
+      setPartners(cachedData[cacheKey]);
+      setLoading(false);
+      return;
+    }
+
+    // Only show loading on initial load
+    if (isInitialLoad) {
+      setLoading(true);
+    }
+
     try {
       const params = new URLSearchParams({
         startDate: dateRange.from.toISOString(),
@@ -58,14 +65,17 @@ export default function PartnersPage() {
       });
       const response = await apiGet(`/api/leadership/partners?${params}`);
       const partnerData = response.data.partners || [];
-      console.log('Partners data loaded:', partnerData);
       setPartners(partnerData);
+      setCachedData(cacheKey, partnerData);
     } catch (err: any) {
       console.error('Failed to load partners:', err);
     } finally {
       setLoading(false);
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
     }
-  }, [dateRange]);
+  }, [dateRange, cachedData, setCachedData, isInitialLoad, setIsInitialLoad]);
 
   useEffect(() => {
     fetchPartners();
@@ -146,7 +156,7 @@ export default function PartnersPage() {
                 {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={handleDateChange} defaultPreset="12m" />
+            <LeadershipDateFilter onDateChange={handleDateChange} />
           </div>
           
           {/* Page Description */}

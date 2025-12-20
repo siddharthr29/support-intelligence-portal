@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { AlertCircle, TrendingUp, Clock, Users, AlertTriangle, BookOpen, GraduationCap, Activity } from 'lucide-react';
+import { useLeadership } from '@/contexts/leadership-context';
 
 interface MetricsSummary {
   long_unresolved_blockers: number;
@@ -21,37 +22,46 @@ interface MetricsSummary {
 }
 
 export default function MetricsPage() {
+  const { dateRange, setDateRange, isInitialLoad, setIsInitialLoad, cachedData, setCachedData } = useLeadership();
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
-    const to = new Date();
-    const from = new Date();
-    from.setFullYear(from.getFullYear() - 1);
-    return { from, to };
-  });
+  const [loading, setLoading] = useState(isInitialLoad);
 
   const handleDateChange = useCallback((range: { from: Date; to: Date }) => {
-    console.log('Date changed in metrics:', range);
     setDateRange(range);
-  }, []);
+  }, [setDateRange]);
 
   const fetchMetrics = useCallback(async () => {
-    setLoading(true);
-    console.log('Fetching metrics with date range:', dateRange);
+    const cacheKey = `metrics-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`;
+    
+    // Check cache first
+    if (cachedData[cacheKey]) {
+      setMetrics(cachedData[cacheKey]);
+      setLoading(false);
+      return;
+    }
+
+    // Only show loading on initial load
+    if (isInitialLoad) {
+      setLoading(true);
+    }
+
     try {
       const params = new URLSearchParams({
         startDate: dateRange.from.toISOString(),
         endDate: dateRange.to.toISOString(),
       });
       const response = await apiGet(`/api/leadership/metrics/summary?${params}`);
-      console.log('Metrics data loaded:', response.data);
       setMetrics(response.data);
+      setCachedData(cacheKey, response.data);
     } catch (err: any) {
       console.error('Failed to load metrics:', err);
     } finally {
       setLoading(false);
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
     }
-  }, [dateRange]);
+  }, [dateRange, cachedData, setCachedData, isInitialLoad, setIsInitialLoad]);
 
   useEffect(() => {
     fetchMetrics();
@@ -122,7 +132,7 @@ export default function MetricsPage() {
                 {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={handleDateChange} defaultPreset="12m" />
+            <LeadershipDateFilter onDateChange={handleDateChange} />
           </div>
         </div>
 

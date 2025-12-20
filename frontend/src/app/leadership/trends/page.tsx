@@ -7,6 +7,7 @@ import { LeadershipDateFilter } from '@/components/leadership/date-filter';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartLoadingSkeleton } from '@/components/leadership/loading-skeleton';
+import { useLeadership } from '@/contexts/leadership-context';
 import { 
   PieChart, 
   Pie, 
@@ -59,26 +60,36 @@ interface TimelineData {
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280'];
 
 export default function TrendsPage() {
+  const { dateRange, setDateRange, isInitialLoad, setIsInitialLoad, cachedData, setCachedData } = useLeadership();
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [tags, setTags] = useState<TagData[]>([]);
   const [timeline, setTimeline] = useState<TimelineData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
-    const to = new Date();
-    const from = new Date();
-    from.setFullYear(from.getFullYear() - 1);
-    return { from, to };
-  });
+  const [loading, setLoading] = useState(isInitialLoad);
 
   const handleDateChange = useCallback((range: { from: Date; to: Date }) => {
-    console.log('Date changed in trends:', range);
     setDateRange(range);
-  }, []);
+  }, [setDateRange]);
 
   const loadTrends = useCallback(async () => {
-    setLoading(true);
-    console.log('Fetching trends with date range:', dateRange);
+    const cacheKey = `trends-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`;
+    
+    // Check cache first
+    if (cachedData[cacheKey]) {
+      const cached = cachedData[cacheKey];
+      setTicketTypes(cached.ticketTypes);
+      setCompanies(cached.companies);
+      setTags(cached.tags);
+      setTimeline(cached.timeline);
+      setLoading(false);
+      return;
+    }
+
+    // Only show loading on initial load
+    if (isInitialLoad) {
+      setLoading(true);
+    }
+
     try {
       const params = new URLSearchParams({
         startDate: dateRange.from.toISOString(),
@@ -92,26 +103,30 @@ export default function TrendsPage() {
         apiGet(`/api/leadership/trends/timeline?${params}`),
       ]);
 
-      console.log('Trends data loaded:', { 
-        categoriesCount: typesRes.data.categories?.length,
-        companiesCount: companiesRes.data.companies?.length,
-        tagsCount: tagsRes.data.tags?.length,
-        timelineCount: timelineRes.data.monthly?.length
-      });
+      const trendsData = {
+        ticketTypes: typesRes.data.categories || [],
+        companies: companiesRes.data.companies || [],
+        tags: tagsRes.data.tags || [],
+        timeline: timelineRes.data.monthly?.map((m: any) => ({
+          ...m,
+          month: new Date(m.month),
+        })) || []
+      };
 
-      setTicketTypes(typesRes.data.categories || []);
-      setCompanies(companiesRes.data.companies || []);
-      setTags(tagsRes.data.tags || []);
-      setTimeline(timelineRes.data.monthly?.map((m: any) => ({
-        ...m,
-        month: new Date(m.month),
-      })) || []);
+      setTicketTypes(trendsData.ticketTypes);
+      setCompanies(trendsData.companies);
+      setTags(trendsData.tags);
+      setTimeline(trendsData.timeline);
+      setCachedData(cacheKey, trendsData);
     } catch (err) {
       console.error('Failed to load trends:', err);
     } finally {
       setLoading(false);
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
     }
-  }, [dateRange]);
+  }, [dateRange, cachedData, setCachedData, isInitialLoad, setIsInitialLoad]);
 
   useEffect(() => {
     loadTrends();
@@ -151,7 +166,7 @@ export default function TrendsPage() {
                 {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={handleDateChange} defaultPreset="12m" />
+            <LeadershipDateFilter onDateChange={handleDateChange} />
           </div>
         </div>
 
