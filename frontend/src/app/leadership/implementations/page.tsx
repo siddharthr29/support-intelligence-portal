@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveTable } from '@/components/ui/responsive-table';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { IndiaMap } from '@/components/leadership/india-map';
 import { useDebounce } from '@/hooks/useDebounce';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client';
 import { 
@@ -506,53 +507,50 @@ export default function ImplementationsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {Object.entries(stateStats)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([state, count]) => (
-                      <div
-                        key={state}
-                        className="border-2 rounded-xl p-5 hover:shadow-lg transition-all duration-200"
-                        style={{ borderColor: STATE_COLORS[state] || '#6b7280' }}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 text-lg mb-1">{state}</h3>
-                            <p className="text-sm text-gray-600 font-medium">
-                              {count} implementation{count !== 1 ? 's' : ''}
-                            </p>
+                {/* India Map Visualization */}
+                <div className="mb-8">
+                  <IndiaMap 
+                    stateData={stateStats}
+                    onStateClick={(state) => {
+                      console.log('State clicked:', state);
+                      // Could add filtering by state here
+                    }}
+                  />
+                </div>
+
+                {/* State-wise Implementation Details */}
+                <div className="mt-8 pt-6 border-t">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Implementation Details by State</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(stateStats)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([state, count]) => (
+                        <div
+                          key={state}
+                          className="border rounded-lg p-4 hover:shadow-md transition-all duration-200"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-gray-900">{state}</h4>
+                            <span className="text-sm font-medium text-blue-600">{count} impl.</span>
                           </div>
-                          <div 
-                            className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md"
-                            style={{ backgroundColor: STATE_COLORS[state] || '#6b7280' }}
-                          >
-                            {count}
-                          </div>
-                        </div>
-                        <div className="mt-3 pt-3 border-t space-y-1.5">
-                          {implementations
-                            .filter(impl => impl.state === state)
-                            .slice(0, 3)
-                            .map((impl) => (
-                              <div key={impl.id} className="flex items-start gap-2">
-                                <div 
-                                  className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                                  style={{ backgroundColor: STATE_COLORS[state] || '#6b7280' }}
-                                />
-                                <div className="text-xs text-gray-700 leading-tight">
-                                  <span className="font-semibold">{impl.organisationName}</span>
-                                  <span className="text-gray-500"> • {impl.sector}</span>
+                          <div className="space-y-1">
+                            {implementations
+                              .filter(impl => impl.state === state)
+                              .slice(0, 3)
+                              .map((impl) => (
+                                <div key={impl.id} className="text-xs text-gray-600">
+                                  • {impl.organisationName}
                                 </div>
+                              ))}
+                            {implementations.filter(impl => impl.state === state).length > 3 && (
+                              <div className="text-xs text-gray-500 italic">
+                                +{implementations.filter(impl => impl.state === state).length - 3} more
                               </div>
-                            ))}
-                          {implementations.filter(impl => impl.state === state).length > 3 && (
-                            <div className="text-xs text-gray-500 italic pl-3.5">
-                              +{implementations.filter(impl => impl.state === state).length - 3} more organizations
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                  </div>
                 </div>
 
                 <div className="mt-8 pt-6 border-t text-center">
