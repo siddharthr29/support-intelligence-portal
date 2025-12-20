@@ -130,11 +130,18 @@ export async function registerTrendsRoutes(fastify: FastifyInstance): Promise<vo
         ORDER BY month, count DESC
       `;
 
+      // Convert BigInt to Number for JSON serialization
+      const serializedMonthlyBreakdown = monthlyBreakdown.map(item => ({
+        month: item.month,
+        ticket_type: item.ticket_type,
+        count: Number(item.count),
+      }));
+
       return reply.send({
         success: true,
         data: {
           categories,
-          monthly_breakdown: monthlyBreakdown,
+          monthly_breakdown: serializedMonthlyBreakdown,
         },
       });
     } catch (error) {
