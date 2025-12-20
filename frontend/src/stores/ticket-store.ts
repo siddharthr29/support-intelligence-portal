@@ -210,8 +210,11 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // Use unified app-data endpoint (single request for all data)
-      const res = await fetch(`${API_BASE_URL}/api/app-data`);
+      // Get current year from year store
+      const currentYear = new Date().getFullYear();
+      
+      // Use unified app-data endpoint with year parameter
+      const res = await fetch(`${API_BASE_URL}/api/app-data?year=${currentYear}`);
       if (!res.ok) {
         throw new Error(`Failed to fetch app data: ${res.status}`);
       }
@@ -221,8 +224,14 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
         throw new Error(json.error || 'Failed to fetch app data');
       }
       
+      console.log('[TicketStore] Raw API response:', {
+        ticketCount: json.data?.tickets?.length,
+        hasTickets: Array.isArray(json.data?.tickets),
+        firstTicket: json.data?.tickets?.[0],
+      });
+      
       // Transform tickets to expected format
-      const tickets: TicketSummary[] = json.data.tickets.map((t: { id: number; createdAt: string; status: number; priority: number; groupId: number | null; companyId: number | null; tags: string[] }) => ({
+      const tickets: TicketSummary[] = (json.data?.tickets || []).map((t: { id: number; createdAt: string; status: number; priority: number; groupId: number | null; companyId: number | null; tags: string[] }) => ({
         id: t.id,
         created_at: t.createdAt,
         status: t.status,
@@ -232,10 +241,15 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
         tags: t.tags || [],
       }));
       
+      console.log('[TicketStore] Transformed tickets:', {
+        count: tickets.length,
+        firstTicket: tickets[0],
+      });
+      
       set({ 
         allTickets: tickets,
-        companies: json.data.companies || {},
-        groups: json.data.groups || {},
+        companies: json.data?.companies || {},
+        groups: json.data?.groups || {},
         isLoading: false, 
         lastFetched: new Date(),
         error: null,
@@ -245,6 +259,7 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       get().computeFilteredStats();
       
     } catch (error) {
+      console.error('[TicketStore] Fetch error:', error);
       set({ 
         isLoading: false, 
         error: error instanceof Error ? error.message : 'Unknown error',
