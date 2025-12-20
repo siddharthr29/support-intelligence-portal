@@ -23,6 +23,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Subscribe to Firebase auth state changes
     const unsubscribe = onAuthChange((firebaseUser) => {
+      console.log('[AuthProvider] 🔐 Auth state changed:', {
+        user: firebaseUser ? firebaseUser.email : 'null',
+        uid: firebaseUser?.uid,
+        emailVerified: firebaseUser?.emailVerified,
+      });
+      
       setUser(firebaseUser);
       setLoading(false);
       setAuthReady(true);
@@ -31,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // This resolves the global authReady promise
       markAuthReady();
       
-      console.log('[AuthProvider] Auth state changed:', firebaseUser ? 'logged in' : 'logged out');
+      console.log('[AuthProvider] ✅ Auth marked as ready');
     });
 
     return () => {

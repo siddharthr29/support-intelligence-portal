@@ -111,6 +111,7 @@ axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
     // Skip auth for public endpoints
     if (config.url?.includes('/public/') || config.url?.includes('/health')) {
+      console.log('[axios-client] Public endpoint, skipping auth:', config.url);
       return config;
     }
 
@@ -120,19 +121,38 @@ axiosInstance.interceptors.request.use(
       return config;
     }
 
+    // Wait for auth to be ready before making authenticated requests
+    const authIsReady = isAuthReady();
+    console.log('[axios-client] Auth ready status:', authIsReady, 'for URL:', config.url);
+    
+    if (!authIsReady) {
+      console.warn('[axios-client] Auth not ready yet, waiting...');
+      try {
+        await waitForAuthReady();
+        console.log('[axios-client] Auth is now ready');
+      } catch (error) {
+        console.error('[axios-client] Auth ready timeout:', error);
+      }
+    }
+
     // Get token from current user
     const user = auth.currentUser;
+    console.log('[axios-client] Current user:', user ? `${user.email} (${user.uid})` : 'null');
+    
     if (user) {
       try {
-        const token = await user.getIdToken(true);
+        const token = await user.getIdToken(false); // Use cached token first
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('[axios-client] ✅ Token attached to request:', config.url);
+        } else {
+          console.error('[axios-client] ❌ Token is null for user:', user.email);
         }
       } catch (error) {
-        console.error('[axios-client] Failed to get token:', error);
+        console.error('[axios-client] ❌ Failed to get token:', error);
       }
     } else {
-      console.warn('[axios-client] No auth user for request:', config.url);
+      console.warn('[axios-client] ⚠️ No auth user for request:', config.url);
     }
 
     return config;
