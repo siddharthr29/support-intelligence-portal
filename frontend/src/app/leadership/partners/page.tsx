@@ -39,6 +39,10 @@ export default function PartnersPage() {
     return { from, to };
   });
 
+  const handleDateChange = (range: { from: Date; to: Date }) => {
+    setDateRange(range);
+  };
+
   useEffect(() => {
     async function fetchPartners() {
       setLoading(true);
@@ -127,11 +131,32 @@ export default function PartnersPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Partner Health Intelligence</h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 mb-3">
+                Monitor partner organizations' support health, identify at-risk partners, and proactively address issues before they escalate.
+              </p>
+              <p className="text-sm text-gray-500">
                 {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={setDateRange} defaultPreset="12m" />
+            <LeadershipDateFilter onDateChange={handleDateChange} defaultPreset="12m" />
+          </div>
+          
+          {/* Page Description */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <h3 className="font-semibold text-blue-900 mb-2">What This Page Shows</h3>
+            <p className="text-sm text-blue-800 mb-2">
+              This page analyzes partner organizations based on their support ticket patterns to identify those requiring attention. 
+              Partners are categorized by risk level using multiple signals:
+            </p>
+            <ul className="text-sm text-blue-800 space-y-1 ml-4">
+              <li>• <strong>Critical Risk:</strong> Data loss incidents, high urgent tickets (immediate intervention needed)</li>
+              <li>• <strong>High Risk:</strong> Sync failures, many unresolved tickets (proactive support recommended)</li>
+              <li>• <strong>Medium Risk:</strong> High training/how-to requests (capacity building opportunity)</li>
+              <li>• <strong>Low Risk:</strong> Stable operations with minimal support needs</li>
+            </ul>
+            <p className="text-sm text-blue-800 mt-2">
+              Use this intelligence to allocate support resources effectively and maintain strong partner relationships.
+            </p>
           </div>
         </div>
 

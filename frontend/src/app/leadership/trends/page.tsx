@@ -55,6 +55,10 @@ export default function TrendsPage() {
     return { from, to };
   });
 
+  const handleDateChange = (range: { from: Date; to: Date }) => {
+    setDateRange(range);
+  };
+
   useEffect(() => {
     async function loadTrends() {
       setLoading(true);
@@ -137,7 +141,7 @@ export default function TrendsPage() {
                 {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={setDateRange} defaultPreset="12m" />
+            <LeadershipDateFilter onDateChange={handleDateChange} defaultPreset="12m" />
           </div>
         </div>
 
