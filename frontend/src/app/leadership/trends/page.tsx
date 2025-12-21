@@ -248,11 +248,17 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={companies} layout="vertical">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={companies} layout="vertical" margin={{ left: 20, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
-                  <YAxis dataKey="company_name" type="category" width={150} />
+                  <YAxis 
+                    dataKey="company_name" 
+                    type="category" 
+                    width={120}
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                  />
                   <Tooltip />
                   <Bar dataKey="total_tickets" fill="#3b82f6" />
                 </BarChart>
