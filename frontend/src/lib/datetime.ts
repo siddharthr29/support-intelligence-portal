@@ -394,7 +394,10 @@ export function getWeekOptionsIST(numberOfWeeks: number = 2): Array<{
   });
   
   // Add previous completed weeks
-  for (let i = 1; i <= numberOfWeeks; i++) {
+  // currentWeekStart is the END of the previous completed week
+  // i=0: Previous week ends at currentWeekStart (Dec 19), starts 1 week before (Dec 12)
+  // i=1: Week before that ends 1 week before currentWeekStart (Dec 12), starts 1 week before that (Dec 5)
+  for (let i = 0; i < numberOfWeeks; i++) {
     const weekEnd = subWeeks(currentWeekStart, i);
     const weekStart = subWeeks(weekEnd, 1);
     
