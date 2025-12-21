@@ -173,10 +173,10 @@ export default function TrendsPage() {
         {/* Top Row: Ticket Types & Top Companies */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Ticket Type Distribution */}
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-white rounded-lg border p-4 sm:p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-5 w-5 text-green-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Ticket Type Distribution</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Ticket Type Distribution</h2>
             </div>
             {ticketTypes.length === 0 ? (
               <div className="flex items-center justify-center h-[300px] text-gray-500">
@@ -186,56 +186,60 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={500}>
-                <PieChart>
-                  <Pie
-                    data={ticketTypes.map((item, index) => ({
-                      ...item,
-                      fill: COLORS[index % COLORS.length]
-                    }))}
-                    cx="50%"
-                    cy="40%"
-                    labelLine={false}
-                    label={false}
-                    outerRadius={140}
-                    dataKey="count"
-                    nameKey="type"
-                  >
-                    {ticketTypes.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={COLORS[index % COLORS.length]}
+              <>
+                <div className="flex-1 min-h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={ticketTypes.map((item, index) => ({
+                          ...item,
+                          fill: COLORS[index % COLORS.length]
+                        }))}
+                        cx="50%"
+                        cy="40%"
+                        labelLine={false}
+                        label={false}
+                        outerRadius={140}
+                        dataKey="count"
+                        nameKey="type"
+                      >
+                        {ticketTypes.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: any, name: any, props: any) => [
+                          `${value} tickets (${props.payload.percentage}%)`,
+                          props.payload.type
+                        ]}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: any, name: any, props: any) => [
-                      `${value} tickets (${props.payload.percentage}%)`,
-                      props.payload.type
-                    ]}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={80}
-                    wrapperStyle={{ paddingTop: '30px' }}
-                    formatter={(value, entry: any) => `${entry.payload.type}`}
-                    iconType="circle"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              {ticketTypes.map((type, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
-                  <span className="text-gray-700">{type.type}: {type.count}</span>
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={80}
+                        wrapperStyle={{ paddingTop: '30px' }}
+                        formatter={(value, entry: any) => `${entry.payload.type}`}
+                        iconType="circle"
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                  {ticketTypes.map((type, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
+                      <span className="text-gray-700">{type.type}: {type.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Top Companies by Volume */}
-          <div className="bg-white rounded-lg border p-4 sm:p-6">
+          <div className="bg-white rounded-lg border p-4 sm:p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <Users className="h-5 w-5 text-blue-600" />
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Top 10 Companies by Volume</h2>
@@ -248,23 +252,32 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <div className="w-full h-[350px] sm:h-[400px] lg:h-[450px]">
+              <div className="flex-1 min-h-[400px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={companies} 
                     layout="vertical" 
-                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                    margin={{ top: 5, right: 15, left: 5, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
                     <YAxis 
                       dataKey="company_name" 
                       type="category" 
-                      width={100}
+                      width={110}
                       tick={{ fontSize: 11 }}
                       interval={0}
+                      tickFormatter={(value) => {
+                        if (value.length > 15) {
+                          return value.substring(0, 13) + '...';
+                        }
+                        return value;
+                      }}
                     />
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value: any) => [`${value} tickets`, 'Total']}
+                      labelFormatter={(label) => `Company: ${label}`}
+                    />
                     <Bar dataKey="total_tickets" fill="#3b82f6" />
                   </BarChart>
                 </ResponsiveContainer>
