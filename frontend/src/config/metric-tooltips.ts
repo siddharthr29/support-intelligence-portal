@@ -374,20 +374,6 @@ export const METRIC_TOOLTIPS: Record<string, MetricTooltip> = {
     dataSource: 'RftSnapshot table grouped by organisationId',
   },
 
-  'rft.total_tickets': {
-    title: 'Total RFT Tickets',
-    description: 'All tickets marked for release across all organisations',
-    calculation: 'SUM of markedReleaseCount from all RFT snapshots',
-    dataSource: 'RftSnapshot.markedReleaseCount aggregated',
-  },
-
-  'rft.avg_per_org': {
-    title: 'Average Per Organisation',
-    description: 'Average number of RFT tickets per organisation',
-    calculation: 'Total RFT Tickets ÷ Total Organisations',
-    dataSource: 'Calculated from RFT totals',
-  },
-
   // ============================================
   // LEADERSHIP MODULE - IMPLEMENTATIONS
   // ============================================

@@ -210,78 +210,77 @@ export function Navbar() {
                 
                 // If item has children, render group
                 if ('children' in item && item.children) {
-                    return (
-                      <div key={item.label} className="space-y-1">
-                        <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                          <Icon className="h-4 w-4" />
-                          {item.label}
-                        </div>
-                        {item.children.map((child) => {
-                          const ChildIcon = child.icon;
-                          const childActive = isActive(child.href);
-                          return (
-                            <Link
-                              key={child.href}
-                              href={child.href}
-                              className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ml-2",
-                                childActive 
-                                  ? "bg-primary/10 text-primary" 
-                                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                              )}
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <ChildIcon className="h-5 w-5" />
-                              {child.label}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    );
-                  }
-                  
-                  // Regular link
-                  const active = isActive(item.href);
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
-                        active 
-                          ? "bg-primary/10 text-primary" 
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      )}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Icon className="h-5 w-5" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-                
-                {/* Mobile User Info & Logout */}
-                {user && (
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="px-4 py-2 text-sm text-gray-600 truncate">
-                      {user?.email || 'User'}
+                    <div key={item.label} className="space-y-1">
+                      <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </div>
+                      {item.children.map((child) => {
+                        const ChildIcon = child.icon;
+                        const childActive = isActive(child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ml-2",
+                              childActive 
+                                ? "bg-primary/10 text-primary" 
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                            )}
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <ChildIcon className="h-5 w-5" />
+                            {child.label}
+                          </Link>
+                        );
+                      })}
                     </div>
-                    <button
-                      onClick={() => {
-                        setIsOpen(false);
-                        handleLogout();
-                      }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 w-full"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      Log out
-                    </button>
+                  );
+                }
+                
+                // Regular link
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
+                      active 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    )}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              
+              {/* Mobile User Info & Logout */}
+              {user && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="px-4 py-2 text-sm text-gray-600 truncate">
+                    {user?.email || 'User'}
                   </div>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </div>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 w-full"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );
