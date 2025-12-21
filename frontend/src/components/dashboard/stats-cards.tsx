@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Ticket, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import type { DateRangeMetrics } from "@/lib/types";
+import { MetricTooltip } from "@/components/ui/metric-tooltip";
 
 interface StatsCardsProps {
   data: DateRangeMetrics | undefined;
@@ -40,6 +41,7 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
       icon: Ticket,
       description: "In selected period",
       color: "text-blue-500",
+      tooltipKey: "dashboard.total_tickets",
     },
     {
       title: "Resolved",
@@ -47,6 +49,7 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
       icon: CheckCircle2,
       description: `${resolvedCount} resolved, ${closedCount} closed`,
       color: "text-green-500",
+      tooltipKey: "dashboard.resolved",
     },
     {
       title: "Urgent & High",
@@ -54,6 +57,7 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
       icon: AlertCircle,
       description: `${urgent} urgent, ${high} high`,
       color: "text-red-500",
+      tooltipKey: "dashboard.urgent_high",
     },
     {
       title: "Pending",
@@ -61,6 +65,7 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
       icon: Clock,
       description: "Awaiting response",
       color: "text-yellow-500",
+      tooltipKey: "dashboard.pending",
     },
   ];
 
@@ -88,9 +93,12 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {card.title}
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-medium">
+                {card.title}
+              </CardTitle>
+              <MetricTooltip metricKey={card.tooltipKey} />
+            </div>
             <card.icon className={`h-4 w-4 ${card.color}`} />
           </CardHeader>
           <CardContent>
