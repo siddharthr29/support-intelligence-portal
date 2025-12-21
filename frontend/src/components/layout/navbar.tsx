@@ -72,10 +72,10 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-sm shadow-sm">
-      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="relative h-7 w-24 sm:h-8 sm:w-32 md:h-10 md:w-40">
+      <div className="w-full max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-8 flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 min-w-0 flex-shrink">
+          <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
+            <div className="relative h-6 w-20 sm:h-8 sm:w-32 md:h-10 md:w-40">
               <Image
                 src="/avni-logo.png"
                 alt="Avni by Samanvay Foundation"
@@ -153,15 +153,17 @@ export function Navbar() {
             );
           })}
           
-          <div className="h-6 w-px bg-gray-200 mx-2" />
-          <YearSelector />
+          <div className="h-6 w-px bg-gray-200 mx-1 sm:mx-2 hidden md:block" />
+          <div className="hidden md:block">
+            <YearSelector />
+          </div>
           
           {/* User Menu */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full ml-2">
-                  <Avatar className="h-9 w-9">
+                <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ml-1 sm:ml-2 flex-shrink-0">
+                  <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                     <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-medium">
                       {getUserInitials()}
                     </AvatarFallback>
@@ -187,28 +189,27 @@ export function Navbar() {
           )}
         </nav>
 
-        {/* Mobile Nav */}
-        <div className="md:hidden">
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] sm:w-[320px]">
-              <SheetHeader>
-                <SheetTitle className="text-left">Navigation</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4">
-                <YearSelector />
-              </div>
-              <nav className="flex flex-col gap-2 mt-6">
-                {NAV_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  
-                  // If item has children, render group
-                  if ('children' in item && item.children) {
+        {/* Mobile Menu */}
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden flex-shrink-0">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[280px] sm:w-[320px]">
+            <SheetHeader>
+              <SheetTitle className="text-left">Navigation</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 md:hidden">
+              <YearSelector />
+            </div>
+            <nav className="flex flex-col gap-2 mt-6">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                
+                // If item has children, render group
+                if ('children' in item && item.children) {
                     return (
                       <div key={item.label} className="space-y-1">
                         <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">

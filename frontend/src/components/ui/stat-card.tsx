@@ -86,36 +86,36 @@ export function StatCard({
         className
       )}
     >
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-sm font-medium text-gray-600 truncate">
+        <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
+            <span className="text-xs sm:text-sm font-medium text-gray-600 truncate">
               {title}
             </span>
             {tooltipKey && <MetricTooltip metricKey={tooltipKey} />}
           </div>
-          <div className={cn('p-2 rounded-lg bg-white/50', styles.border)}>
-            <Icon className={cn('h-5 w-5', styles.icon)} />
+          <div className={cn('p-1.5 sm:p-2 rounded-lg bg-white/50 flex-shrink-0', styles.border)}>
+            <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', styles.icon)} />
           </div>
         </div>
 
         {/* Value */}
-        <div className="space-y-2">
-          <div className={cn('text-3xl font-bold tracking-tight', styles.value)}>
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className={cn('text-2xl sm:text-3xl font-bold tracking-tight', styles.value)}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </div>
 
           {/* Subtitle or Trend */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             {subtitle && (
-              <p className="text-sm text-gray-600 truncate">{subtitle}</p>
+              <p className="text-xs sm:text-sm text-gray-600 truncate flex-1">{subtitle}</p>
             )}
             
             {trend && (
               <div
                 className={cn(
-                  'flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-md',
+                  'flex items-center gap-1 text-xs sm:text-sm font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md flex-shrink-0',
                   trend.isPositive
                     ? 'text-green-700 bg-green-100'
                     : 'text-red-700 bg-red-100'
@@ -124,7 +124,7 @@ export function StatCard({
                 <span>{trend.isPositive ? '↑' : '↓'}</span>
                 <span>{Math.abs(trend.value)}%</span>
                 {trend.label && (
-                  <span className="text-xs text-gray-600 ml-1">{trend.label}</span>
+                  <span className="text-xs text-gray-600 ml-1 hidden sm:inline">{trend.label}</span>
                 )}
               </div>
             )}

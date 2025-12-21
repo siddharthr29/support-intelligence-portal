@@ -134,42 +134,49 @@ export default function DashboardPage() {
           }
           icon={LayoutDashboard}
           action={
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <div className="flex gap-1">
                 <Button
                   variant={datePreset === 'current_week' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setDatePreset('current_week')}
+                  className="flex-1 sm:flex-none"
                 >
-                  This Week
+                  <span className="hidden sm:inline">This Week</span>
+                  <span className="sm:hidden">Week</span>
                 </Button>
                 <Button
                   variant={datePreset === 'past_month' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setDatePreset('past_month')}
+                  className="flex-1 sm:flex-none"
                 >
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Past Month
+                  <Calendar className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Past Month</span>
+                  <span className="sm:hidden">Month</span>
                 </Button>
               </div>
-              <DateRangePicker
-                startDate={dateRange.from}
-                endDate={dateRange.to}
-                onSelect={(range) => {
-                  setDatePreset('custom');
-                  if (range) {
-                    setDateRange({ from: range.from, to: range.to });
-                  }
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isStatsLoading}
-              >
-                <RefreshCcw className={`h-4 w-4 ${isStatsLoading ? 'animate-spin' : ''}`} />
-              </Button>
+              <div className="flex gap-2">
+                <DateRangePicker
+                  startDate={dateRange.from}
+                  endDate={dateRange.to}
+                  onSelect={(range) => {
+                    setDatePreset('custom');
+                    if (range) {
+                      setDateRange({ from: range.from, to: range.to });
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isStatsLoading}
+                  className="px-3"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${isStatsLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </div>
           }
         />
@@ -233,7 +240,7 @@ export default function DashboardPage() {
             )}
 
             {/* Charts - Lazy loaded */}
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
               <Suspense fallback={<ChartSkeleton />}>
                 <PriorityChart 
                   data={statsData?.priorityBreakdown} 

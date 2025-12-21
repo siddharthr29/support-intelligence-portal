@@ -49,6 +49,155 @@ export const METRIC_TOOLTIPS: Record<string, MetricTooltip> = {
   },
 
   // ============================================
+  // RFT (Rule Failure Telemetry)
+  // ============================================
+
+  'rft.total_tickets': {
+    title: 'Total Open RFTs',
+    description: 'Total number of Rule Failure Telemetry tickets currently open',
+    calculation: 'COUNT of open RFT tickets from Metabase',
+    dataSource: 'Metabase RFT dashboard - refreshed on demand',
+  },
+
+  'rft.new_this_week': {
+    title: 'New RFTs This Week',
+    description: 'Newly reported RFT tickets in the current week',
+    calculation: 'COUNT of RFT tickets created this week',
+    dataSource: 'Metabase RFT dashboard - weekly aggregation',
+  },
+
+  'rft.closures_this_week': {
+    title: 'RFT Closures This Week',
+    description: 'RFT tickets resolved/closed in the current week',
+    calculation: 'COUNT of RFT tickets closed this week',
+    dataSource: 'Metabase RFT dashboard - weekly closures',
+  },
+
+  'rft.total_closed': {
+    title: 'Total Closed RFTs',
+    description: 'All-time count of closed RFT tickets',
+    calculation: 'COUNT of all closed RFT tickets',
+    dataSource: 'Metabase RFT dashboard - cumulative total',
+  },
+
+  'rft.avg_per_org': {
+    title: 'Average RFTs per Organization',
+    description: 'Average number of open RFTs across all organizations',
+    calculation: 'Total Open RFTs ÷ Number of Organizations',
+    dataSource: 'Metabase RFT dashboard - organizational breakdown',
+  },
+
+  // ============================================
+  // COMPANIES PAGE
+  // ============================================
+
+  'companies.ticket_volume': {
+    title: 'Company Ticket Volume',
+    description: 'Total tickets created by this company in the year',
+    calculation: 'COUNT of tickets where company_id matches',
+    dataSource: 'YtdTicket table grouped by company_id',
+  },
+
+  'companies.weekly_tickets': {
+    title: 'Weekly Ticket Count',
+    description: 'Tickets created by this company in the last 7 days',
+    calculation: 'COUNT of tickets in last 7 days for company',
+    dataSource: 'YtdTicket table filtered by company and date',
+  },
+
+  // ============================================
+  // LEADERSHIP MODULE - OVERVIEW
+  // ============================================
+
+  'leadership.active_tickets': {
+    title: 'Active Tickets (30d)',
+    description: 'Total tickets created in the last 30 days across all partners',
+    calculation: 'COUNT of tickets where created_at >= NOW() - 30 days',
+    dataSource: 'YtdTicket table - last 30 days',
+  },
+
+  'leadership.current_backlog': {
+    title: 'Current Backlog',
+    description: 'Total unresolved tickets (open or pending status)',
+    calculation: 'COUNT of tickets with status IN (2=Open, 3=Pending)',
+    dataSource: 'YtdTicket table - current unresolved count',
+  },
+
+  'leadership.avg_resolution': {
+    title: 'Average Resolution Time',
+    description: 'Average time to resolve tickets in hours',
+    calculation: 'AVG(resolved_at - created_at) for resolved tickets',
+    dataSource: 'YtdTicket table - only resolved tickets',
+  },
+
+  'leadership.critical_issues': {
+    title: 'Critical Issues',
+    description: 'Sum of SLA breaches and data loss incidents',
+    calculation: 'SLA breaches (urgent >24h unresolved) + Data loss incidents (30d)',
+    dataSource: 'Computed from YtdTicket table with business logic',
+  },
+
+  'leadership.sla_breaches': {
+    title: 'SLA Breaches',
+    description: 'Urgent tickets unresolved for more than 24 hours',
+    calculation: 'COUNT of tickets with priority=4 AND status IN (2,3) AND age > 24h',
+    dataSource: 'YtdTicket table with SLA logic',
+  },
+
+  'leadership.data_loss_incidents': {
+    title: 'Data Loss Incidents',
+    description: 'Tickets tagged with data loss in last 30 days',
+    calculation: 'COUNT of tickets with "data loss" tag in last 30 days',
+    dataSource: 'YtdTicket table filtered by tags',
+  },
+
+  'leadership.long_unresolved': {
+    title: 'Long Unresolved Blockers',
+    description: 'Urgent/high priority tickets unresolved for more than 7 days',
+    calculation: 'COUNT of tickets with priority IN (3,4) AND status IN (2,3) AND age > 7 days',
+    dataSource: 'YtdTicket table with blocker logic',
+  },
+
+  'leadership.how_to_volume': {
+    title: 'How-To Tickets',
+    description: 'Tickets categorized as "how-to" questions',
+    calculation: 'COUNT of tickets with "how-to" tag or category',
+    dataSource: 'YtdTicket table filtered by tags/category',
+  },
+
+  'leadership.training_requests': {
+    title: 'Training Requests',
+    description: 'Tickets requesting training or onboarding support',
+    calculation: 'COUNT of tickets with "training" tag',
+    dataSource: 'YtdTicket table filtered by training tags',
+  },
+
+  // ============================================
+  // LEADERSHIP MODULE - PARTNERS
+  // ============================================
+
+  'leadership.partner_risk': {
+    title: 'Partner Risk Score',
+    description: 'Risk level based on ticket patterns and critical issues',
+    calculation: 'Computed from data loss, sync failures, unresolved count, and urgent tickets',
+    dataSource: 'Aggregated from multiple ticket metrics',
+  },
+
+  'leadership.partner_tickets_12m': {
+    title: 'Partner Tickets (12 months)',
+    description: 'Total tickets from this partner in the last 12 months',
+    calculation: 'COUNT of tickets where partner_id matches in last 12 months',
+    dataSource: 'YtdTicket table grouped by partner',
+  },
+
+  'leadership.partner_trend': {
+    title: 'Partner Ticket Trend',
+    description: 'Trend ratio comparing last 30 days to previous 30 days',
+    calculation: '(Tickets last 30d ÷ Tickets previous 30d) - 1',
+    dataSource: 'Computed from YtdTicket table date ranges',
+  },
+
+  // ============================================
   // WEEKLY REPORT
   // ============================================
 
@@ -315,16 +464,15 @@ export const METRIC_TOOLTIPS: Record<string, MetricTooltip> = {
   },
 };
 
-/**
- * Get tooltip for a specific metric
- */
-export function getMetricTooltip(key: string): MetricTooltip | null {
-  return METRIC_TOOLTIPS[key] || null;
+// Helper function to get tooltip by key
+export function getMetricTooltip(key: string): MetricTooltip | undefined {
+  return METRIC_TOOLTIPS[key];
 }
 
-/**
- * Format tooltip content for display
- */
+// Helper function to check if tooltip exists
+export function hasMetricTooltip(key: string): boolean {
+  return key in METRIC_TOOLTIPS;
+}
 export function formatTooltipContent(tooltip: MetricTooltip): string {
   return `${tooltip.description}\n\nCalculation: ${tooltip.calculation}\n\nSource: ${tooltip.dataSource}`;
 }
