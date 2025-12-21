@@ -145,9 +145,9 @@ function getWeekOptions(): { value: string; label: string; weekStart: Date; week
   });
   
   // Add previous 2 completed weeks
-  // i=1: Previous week ends at currentWeekStart (last Friday 5pm)
-  // i=2: Week before that ends 1 week before currentWeekStart
-  for (let i = 1; i <= 2; i++) {
+  // Previous week 1: ends at currentWeekStart (Dec 19), starts 1 week before (Dec 12)
+  // Previous week 2: ends 1 week before currentWeekStart (Dec 12), starts 1 week before that (Dec 5)
+  for (let i = 0; i < 2; i++) {
     const weekEnd = subWeeks(currentWeekStart, i);
     const weekStart = subWeeks(weekEnd, 1); // 1 week before weekEnd
     
