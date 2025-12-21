@@ -115,6 +115,7 @@ export default function RftMetricsPage() {
                 value={rftData.totals.newlyReportedCurrentWeek}
                 subtitle="Newly reported"
                 icon={Bug}
+                tooltipKey="rft.new_this_week"
                 variant="warning"
               />
 
@@ -123,6 +124,7 @@ export default function RftMetricsPage() {
                 value={rftData.totals.closuresThisWeek}
                 subtitle="Fixed this week"
                 icon={TrendingDown}
+                tooltipKey="rft.closures_this_week"
                 variant="success"
               />
 
