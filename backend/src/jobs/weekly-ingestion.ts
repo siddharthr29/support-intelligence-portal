@@ -1,14 +1,11 @@
 import { createFreshdeskClient } from '../services/freshdesk';
 import { logger } from '../utils/logger';
 import { config } from '../config';
-import { generateSnapshotId, getWeekBoundaries } from './snapshot-id';
-import { computeWeeklyMetrics } from '../analytics';
-import { writeWeeklySnapshot, upsertYtdTickets, getConfig, setConfig } from '../persistence';
-import type {
-  IngestionJobResult,
-  JobExecutionContext,
-  WeeklySnapshotMetadata,
-} from './types';
+import { computeWeeklyMetrics } from '../analytics/metrics-calculator';
+import { writeWeeklySnapshot } from '../persistence/snapshot-writer';
+import { getCurrentWeekBoundariesIST, generateSnapshotId, getNowIST } from '../utils/datetime';
+import { getConfig, setConfig, upsertYtdTickets } from '../persistence/config-repository';
+import type { IngestionJobResult, JobExecutionContext, WeeklySnapshotMetadata } from './types';
 import type {
   FreshdeskTicket,
   FreshdeskGroup,
@@ -28,13 +25,13 @@ export async function executeWeeklyIngestion(
   context: JobExecutionContext
 ): Promise<IngestionJobResult> {
   const startTime = Date.now();
-  const startedAt = new Date().toISOString();
+  const startedAt = getNowIST().toISOString();
 
   logger.info({ context }, 'Starting weekly ingestion job');
 
   try {
-    const now = new Date();
-    const { weekStart, weekEnd } = getWeekBoundaries(now, config.scheduler.timezone);
+    const now = getNowIST();
+    const { weekStart, weekEnd } = getCurrentWeekBoundariesIST(now);
     const snapshotId = generateSnapshotId(weekEnd);
 
     logger.info({
@@ -87,7 +84,7 @@ export async function executeWeeklyIngestion(
 
     return result;
   } catch (error) {
-    const completedAt = new Date().toISOString();
+    const completedAt = getNowIST().toISOString();
     const durationMs = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -124,7 +121,7 @@ async function ingestFreshdeskDataOnce(
   weekEnd: Date
 ): Promise<IngestedData> {
   const client = createFreshdeskClient();
-  const syncStartTime = new Date();
+  const syncStartTime = getNowIST();
   
   // Check for last sync timestamp
   const lastSyncValue = await getConfig(LAST_SYNC_CONFIG_KEY);
@@ -207,7 +204,7 @@ async function ingestFreshdeskDataOnce(
     snapshotId,
     weekStartDate: weekStart.toISOString(),
     weekEndDate: weekEnd.toISOString(),
-    createdAt: new Date().toISOString(),
+    createdAt: getNowIST().toISOString(),
     timezone: config.scheduler.timezone,
     version: 1,
   };
@@ -312,7 +309,7 @@ async function cacheCompaniesAndGroups(
 }
 
 export function createJobContext(isRetry: boolean = false, retryCount: number = 0): JobExecutionContext {
-  const now = new Date();
+  const now = getNowIST();
 
   return {
     jobId: `job_${now.getTime()}_${Math.random().toString(36).substring(2, 9)}`,
