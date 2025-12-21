@@ -4,11 +4,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { apiGet } from '@/lib/api-client';
 import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { RecentTicketsTable } from '@/components/tickets/recent-tickets-table';
+import { StatCard } from '@/components/ui/stat-card';
+import { SectionHeader } from '@/components/ui/section-header';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, TrendingUp, TrendingDown, Users, Clock, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, Users, Clock, AlertTriangle, BarChart3 } from 'lucide-react';
 import { useLeadership } from '@/contexts/leadership-context';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
 
 interface MetricsSummary {
   long_unresolved_blockers: number;
@@ -96,27 +98,29 @@ export default function LeadershipDashboard() {
     <div className="min-h-screen bg-gray-50">
       <LeadershipNavigation />
       
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Executive Overview</h1>
-          <p className="text-gray-600">Real-time support intelligence and partner health metrics</p>
-        </div>
+        <SectionHeader
+          title="Executive Overview"
+          description="Real-time support intelligence and partner health metrics"
+          icon={BarChart3}
+        />
 
         {/* Critical Alerts */}
         {criticalAlerts.length > 0 && (
-          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200 rounded-xl p-4 sm:p-6">
             <h3 className="text-red-900 font-semibold mb-3 flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               Critical Alerts
+              <Badge variant="destructive" className="ml-auto">{criticalAlerts.length}</Badge>
             </h3>
             <div className="space-y-2">
               {criticalAlerts.map((alert: any, idx) => {
                 const Icon = alert.icon;
                 return (
-                  <div key={idx} className="flex items-center gap-2 text-sm text-red-800">
-                    <Icon className="h-4 w-4" />
-                    {alert.message}
+                  <div key={idx} className="flex items-center gap-2 text-sm text-red-800 bg-white/50 p-2 rounded-lg">
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1">{alert.message}</span>
                   </div>
                 );
               })}
@@ -125,91 +129,43 @@ export default function LeadershipDashboard() {
         )}
 
         {/* KPI Cards */}
-        <TooltipProvider>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Active Tickets</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs">Total number of support tickets created in the last 30 days across all partners</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Users className="h-5 w-5 text-gray-400" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900">{metrics?.total_tickets_30d || 0}</div>
-            <p className="text-sm text-gray-500 mt-1">Last 30 days</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Active Tickets"
+            value={metrics?.total_tickets_30d || 0}
+            subtitle="Last 30 days"
+            icon={Users}
+            tooltipKey="leadership.active_tickets"
+            variant="info"
+          />
 
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Current Backlog</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs">Total number of tickets that are currently unresolved (open or pending status)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <TrendingUp className="h-5 w-5 text-orange-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900">{metrics?.current_backlog || 0}</div>
-            <p className="text-sm text-gray-500 mt-1">Unresolved tickets</p>
-          </div>
+          <StatCard
+            title="Current Backlog"
+            value={metrics?.current_backlog || 0}
+            subtitle="Unresolved tickets"
+            icon={AlertTriangle}
+            tooltipKey="leadership.current_backlog"
+            variant="warning"
+          />
 
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Avg Resolution</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs font-semibold mb-1">Average time to resolve tickets</p>
-                    <p className="text-xs max-w-xs mb-1">Formula: SUM(resolved_at - created_at) / COUNT(resolved tickets)</p>
-                    <p className="text-xs max-w-xs text-gray-400">Only includes resolved tickets in the selected date range</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Clock className="h-5 w-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {metrics?.avg_resolution_hours ? Math.round(metrics.avg_resolution_hours) : 0}h
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Time to resolve</p>
-          </div>
+          <StatCard
+            title="Avg Resolution"
+            value={`${metrics?.avg_resolution_hours ? Math.round(metrics.avg_resolution_hours) : 0}h`}
+            subtitle="Time to resolve"
+            icon={Clock}
+            tooltipKey="leadership.avg_resolution"
+            variant="primary"
+          />
 
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Critical Issues</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-gray-400" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs">Sum of SLA breaches (urgent tickets unresolved &gt;24h) and data loss incidents in the last 30 days</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <AlertCircle className="h-5 w-5 text-red-500" />
-            </div>
-            <div className="text-3xl font-bold text-red-600">
-              {(metrics?.sla_breaches || 0) + (metrics?.data_loss_incidents || 0)}
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Needs attention</p>
-          </div>
+          <StatCard
+            title="Critical Issues"
+            value={(metrics?.sla_breaches || 0) + (metrics?.data_loss_incidents || 0)}
+            subtitle="Needs attention"
+            icon={AlertCircle}
+            tooltipKey="leadership.critical_issues"
+            variant="error"
+          />
         </div>
-        </TooltipProvider>
 
         {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -239,9 +195,12 @@ export default function LeadershipDashboard() {
         </div>
 
         {/* Recent Tickets History */}
-        <div className="mt-8">
+        <CollapsibleSection 
+          title="Recent Tickets" 
+          defaultOpen={false}
+        >
           <RecentTicketsTable />
-        </div>
+        </CollapsibleSection>
       </div>
     </div>
   );
