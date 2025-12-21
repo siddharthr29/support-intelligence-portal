@@ -2,9 +2,10 @@ import { createFreshdeskClient } from '../services/freshdesk';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 import { computeWeeklyMetrics } from '../analytics/metrics-calculator';
-import { writeWeeklySnapshot } from '../persistence/snapshot-writer';
+import { writeWeeklySnapshot } from '../persistence/snapshot-repository';
 import { getCurrentWeekBoundariesIST, generateSnapshotId, getNowIST } from '../utils/datetime';
-import { getConfig, setConfig, upsertYtdTickets } from '../persistence/config-repository';
+import { getConfig, setConfig } from '../persistence/system-config-repository';
+import { upsertYtdTickets } from '../persistence/ytd-ticket-repository';
 import type { IngestionJobResult, JobExecutionContext, WeeklySnapshotMetadata } from './types';
 import type {
   FreshdeskTicket,
