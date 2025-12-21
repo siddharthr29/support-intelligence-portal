@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Shell } from "@/components/layout/shell";
+import { SectionHeader } from "@/components/ui/section-header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { TopCompaniesCard } from "@/components/dashboard/top-companies-card";
 import { fetchLiveStats } from "@/lib/api-client";
@@ -34,19 +35,18 @@ export default function CompaniesPage() {
       <Shell>
         <div className="space-y-6">
           {/* Header */}
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Building2 className="h-7 w-7 text-blue-500" />
-              Companies
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Top companies by ticket volume and renewal insights
-            </p>
-          </div>
+          <SectionHeader
+            title="Companies"
+            description="Top companies by ticket volume and renewal insights"
+            icon={Building2}
+          />
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-12 bg-white rounded-xl border">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Loading companies...</p>
+              </div>
             </div>
           ) : (
             <div className="grid gap-6 lg:grid-cols-2">
@@ -55,10 +55,10 @@ export default function CompaniesPage() {
                 isLoading={isLoading} 
               />
               <div className="space-y-4">
-                <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
+                <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 rounded-xl">
                   <CardContent className="p-6">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-amber-500" />
+                    <h3 className="font-semibold mb-3 flex items-center gap-2 text-amber-900">
+                      <TrendingUp className="h-5 w-5 text-amber-600" />
                       Renewal Insights
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -85,10 +85,10 @@ export default function CompaniesPage() {
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
+                <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 rounded-xl">
                   <CardContent className="p-6">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <h3 className="font-semibold mb-3 flex items-center gap-2 text-green-900">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
                       Low Ticket Companies
                     </h3>
                     <p className="text-sm text-muted-foreground">

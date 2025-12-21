@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shell } from "@/components/layout/shell";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,13 +57,13 @@ export default function RftMetricsPage() {
     return (
       <Shell>
         <div className="space-y-6">
-          <Skeleton className="h-10 w-64" />
-          <div className="grid gap-4 md:grid-cols-4">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-32" />
+              <Skeleton key={i} className="h-40 rounded-xl" />
             ))}
           </div>
-          <Skeleton className="h-[400px]" />
+          <Skeleton className="h-[400px] rounded-xl" />
         </div>
       </Shell>
     );
@@ -71,24 +73,21 @@ export default function RftMetricsPage() {
     <Shell>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Rule Failure Telemetry (RFT)
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Product quality metrics from Metabase - critical for customer satisfaction
-            </p>
-          </div>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            className="gap-2"
-          >
-            <RefreshCcw className={`h-4 w-4 ${mutation.isPending ? 'animate-spin' : ''}`} />
-            Refresh from Metabase
-          </Button>
-        </div>
+        <SectionHeader
+          title="Rule Failure Telemetry (RFT)"
+          description="Product quality metrics from Metabase - critical for customer satisfaction"
+          icon={Bug}
+          action={
+            <Button
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending}
+              size="sm"
+            >
+              <RefreshCcw className={`h-4 w-4 mr-2 ${mutation.isPending ? 'animate-spin' : ''}`} />
+              Refresh from Metabase
+            </Button>
+          }
+        />
 
         {!rftData ? (
           <Card>
@@ -101,74 +100,40 @@ export default function RftMetricsPage() {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                    Total Open RFTs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-red-600">
-                    {rftData.totals.totalOpenRfts.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Requires attention
-                  </p>
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="Total Open RFTs"
+                value={rftData.totals.totalOpenRfts}
+                subtitle="Requires attention"
+                icon={AlertCircle}
+                tooltipKey="rft.total_tickets"
+                variant="error"
+              />
 
-              <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Bug className="h-4 w-4 text-amber-500" />
-                    New This Week
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-amber-600">
-                    {rftData.totals.newlyReportedCurrentWeek.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Newly reported
-                  </p>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="New This Week"
+                value={rftData.totals.newlyReportedCurrentWeek}
+                subtitle="Newly reported"
+                icon={Bug}
+                variant="warning"
+              />
 
-              <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <TrendingDown className="h-4 w-4 text-green-500" />
-                    Closures This Week
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600">
-                    {rftData.totals.closuresThisWeek.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Fixed this week
-                  </p>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="Closures This Week"
+                value={rftData.totals.closuresThisWeek}
+                subtitle="Fixed this week"
+                icon={TrendingDown}
+                variant="success"
+              />
 
-              <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                    Total Closed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">
-                    {rftData.totals.closedRftsSoFar.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    All time
-                  </p>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="Total Closed"
+                value={rftData.totals.closedRftsSoFar}
+                subtitle="All time"
+                icon={CheckCircle2}
+                tooltipKey="rft.avg_per_org"
+                variant="info"
+              />
             </div>
 
             {/* Organisation Breakdown Table */}
