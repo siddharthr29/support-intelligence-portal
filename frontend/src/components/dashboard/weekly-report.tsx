@@ -67,11 +67,11 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   // Use centralized app data store (data already loaded in Shell)
   const { getWeekStats, getCompanyName, isLoaded, getAllTimeUnresolvedByGroup, getMarkedReleaseVersions } = useAppDataStore();
   
-  const weekOptions = getWeekOptions();
+  const weekOptions = getWeekOptionsIST(2);
   const currentWeekValue = selectedWeek || weekOptions[0]?.value || '';
   const selectedWeekData = weekOptions.find(w => w.value === currentWeekValue);
-  const effectiveWeekEndDate = selectedWeekData?.weekEnd || weekEndDate || new Date();
-  const effectiveWeekStartDate = selectedWeekData?.weekStart || getWeekStartFriday(getFriday5pm(effectiveWeekEndDate));
+  const effectiveWeekEndDate = selectedWeekData?.weekEnd || weekEndDate || getNowIST();
+  const effectiveWeekStartDate = selectedWeekData?.weekStart || subWeeks(effectiveWeekEndDate, 1);
   const effectiveSnapshotId = `snapshot_${format(effectiveWeekEndDate, 'yyyyMMdd')}`;
 
   // Compute week stats from store (NO API call - uses cached data)
@@ -283,10 +283,10 @@ Pending: ${psPending}`;
         // Auto-advance to next week after successful push
         if (json.weeklyReportPushed) {
           // Move to next week (previous week in dropdown)
-          const weekOptions = getWeekOptions();
-          if (weekOptions.length > 1) {
+          const weekOpts = getWeekOptionsIST(2);
+          if (weekOpts.length > 1) {
             // Select the second option (previous week)
-            setSelectedWeek(weekOptions[1].value);
+            setSelectedWeek(weekOpts[1].value);
             toast.info('Week dropdown moved to next week');
           }
         }
