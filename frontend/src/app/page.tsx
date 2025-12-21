@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, lazy, Suspense } from "react";
-import { format, startOfWeek, endOfWeek, startOfYear } from "date-fns";
+import { format, startOfYear } from "date-fns";
+import { getNowIST, getCurrentWeekBoundariesIST } from "@/lib/datetime";
 import { Shell } from "@/components/layout/shell";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { StatCard } from "@/components/ui/stat-card";
@@ -52,6 +53,7 @@ type DatePreset = 'current_week' | 'past_month' | 'custom';
 export default function DashboardPage() {
   const [datePreset, setDatePreset] = useState<DatePreset>('current_week');
   const { selectedYear } = useYearStore();
+  const currentYear = getNowIST().getFullYear();
   
   // Use centralized ticket store
   const { 
@@ -71,16 +73,15 @@ export default function DashboardPage() {
 
   // Update date range when preset changes
   useEffect(() => {
-    const now = new Date();
+    const now = getNowIST();
     if (datePreset === 'past_month') {
       const monthAgo = new Date(now);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       setDateRange({ from: monthAgo, to: now });
     } else if (datePreset === 'current_week') {
-      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-      const effectiveEnd = now < weekEnd ? now : weekEnd;
-      setDateRange({ from: weekStart, to: effectiveEnd });
+      // Use centralized week boundaries (Friday 5pm to Friday 5pm)
+      const { weekStart, weekEnd } = getCurrentWeekBoundariesIST(now);
+      setDateRange({ from: weekStart, to: now });
     }
   }, [datePreset, setDateRange]);
 
@@ -113,7 +114,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
         {/* Header */}
         <SectionHeader
-          title={`Dashboard ${selectedYear}`}
+          title={`Dashboard ${currentYear}`}
           description={
             isStatsLoading ? (
               <span className="flex items-center gap-2">
@@ -188,7 +189,7 @@ export default function DashboardPage() {
               <AlertTriangle className="h-8 w-8 text-amber-600" />
             </div>
             <h3 className="text-xl font-semibold text-amber-900 mb-2">
-              No Data Available for {selectedYear}
+              No Data Available for {currentYear}
             </h3>
             <p className="text-sm text-amber-700 max-w-md mx-auto">
               There are no tickets recorded for this year. Please select a different year or wait for data to be synced.
