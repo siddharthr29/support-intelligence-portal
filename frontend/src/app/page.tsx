@@ -4,10 +4,13 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { format, startOfWeek, endOfWeek, startOfYear } from "date-fns";
 import { Shell } from "@/components/layout/shell";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-import { MetricCard } from "@/components/dashboard/metric-card";
+import { StatCard } from "@/components/ui/stat-card";
+import { SectionHeader } from "@/components/ui/section-header";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { RecentTicketsTable } from "@/components/tickets/recent-tickets-table";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { 
   Ticket, 
@@ -16,7 +19,8 @@ import {
   TrendingUp,
   RefreshCcw,
   Loader2,
-  Calendar
+  Calendar,
+  LayoutDashboard
 } from "lucide-react";
 import { useTicketStore } from "@/stores/ticket-store";
 import { useYearStore } from "@/stores/year-store";
@@ -26,19 +30,19 @@ const PriorityChart = lazy(() => import("@/components/dashboard/priority-chart")
 const StatusChart = lazy(() => import("@/components/dashboard/status-chart").then(m => ({ default: m.StatusChart })));
 const UnresolvedSummary = lazy(() => import("@/components/dashboard/unresolved-summary").then(m => ({ default: m.UnresolvedSummary })));
 
-// Loading skeleton for lazy components - More visible with darker colors
+// Loading skeleton for lazy components
 const ChartSkeleton = () => (
-  <div className="h-[300px] bg-white rounded-lg border p-6 shadow-md">
-    <div className="h-6 w-48 bg-gray-400 rounded animate-pulse mb-4"></div>
-    <div className="h-[200px] w-full bg-gray-300 rounded animate-pulse"></div>
+  <div className="h-[320px] bg-white rounded-xl border p-6 shadow-sm">
+    <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+    <div className="h-[240px] w-full bg-gray-100 rounded-lg animate-pulse"></div>
   </div>
 );
 
 const MetricCardSkeleton = () => (
-  <div className="bg-white rounded-lg border p-6 shadow-md">
-    <div className="h-4 w-24 bg-gray-400 rounded animate-pulse mb-3"></div>
-    <div className="h-10 w-20 bg-gray-500 rounded animate-pulse mb-3"></div>
-    <div className="h-3 w-32 bg-gray-400 rounded animate-pulse"></div>
+  <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl border border-gray-200 p-6 shadow-sm">
+    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+    <div className="h-8 w-24 bg-gray-300 rounded animate-pulse mb-2"></div>
+    <div className="h-3 w-28 bg-gray-200 rounded animate-pulse"></div>
   </div>
 );
 
@@ -108,87 +112,78 @@ export default function DashboardPage() {
       <Shell>
         <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Support Intelligence Dashboard - {selectedYear}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {isStatsLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Loading live data from Freshdesk...
+        <SectionHeader
+          title={`Dashboard ${selectedYear}`}
+          description={
+            isStatsLoading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Loading live data...
+              </span>
+            ) : (
+              dateRange.from && dateRange.to ? (
+                <span className="flex items-center gap-3">
+                  <span>{format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}</span>
+                  <Badge variant="outline" className="text-xs">
+                    <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                    Auto-sync: Fridays 4:30 PM IST
+                  </Badge>
                 </span>
-              ) : (
-                <>
-                  {dateRange.from && dateRange.to && (
-                    <span>
-                      {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
-                    </span>
-                  )}
-                  {lastFetched && (
-                    <span className="ml-2 text-xs">
-                      (Cached: {lastFetched.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })})
-                    </span>
-                  )}
-                </>
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Data syncs automatically every Friday at 4:30 PM IST. Last sync fetches new/updated tickets since previous sync.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex gap-1">
+              ) : 'Select a date range to view metrics'
+            )
+          }
+          icon={LayoutDashboard}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1">
+                <Button
+                  variant={datePreset === 'current_week' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDatePreset('current_week')}
+                >
+                  This Week
+                </Button>
+                <Button
+                  variant={datePreset === 'past_month' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDatePreset('past_month')}
+                >
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Past Month
+                </Button>
+              </div>
+              <DateRangePicker
+                startDate={dateRange.from}
+                endDate={dateRange.to}
+                onSelect={(range) => {
+                  setDatePreset('custom');
+                  if (range) {
+                    setDateRange({ from: range.from, to: range.to });
+                  }
+                }}
+              />
               <Button
-                variant={datePreset === 'current_week' ? 'default' : 'outline'}
+                variant="outline"
                 size="sm"
-                onClick={() => setDatePreset('current_week')}
-                className="text-xs"
+                onClick={handleRefresh}
+                disabled={isStatsLoading}
               >
-                This Week
-              </Button>
-              <Button
-                variant={datePreset === 'past_month' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDatePreset('past_month')}
-                className="text-xs"
-              >
-                <Calendar className="h-3 w-3 mr-1" />
-                Past Month
+                <RefreshCcw className={`h-4 w-4 ${isStatsLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
-            <DateRangePicker
-              startDate={dateRange.from}
-              endDate={dateRange.to}
-              onSelect={(range) => {
-                setDatePreset('custom');
-                if (range) {
-                  setDateRange({ from: range.from, to: range.to });
-                }
-              }}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isStatsLoading}
-              className="text-xs gap-1"
-            >
-              <RefreshCcw className={`h-3 w-3 ${isStatsLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Empty State for No Data */}
         {hasNoData && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200 rounded-xl p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-4">
+              <AlertTriangle className="h-8 w-8 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-amber-900 mb-2">
               No Data Available for {selectedYear}
             </h3>
-            <p className="text-sm text-yellow-700 mb-4">
+            <p className="text-sm text-amber-700 max-w-md mx-auto">
               There are no tickets recorded for this year. Please select a different year or wait for data to be synced.
             </p>
           </div>
@@ -198,42 +193,41 @@ export default function DashboardPage() {
         {!hasNoData && (
           <>
             {isStatsLoading ? (
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => <MetricCardSkeleton key={i} />)}
               </div>
             ) : (
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                <MetricCard
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
                   title="New Tickets"
                   value={filteredStats?.ticketsCreated ?? 0}
                   subtitle={dateRange.from && dateRange.to ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d')}` : 'Select date range'}
                   icon={Ticket}
-                  iconClassName="from-blue-500/20 to-blue-600/10"
-                  infoText="Total new tickets created in the selected period."
+                  tooltipKey="dashboard.total_tickets"
+                  variant="info"
                 />
-                <MetricCard
+                <StatCard
                   title="Completed"
                   value={(filteredStats?.ticketsResolved ?? 0) + (filteredStats?.ticketsClosed ?? 0)}
                   subtitle={`${filteredStats?.ticketsResolved ?? 0} resolved, ${filteredStats?.ticketsClosed ?? 0} closed`}
                   icon={CheckCircle2}
-                  iconClassName="from-green-500/20 to-green-600/10"
-                  infoText="Tickets resolved or closed in the selected period."
+                  tooltipKey="dashboard.resolved"
+                  variant="success"
                 />
-                <MetricCard
+                <StatCard
                   title="High Priority"
                   value={(filteredStats?.urgentTickets ?? 0) + (filteredStats?.highTickets ?? 0)}
                   subtitle={`${filteredStats?.urgentTickets ?? 0} urgent, ${filteredStats?.highTickets ?? 0} high`}
                   icon={AlertTriangle}
-                  iconClassName="from-red-500/20 to-red-600/10"
-                  infoText="Urgent and High priority tickets requiring attention."
+                  tooltipKey="dashboard.urgent_high"
+                  variant="error"
                 />
-                <MetricCard
+                <StatCard
                   title="Completion Rate"
                   value={`${resolutionRate}%`}
                   subtitle={`${filteredStats?.ticketsOpen ?? 0} open, ${filteredStats?.ticketsPending ?? 0} pending`}
                   icon={TrendingUp}
-                  iconClassName="from-purple-500/20 to-purple-600/10"
-                  infoText="Percentage of tickets completed (resolved + closed)."
+                  variant="primary"
                 />
               </div>
             )}
@@ -254,18 +248,31 @@ export default function DashboardPage() {
               </Suspense>
             </div>
 
-            {/* Unresolved Summary - Lazy loaded */}
-            <Suspense fallback={<ChartSkeleton />}>
-              <UnresolvedSummary 
-                groupBreakdown={statsData?.groupBreakdown} 
-                isLoading={isStatsLoading} 
-              />
-            </Suspense>
+            {/* Unresolved Summary - Collapsible */}
+            <CollapsibleSection 
+              title="Unresolved Tickets by Group" 
+              defaultOpen={false}
+              badge={
+                <Badge variant="secondary">
+                  {statsData?.groupBreakdown?.reduce((sum, g) => sum + g.open + g.pending, 0) ?? 0} total
+                </Badge>
+              }
+            >
+              <Suspense fallback={<ChartSkeleton />}>
+                <UnresolvedSummary 
+                  groupBreakdown={statsData?.groupBreakdown} 
+                  isLoading={isStatsLoading} 
+                />
+              </Suspense>
+            </CollapsibleSection>
 
-            {/* Recent Tickets History */}
-            <div className="mt-6">
+            {/* Recent Tickets History - Collapsible */}
+            <CollapsibleSection 
+              title="Recent Tickets" 
+              defaultOpen={false}
+            >
               <RecentTicketsTable />
-            </div>
+            </CollapsibleSection>
           </>
         )}
         </div>

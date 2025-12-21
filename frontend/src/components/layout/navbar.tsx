@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, LayoutDashboard, FileText, Calendar, Building2, Bug, Settings, LogOut, AlertTriangle, BarChart3, CalendarDays } from 'lucide-react';
+import { Menu, LayoutDashboard, FileText, Calendar, Building2, Bug, LogOut, AlertTriangle, BarChart3, CalendarDays, ChevronDown, TrendingUp, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useState } from 'react';
@@ -23,12 +24,24 @@ import { YearSelector } from '@/components/year-selector';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Weekly Report', href: '/reports/weekly', icon: Calendar },
-  { label: 'Monthly Report', href: '/reports/monthly', icon: CalendarDays },
-  { label: 'Yearly Report', href: '/reports/yearly', icon: BarChart3 },
-  { label: 'Companies', href: '/companies', icon: Building2 },
-  { label: 'RFT', href: '/rft', icon: Bug },
-  { label: 'Errors', href: '/error-logs', icon: AlertTriangle },
+  { 
+    label: 'Reports', 
+    icon: FileText,
+    children: [
+      { label: 'Weekly Report', href: '/reports/weekly', icon: Calendar },
+      { label: 'Monthly Report', href: '/reports/monthly', icon: CalendarDays },
+      { label: 'Yearly Report', href: '/reports/yearly', icon: BarChart3 },
+    ]
+  },
+  { 
+    label: 'Analytics', 
+    icon: TrendingUp,
+    children: [
+      { label: 'Companies', href: '/companies', icon: Building2 },
+      { label: 'RFT Metrics', href: '/rft', icon: Bug },
+      { label: 'Error Logs', href: '/error-logs', icon: AlertTriangle },
+    ]
+  },
 ];
 
 export function Navbar() {
@@ -58,8 +71,8 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 flex h-14 sm:h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-sm shadow-sm">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center space-x-2">
             <div className="relative h-7 w-24 sm:h-8 sm:w-32 md:h-10 md:w-40">
@@ -75,20 +88,63 @@ export function Navbar() {
         </div>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-3">
-          <YearSelector />
+        <nav className="hidden lg:flex items-center gap-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
+            
+            // If item has children, render dropdown
+            if ('children' in item && item.children) {
+              const isAnyChildActive = item.children.some(child => isActive(child.href));
+              return (
+                <DropdownMenu key={item.label}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 h-9 text-sm font-medium",
+                        isAnyChildActive && "bg-primary/10 text-primary"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                      <ChevronDown className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const childActive = isActive(child.href);
+                      return (
+                        <DropdownMenuItem key={child.href} asChild>
+                          <Link
+                            href={child.href}
+                            className={cn(
+                              "flex items-center gap-2 cursor-pointer",
+                              childActive && "bg-primary/10 text-primary"
+                            )}
+                          >
+                            <ChildIcon className="h-4 w-4" />
+                            {child.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+            
+            // Regular link
             const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors h-9",
                   active 
                     ? "bg-primary/10 text-primary" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -96,6 +152,9 @@ export function Navbar() {
               </Link>
             );
           })}
+          
+          <div className="h-6 w-px bg-gray-200 mx-2" />
+          <YearSelector />
           
           {/* User Menu */}
           {user && (
@@ -147,6 +206,40 @@ export function Navbar() {
               <nav className="flex flex-col gap-2 mt-6">
                 {NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
+                  
+                  // If item has children, render group
+                  if ('children' in item && item.children) {
+                    return (
+                      <div key={item.label} className="space-y-1">
+                        <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </div>
+                        {item.children.map((child) => {
+                          const ChildIcon = child.icon;
+                          const childActive = isActive(child.href);
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ml-2",
+                                childActive 
+                                  ? "bg-primary/10 text-primary" 
+                                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                              )}
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <ChildIcon className="h-5 w-5" />
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+                  
+                  // Regular link
                   const active = isActive(item.href);
                   return (
                     <Link
@@ -156,7 +249,7 @@ export function Navbar() {
                         "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
                         active 
                           ? "bg-primary/10 text-primary" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                       )}
                       onClick={() => setIsOpen(false)}
                     >
@@ -169,8 +262,8 @@ export function Navbar() {
                 {/* Mobile User Info & Logout */}
                 {user && (
                   <div className="mt-4 pt-4 border-t">
-                    <div className="px-4 py-2 text-sm text-muted-foreground truncate">
-                      {user.email}
+                    <div className="px-4 py-2 text-sm text-gray-600 truncate">
+                      {user?.email || 'User'}
                     </div>
                     <button
                       onClick={() => {
