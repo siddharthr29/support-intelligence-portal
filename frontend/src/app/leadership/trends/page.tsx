@@ -235,10 +235,10 @@ export default function TrendsPage() {
           </div>
 
           {/* Top Companies by Volume */}
-          <div className="bg-white rounded-lg border p-6">
+          <div className="bg-white rounded-lg border p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Users className="h-5 w-5 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Top 10 Companies by Volume</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Top 10 Companies by Volume</h2>
             </div>
             {companies.length === 0 ? (
               <div className="flex items-center justify-center h-[300px] text-gray-500">
@@ -248,21 +248,27 @@ export default function TrendsPage() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={companies} layout="vertical" margin={{ left: 20, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis 
-                    dataKey="company_name" 
-                    type="category" 
-                    width={120}
-                    tick={{ fontSize: 12 }}
-                    interval={0}
-                  />
-                  <Tooltip />
-                  <Bar dataKey="total_tickets" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="w-full h-[350px] sm:h-[400px] lg:h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={companies} 
+                    layout="vertical" 
+                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis 
+                      dataKey="company_name" 
+                      type="category" 
+                      width={100}
+                      tick={{ fontSize: 11 }}
+                      interval={0}
+                    />
+                    <Tooltip />
+                    <Bar dataKey="total_tickets" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>
