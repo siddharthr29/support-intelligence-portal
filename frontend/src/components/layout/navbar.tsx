@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, LayoutDashboard, FileText, Calendar, Building2, Bug, Settings, LogOut, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Menu, LayoutDashboard, FileText, Calendar, Building2, Bug, Settings, LogOut, AlertTriangle, BarChart3, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
@@ -24,6 +24,7 @@ import { YearSelector } from '@/components/year-selector';
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Weekly Report', href: '/reports/weekly', icon: Calendar },
+  { label: 'Monthly Report', href: '/reports/monthly', icon: CalendarDays },
   { label: 'Yearly Report', href: '/reports/yearly', icon: BarChart3 },
   { label: 'Companies', href: '/companies', icon: Building2 },
   { label: 'RFT', href: '/rft', icon: Bug },
