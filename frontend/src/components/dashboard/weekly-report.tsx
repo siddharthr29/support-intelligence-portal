@@ -90,40 +90,45 @@ function getWeekOptions(): { value: string; label: string; weekStart: Date; week
   const now = getNowIST(); // Use IST time
   const options = [];
   
-  // Find the most recent Friday 5pm
-  let currentFridayEnd = getFriday5pm(now);
-  
-  // If we're past Friday 5pm, use this Friday as end
-  // If we're before Friday 5pm, use last Friday as end
+  // Find the most recent Friday 5pm that has passed
   const nowDay = getDayIST(now); // Use IST day
   const nowHour = getHourIST(now); // Use IST hour
-  if (nowDay === 5 && nowHour < 17) {
-    // It's Friday but before 5pm IST, current week is still in progress
-    currentFridayEnd = getFriday5pm(now);
-  } else if (nowDay === 5 && nowHour >= 17) {
-    // It's Friday after 5pm IST, new week started
-    currentFridayEnd = setMinutes(setHours(nextFriday(now), 17), 0);
-  } else if (nowDay === 6 || nowDay === 0) {
-    // Saturday or Sunday - next Friday is the end
-    currentFridayEnd = setMinutes(setHours(nextFriday(now), 17), 0);
+  
+  let mostRecentCompletedFriday: Date;
+  
+  if (nowDay === 5 && nowHour >= 17) {
+    // It's Friday after 5pm IST - this Friday 5pm just passed
+    mostRecentCompletedFriday = getFriday5pm(now);
+  } else if (nowDay > 5 || nowDay === 6 || nowDay === 0) {
+    // Saturday or Sunday - last Friday 5pm has passed
+    mostRecentCompletedFriday = getFriday5pm(now);
+  } else {
+    // Monday-Thursday or Friday before 5pm - last Friday 5pm has passed
+    mostRecentCompletedFriday = getFriday5pm(now);
   }
   
-  for (let i = 0; i < 3; i++) {
-    const weekEnd = subWeeks(currentFridayEnd, i);
+  // Current week in progress (from last Friday 5pm to next Friday 5pm)
+  const currentWeekEnd = setMinutes(setHours(nextFriday(mostRecentCompletedFriday), 17), 0);
+  const currentWeekStart = mostRecentCompletedFriday;
+  
+  // Add current week (in progress)
+  options.push({
+    value: format(currentWeekEnd, 'yyyy-MM-dd'),
+    label: `Current Week (${format(currentWeekStart, 'MMM d')} - now)`,
+    weekStart: currentWeekStart,
+    weekEnd: now, // Use current time as end for in-progress week
+  });
+  
+  // Add previous 2 completed weeks
+  for (let i = 0; i < 2; i++) {
+    const weekEnd = subWeeks(mostRecentCompletedFriday, i);
     const weekStart = getWeekStartFriday(weekEnd);
-    
-    const isCurrentWeek = i === 0 && now < weekEnd;
-    const effectiveEnd = isCurrentWeek ? now : weekEnd;
-    
-    const label = isCurrentWeek 
-      ? `Current Week (${format(weekStart, 'MMM d')} - now)`
-      : `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
     
     options.push({
       value: format(weekEnd, 'yyyy-MM-dd'),
-      label,
+      label: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`,
       weekStart,
-      weekEnd: effectiveEnd,
+      weekEnd,
     });
   }
   
