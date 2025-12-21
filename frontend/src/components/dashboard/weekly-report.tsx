@@ -54,20 +54,29 @@ function getNowIST(): Date {
   return new Date(istString);
 }
 
-// Get day of week in IST (0 = Sunday, 5 = Friday, 6 = Saturday)
+// Get day of week in IST (0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday)
 function getDayIST(date: Date): number {
   const istString = date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' });
   const dayMap: Record<string, number> = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
   return dayMap[istString] ?? date.getDay();
 }
 
-// Get hour in IST
+// Get hour in IST (0-23 format)
 function getHourIST(date: Date): number {
   const istString = date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
   return parseInt(istString, 10);
 }
 
-// Get Friday 5pm IST for a given date
+/**
+ * Get the most recent Friday at 5pm IST for a given date
+ * - If date is Friday: returns that Friday at 5pm
+ * - If date is any other day: returns the previous Friday at 5pm
+ * 
+ * Example: 
+ * - Input: Sunday Dec 22, 2025 → Output: Friday Dec 19, 2025 at 5pm
+ * - Input: Friday Dec 19, 2025 → Output: Friday Dec 19, 2025 at 5pm
+ * - Input: Monday Dec 23, 2025 → Output: Friday Dec 19, 2025 at 5pm
+ */
 function getFriday5pm(date: Date): Date {
   let friday: Date;
   if (isFriday(date)) {
@@ -75,53 +84,72 @@ function getFriday5pm(date: Date): Date {
   } else {
     friday = previousFriday(date);
   }
-  // Set to 5pm (17:00)
+  // Set to 5pm (17:00) IST
   return setMinutes(setHours(friday, 17), 0);
 }
 
-// Get the previous Friday 5pm (start of week)
+// Get the previous Friday 5pm (1 week before the given Friday)
 function getWeekStartFriday(endFriday: Date): Date {
   return subWeeks(endFriday, 1);
 }
 
-// Generate week options for last 3 weeks (Friday 5pm to Friday 5pm)
-// Uses IST (Asia/Kolkata) timezone for all calculations
+/**
+ * Generate week options for weekly report dropdown
+ * 
+ * WEEK DEFINITION:
+ * - A week runs from Friday 5pm IST to the next Friday 5pm IST
+ * - Example: Dec 19 (Fri 5pm) to Dec 26 (Fri 5pm)
+ * 
+ * ALWAYS SHOWS 3 WEEKS:
+ * 1. Current week (in progress) - from last Friday 5pm to now
+ * 2. Previous completed week - from 2 Fridays ago to last Friday
+ * 3. Week before that - from 3 Fridays ago to 2 Fridays ago
+ * 
+ * EXAMPLE (Today = Sunday Dec 22, 2025, 12:46 AM IST):
+ * - Current Week: Dec 19 (Fri 5pm) - now → "Current Week (Dec 19 - now)"
+ * - Previous Week: Dec 12 (Fri 5pm) - Dec 19 (Fri 5pm) → "Dec 12 - Dec 19, 2025"
+ * - Week Before: Dec 5 (Fri 5pm) - Dec 12 (Fri 5pm) → "Dec 5 - Dec 12, 2025"
+ * 
+ * EDGE CASES:
+ * - Friday before 5pm IST: Current week started last Friday, ends this Friday
+ * - Friday after 5pm IST: Current week just started (this Friday to next Friday)
+ * - Any other day: Current week started last Friday, ends next Friday
+ */
 function getWeekOptions(): { value: string; label: string; weekStart: Date; weekEnd: Date }[] {
-  const now = getNowIST(); // Use IST time
+  const now = getNowIST(); // Current time in IST
   const options = [];
   
-  // Find the most recent Friday 5pm that has passed
-  const nowDay = getDayIST(now); // Use IST day
-  const nowHour = getHourIST(now); // Use IST hour
+  const nowDay = getDayIST(now); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+  const nowHour = getHourIST(now); // 0-23
   
-  // Get the last Friday 5pm (could be today if it's Friday after 5pm, or previous Friday)
-  let lastFriday5pm: Date;
+  // Determine the start of the current week (last Friday 5pm that has passed)
+  let currentWeekStart: Date;
   
   if (nowDay === 5 && nowHour >= 17) {
-    // It's Friday after 5pm IST - use today's Friday 5pm
-    lastFriday5pm = getFriday5pm(now);
+    // It's Friday after 5pm IST - current week just started (this Friday 5pm)
+    currentWeekStart = getFriday5pm(now);
   } else {
-    // Any other day - use previous Friday 5pm
-    lastFriday5pm = getFriday5pm(now);
+    // Any other time - current week started last Friday 5pm
+    currentWeekStart = getFriday5pm(now);
   }
   
-  // Current week in progress: from lastFriday5pm to next Friday 5pm
-  const nextFriday5pm = setMinutes(setHours(nextFriday(lastFriday5pm), 17), 0);
+  // Current week ends next Friday 5pm (but we show "now" for in-progress week)
+  const currentWeekScheduledEnd = setMinutes(setHours(nextFriday(currentWeekStart), 17), 0);
   
   // Add current week (in progress)
   options.push({
-    value: format(nextFriday5pm, 'yyyy-MM-dd'),
-    label: `Current Week (${format(lastFriday5pm, 'MMM d')} - now)`,
-    weekStart: lastFriday5pm,
-    weekEnd: now, // Use current time as end for in-progress week
+    value: format(currentWeekScheduledEnd, 'yyyy-MM-dd'),
+    label: `Current Week (${format(currentWeekStart, 'MMM d')} - now)`,
+    weekStart: currentWeekStart,
+    weekEnd: now, // Use current time as effective end for in-progress week
   });
   
   // Add previous 2 completed weeks
-  // Previous week 1: ends at lastFriday5pm, starts 1 week before
-  // Previous week 2: ends 1 week before lastFriday5pm, starts 2 weeks before
+  // i=1: Previous week ends at currentWeekStart (last Friday 5pm)
+  // i=2: Week before that ends 1 week before currentWeekStart
   for (let i = 1; i <= 2; i++) {
-    const weekEnd = subWeeks(lastFriday5pm, i);
-    const weekStart = getWeekStartFriday(weekEnd);
+    const weekEnd = subWeeks(currentWeekStart, i);
+    const weekStart = subWeeks(weekEnd, 1); // 1 week before weekEnd
     
     options.push({
       value: format(weekEnd, 'yyyy-MM-dd'),
