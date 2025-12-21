@@ -94,34 +94,33 @@ function getWeekOptions(): { value: string; label: string; weekStart: Date; week
   const nowDay = getDayIST(now); // Use IST day
   const nowHour = getHourIST(now); // Use IST hour
   
-  let mostRecentCompletedFriday: Date;
+  // Get the last Friday 5pm (could be today if it's Friday after 5pm, or previous Friday)
+  let lastFriday5pm: Date;
   
   if (nowDay === 5 && nowHour >= 17) {
-    // It's Friday after 5pm IST - this Friday 5pm just passed
-    mostRecentCompletedFriday = getFriday5pm(now);
-  } else if (nowDay > 5 || nowDay === 6 || nowDay === 0) {
-    // Saturday or Sunday - last Friday 5pm has passed
-    mostRecentCompletedFriday = getFriday5pm(now);
+    // It's Friday after 5pm IST - use today's Friday 5pm
+    lastFriday5pm = getFriday5pm(now);
   } else {
-    // Monday-Thursday or Friday before 5pm - last Friday 5pm has passed
-    mostRecentCompletedFriday = getFriday5pm(now);
+    // Any other day - use previous Friday 5pm
+    lastFriday5pm = getFriday5pm(now);
   }
   
-  // Current week in progress (from last Friday 5pm to next Friday 5pm)
-  const currentWeekEnd = setMinutes(setHours(nextFriday(mostRecentCompletedFriday), 17), 0);
-  const currentWeekStart = mostRecentCompletedFriday;
+  // Current week in progress: from lastFriday5pm to next Friday 5pm
+  const nextFriday5pm = setMinutes(setHours(nextFriday(lastFriday5pm), 17), 0);
   
   // Add current week (in progress)
   options.push({
-    value: format(currentWeekEnd, 'yyyy-MM-dd'),
-    label: `Current Week (${format(currentWeekStart, 'MMM d')} - now)`,
-    weekStart: currentWeekStart,
+    value: format(nextFriday5pm, 'yyyy-MM-dd'),
+    label: `Current Week (${format(lastFriday5pm, 'MMM d')} - now)`,
+    weekStart: lastFriday5pm,
     weekEnd: now, // Use current time as end for in-progress week
   });
   
   // Add previous 2 completed weeks
-  for (let i = 0; i < 2; i++) {
-    const weekEnd = subWeeks(mostRecentCompletedFriday, i);
+  // Previous week 1: ends at lastFriday5pm, starts 1 week before
+  // Previous week 2: ends 1 week before lastFriday5pm, starts 2 weeks before
+  for (let i = 1; i <= 2; i++) {
+    const weekEnd = subWeeks(lastFriday5pm, i);
     const weekStart = getWeekStartFriday(weekEnd);
     
     options.push({
