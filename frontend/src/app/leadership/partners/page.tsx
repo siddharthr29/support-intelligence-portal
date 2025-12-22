@@ -159,13 +159,13 @@ export default function PartnersPage() {
                 {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => fetchPartners(true)}
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 justify-center"
               >
                 <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
