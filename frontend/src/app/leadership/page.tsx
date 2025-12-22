@@ -20,7 +20,7 @@ interface MetricsSummary {
   sla_breaches: number;
   current_backlog: number;
   total_tickets_30d: number;
-  avg_resolution_hours: number;
+  resolution_rate: number;
 }
 
 export default function LeadershipDashboard() {
@@ -149,11 +149,11 @@ export default function LeadershipDashboard() {
           />
 
           <StatCard
-            title="Avg Resolution"
-            value={`${metrics?.avg_resolution_hours ? Math.round(metrics.avg_resolution_hours) : 0}h`}
-            subtitle="Time to resolve"
+            title="Resolution Rate"
+            value={`${metrics?.resolution_rate || 0}%`}
+            subtitle="Tickets resolved"
             icon={Clock}
-            tooltipKey="leadership.avg_resolution"
+            tooltipKey="leadership.resolution_rate"
             variant="primary"
           />
 

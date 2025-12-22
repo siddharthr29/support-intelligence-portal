@@ -27,9 +27,15 @@ export interface WeeklySummary {
 
 export async function generateWeeklySummary(): Promise<WeeklySummary> {
   const prisma = getPrismaClient();
+  const { getCurrentWeekBoundariesIST } = require('../../utils/datetime');
+  
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const { weekStart, weekEnd } = getCurrentWeekBoundariesIST(now);
+  
+  // Previous week boundaries
+  const previousWeekEnd = weekStart;
+  const previousWeekStart = new Date(previousWeekEnd);
+  previousWeekStart.setDate(previousWeekEnd.getDate() - 7);
 
   try {
     // Get data coverage
@@ -118,31 +124,40 @@ export async function generateWeeklySummary(): Promise<WeeklySummary> {
     const trendingPartners = await prisma.$queryRaw<Array<any>>`
       SELECT 
         c.name as partner_name,
-        COUNT(*) FILTER (WHERE t.created_at >= ${weekAgo}) as this_week,
-        COUNT(*) FILTER (WHERE t.created_at >= ${twoWeeksAgo} AND t.created_at < ${weekAgo}) as last_week
+        COUNT(*) FILTER (WHERE t.created_at >= ${previousWeekStart} AND t.created_at <= ${previousWeekEnd}) as this_week,
+        COUNT(*) FILTER (WHERE t.created_at >= ${previousWeekStart}::timestamp - INTERVAL '7 days' AND t.created_at < ${previousWeekStart}) as last_week
       FROM ytd_tickets t
       JOIN company_cache c ON c.freshdesk_company_id = t.company_id
-      WHERE t.created_at >= ${twoWeeksAgo}
+      WHERE t.created_at >= ${previousWeekStart}::timestamp - INTERVAL '7 days'
       GROUP BY c.name
-      HAVING COUNT(*) FILTER (WHERE t.created_at >= ${twoWeeksAgo} AND t.created_at < ${weekAgo}) > 0
-        AND COUNT(*) FILTER (WHERE t.created_at >= ${weekAgo})::FLOAT / 
-            COUNT(*) FILTER (WHERE t.created_at >= ${twoWeeksAgo} AND t.created_at < ${weekAgo}) > 1.5
-      ORDER BY COUNT(*) FILTER (WHERE t.created_at >= ${weekAgo}) DESC
+      HAVING COUNT(*) FILTER (WHERE t.created_at >= ${previousWeekStart}::timestamp - INTERVAL '7 days' AND t.created_at < ${previousWeekStart}) > 0
+        AND COUNT(*) FILTER (WHERE t.created_at >= ${previousWeekStart} AND t.created_at <= ${previousWeekEnd})::FLOAT / 
+            COUNT(*) FILTER (WHERE t.created_at >= ${previousWeekStart}::timestamp - INTERVAL '7 days' AND t.created_at < ${previousWeekStart}) > 1.5
+      ORDER BY COUNT(*) FILTER (WHERE t.created_at >= ${previousWeekStart} AND t.created_at <= ${previousWeekEnd}) DESC
       LIMIT 3
     `;
 
     const partnersToWatch = trendingPartners.map(p => p.partner_name);
 
-    // Key metrics
+    // Key metrics - current week (last completed week: previousWeekStart to previousWeekEnd)
     const thisWeekTickets = await prisma.ytdTicket.count({
-      where: { createdAt: { gte: weekAgo } },
+      where: { 
+        createdAt: { 
+          gte: previousWeekStart,
+          lte: previousWeekEnd,
+        } 
+      },
     });
 
+    // Previous week (2 weeks ago)
+    const twoWeeksBeforeStart = new Date(previousWeekStart);
+    twoWeeksBeforeStart.setDate(previousWeekStart.getDate() - 7);
+    
     const lastWeekTickets = await prisma.ytdTicket.count({
       where: {
         createdAt: {
-          gte: twoWeeksAgo,
-          lt: weekAgo,
+          gte: twoWeeksBeforeStart,
+          lt: previousWeekStart,
         },
       },
     });
@@ -198,10 +213,8 @@ export async function generateWeeklySummary(): Promise<WeeklySummary> {
     }
 
     return {
-      week_ending: now.toISOString().split('T')[0],
-      data_coverage: coverage._min.createdAt && coverage._max.createdAt
-        ? `${coverage._min.createdAt.toISOString().split('T')[0]} to ${coverage._max.createdAt.toISOString().split('T')[0]}`
-        : 'No data available',
+      week_ending: previousWeekEnd.toISOString().split('T')[0],
+      data_coverage: `${previousWeekStart.toISOString().split('T')[0]} to ${previousWeekEnd.toISOString().split('T')[0]}`,
       top_risks: topRisks.slice(0, 5),
       partners_to_watch: partnersToWatch,
       recommended_actions: recommendedActions.slice(0, 5),

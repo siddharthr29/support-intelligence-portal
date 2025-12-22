@@ -89,14 +89,20 @@ export async function registerMetricsRoutes(fastify: FastifyInstance): Promise<v
             createdAt: { gte: thirtyDaysAgo },
           },
         }),
-        // Average resolution hours
-        prisma.$queryRaw<Array<{ avg_hours: number | null }>>`
-          SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600) as avg_hours
+        // Resolution rate calculation
+        prisma.$queryRaw<Array<{ total_tickets: number; resolved_tickets: number }>>`
+          SELECT 
+            COUNT(*) as total_tickets,
+            COUNT(*) FILTER (WHERE status IN (4, 5)) as resolved_tickets
           FROM ytd_tickets
           WHERE created_at >= ${thirtyDaysAgo}
-            AND status IN (4, 5)
         `
       ]);
+
+      const resolutionData = avgResolution[0];
+      const resolutionRate = resolutionData && resolutionData.total_tickets > 0
+        ? Math.round((resolutionData.resolved_tickets / resolutionData.total_tickets) * 100)
+        : 0;
 
       const summary = {
         long_unresolved_blockers: longUnresolvedBlockers,
@@ -106,7 +112,7 @@ export async function registerMetricsRoutes(fastify: FastifyInstance): Promise<v
         sla_breaches: slaBreaches,
         current_backlog: currentBacklog,
         total_tickets_30d: totalTickets,
-        avg_resolution_hours: avgResolution[0]?.avg_hours || 0,
+        resolution_rate: resolutionRate,
       };
 
       return reply.send({
