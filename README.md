@@ -20,7 +20,6 @@
 - ✅ Mobile responsive
 - ✅ Production ready
 
-**📚 [View Complete Documentation →](/docs)**
 
 ## 🏗️ Architecture
 
@@ -30,7 +29,6 @@
 - Auth: Firebase Authentication
 - Hosting: Vercel (frontend) + Render (backend) + Supabase (database)
 
-**[View Architecture Diagrams →](/docs)**
 
 ## Project Structure
 
