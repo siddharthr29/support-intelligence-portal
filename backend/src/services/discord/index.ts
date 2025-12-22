@@ -71,6 +71,7 @@ function formatDiscordMessage(data: WeeklyReportData) {
   const rftClosuresText = `(${data.rftClosuresThisWeek.toLocaleString()} closed this week)`;
   
   return {
+    content: '@here',
     username: 'Support Intelligence Bot',
     avatar_url: 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png',
     embeds: [
@@ -179,6 +180,7 @@ export async function sendDiscordReminder(): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        content: '@here',
         username: 'Support Intelligence Bot',
         avatar_url: 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png',
         embeds: [
@@ -276,6 +278,7 @@ export async function sendDiscordWeeklyReport(): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        content: '@here',
         username: 'Support Intelligence Bot',
         avatar_url: 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png',
         embeds: [embed],
