@@ -7,8 +7,9 @@ import { LeadershipDateFilter } from '@/components/leadership/date-filter';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock, Info } from 'lucide-react';
+import { Search, AlertTriangle, TrendingUp, TrendingDown, Clock, Info, RefreshCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLeadership } from '@/contexts/leadership-context';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -44,11 +45,11 @@ export default function PartnersPage() {
     setDateRange(range);
   }, [setDateRange]);
 
-  const fetchPartners = useCallback(async () => {
+  const fetchPartners = useCallback(async (forceRefresh = false) => {
     const cacheKey = `partners-${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`;
     
-    // Check cache first
-    if (cachedData[cacheKey]) {
+    // Check cache first (skip if force refresh)
+    if (!forceRefresh && cachedData[cacheKey]) {
       setPartners(cachedData[cacheKey]);
       setLoading(false);
       return;
@@ -157,7 +158,19 @@ export default function PartnersPage() {
                 {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
               </p>
             </div>
-            <LeadershipDateFilter onDateChange={handleDateChange} />
+            <div className="flex gap-2 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchPartners(true)}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <LeadershipDateFilter onDateChange={handleDateChange} />
+            </div>
           </div>
           
           {/* Page Description */}
