@@ -154,6 +154,7 @@ export async function testDiscordWebhook(): Promise<{ success: boolean; message:
 
 /**
  * Send reminder to add engineer hours (Friday 2pm IST)
+ * Only sends if previous week's engineer hours are NOT filled
  */
 export async function sendDiscordReminder(): Promise<boolean> {
   const webhookUrl = await getSecureConfig('DISCORD_WEBHOOK_URL') || process.env.DISCORD_WEBHOOK_URL;
@@ -161,6 +162,14 @@ export async function sendDiscordReminder(): Promise<boolean> {
   if (!webhookUrl) {
     logger.warn('Discord webhook URL not configured, skipping reminder');
     return false;
+  }
+
+  // Check if previous week's engineer hours have been added
+  const hasPreviousWeekHours = await checkPreviousWeekEngineerHours();
+  
+  if (hasPreviousWeekHours) {
+    logger.info('Previous week engineer hours already filled, skipping reminder');
+    return true; // Return true but don't send reminder
   }
 
   try {
@@ -322,6 +331,46 @@ export async function sendDiscordAlert(message: string): Promise<boolean> {
   } catch (error) {
     logger.error({ error }, 'Failed to send Discord alert');
     return false;
+  }
+}
+
+/**
+ * Check if engineer hours have been added for the previous week
+ * Used by the 2pm Friday reminder to determine if reminder should be sent
+ */
+async function checkPreviousWeekEngineerHours(): Promise<boolean> {
+  try {
+    const { getPrismaClient } = await import('../../persistence/prisma-client');
+    const { getCurrentWeekBoundariesIST, generateSnapshotId } = await import('../../utils/datetime');
+    const prisma = getPrismaClient();
+    
+    // Get current week boundaries
+    const now = new Date();
+    const { weekStart: currentWeekStart } = getCurrentWeekBoundariesIST(now);
+    
+    // Previous week ends at currentWeekStart (which is a Friday 5pm)
+    const previousWeekEnd = currentWeekStart;
+    
+    // Generate snapshot ID for previous week
+    const previousWeekSnapshotId = generateSnapshotId(previousWeekEnd);
+    
+    // Check if any engineer hours exist for previous week's snapshot
+    const engineerHours = await prisma.engineerHours.findMany({
+      where: {
+        snapshotId: previousWeekSnapshotId,
+      },
+    });
+    
+    logger.info({ 
+      previousWeekEnd: previousWeekEnd.toISOString(),
+      snapshotId: previousWeekSnapshotId,
+      hoursCount: engineerHours.length 
+    }, 'Checked engineer hours for previous week');
+    
+    return engineerHours.length > 0;
+  } catch (error) {
+    logger.error({ error }, 'Failed to check previous week engineer hours');
+    return false; // Assume not added if error - will send reminder
   }
 }
 
