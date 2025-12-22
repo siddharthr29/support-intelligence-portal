@@ -100,8 +100,10 @@ export async function registerMetricsRoutes(fastify: FastifyInstance): Promise<v
       ]);
 
       const resolutionData = avgResolution[0];
-      const resolutionRate = resolutionData && resolutionData.total_tickets > 0
-        ? Math.round((resolutionData.resolved_tickets / resolutionData.total_tickets) * 100)
+      const totalTicketsForRate = resolutionData ? Number(resolutionData.total_tickets) : 0;
+      const resolvedTicketsForRate = resolutionData ? Number(resolutionData.resolved_tickets) : 0;
+      const resolutionRate = totalTicketsForRate > 0
+        ? Math.round((resolvedTicketsForRate / totalTicketsForRate) * 100)
         : 0;
 
       const summary = {
