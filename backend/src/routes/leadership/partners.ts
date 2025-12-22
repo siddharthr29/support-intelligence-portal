@@ -49,7 +49,7 @@ export async function registerPartnerRoutes(fastify: FastifyInstance): Promise<v
           COUNT(t.id) as total_tickets_12m,
           COUNT(t.id) FILTER (WHERE t.created_at >= ${thirtyDaysAgo}) as tickets_last_30d,
           COUNT(t.id) FILTER (WHERE t.created_at >= ${sixtyDaysAgo} AND t.created_at < ${thirtyDaysAgo}) as tickets_prev_30d,
-          AVG(EXTRACT(EPOCH FROM (t.updated_at - t.created_at))/3600) as avg_resolution_hours,
+          AVG(EXTRACT(EPOCH FROM (t.updated_at - t.created_at))/3600) FILTER (WHERE t.status IN (4, 5)) as avg_resolution_hours,
           COUNT(*) FILTER (WHERE t.status IN (2, 3)) as unresolved_count,
           COUNT(*) FILTER (WHERE t.priority = 4) as urgent_tickets,
           COUNT(*) FILTER (WHERE t.priority = 3) as high_tickets,
