@@ -149,27 +149,30 @@ export default function PartnersPage() {
         <div className="container mx-auto p-4 sm:p-6">
         {/* Page Header */}
         <div className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Partner Health Intelligence</h1>
-              <p className="text-gray-600 mb-3">
-                Monitor partner organizations' support health, identify at-risk partners, and proactively address issues before they escalate.
-              </p>
-              <p className="text-sm text-gray-500">
-                {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchPartners(true)}
-                disabled={loading}
-                className="flex items-center gap-2 justify-center"
-              >
-                <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+          {/* Title and Description */}
+          <div className="mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Partner Health Intelligence</h1>
+            <p className="text-sm sm:text-base text-gray-600 mb-2">
+              Monitor partner organizations' support health, identify at-risk partners, and proactively address issues before they escalate.
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500">
+              {partners.length} partners • {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
+            </p>
+          </div>
+          
+          {/* Controls - Refresh and Date Range */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchPartners(true)}
+              disabled={loading}
+              className="flex items-center gap-2 justify-center sm:w-auto"
+            >
+              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <div className="flex-1">
               <LeadershipDateFilter onDateChange={handleDateChange} />
             </div>
           </div>

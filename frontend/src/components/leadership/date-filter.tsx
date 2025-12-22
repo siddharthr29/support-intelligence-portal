@@ -30,12 +30,12 @@ export function LeadershipDateFilter({ onDateChange }: DateFilterProps) {
   };
   
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
       <Button 
         variant={selectedPreset === '30d' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('30d')}
-        className={selectedPreset === '30d' ? 'bg-black text-white hover:bg-gray-800' : ''}
+        className={`min-h-[40px] ${selectedPreset === '30d' ? 'bg-black text-white hover:bg-gray-800' : ''}`}
       >
         Last 30 Days
       </Button>
@@ -43,7 +43,7 @@ export function LeadershipDateFilter({ onDateChange }: DateFilterProps) {
         variant={selectedPreset === '90d' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('90d')}
-        className={selectedPreset === '90d' ? 'bg-black text-white hover:bg-gray-800' : ''}
+        className={`min-h-[40px] ${selectedPreset === '90d' ? 'bg-black text-white hover:bg-gray-800' : ''}`}
       >
         Last 90 Days
       </Button>
@@ -51,7 +51,7 @@ export function LeadershipDateFilter({ onDateChange }: DateFilterProps) {
         variant={selectedPreset === '6m' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('6m')}
-        className={selectedPreset === '6m' ? 'bg-black text-white hover:bg-gray-800' : ''}
+        className={`min-h-[40px] ${selectedPreset === '6m' ? 'bg-black text-white hover:bg-gray-800' : ''}`}
       >
         Last 6 Months
       </Button>
@@ -59,7 +59,7 @@ export function LeadershipDateFilter({ onDateChange }: DateFilterProps) {
         variant={selectedPreset === '12m' ? 'default' : 'outline'} 
         size="sm" 
         onClick={() => handlePreset('12m')}
-        className={selectedPreset === '12m' ? 'bg-black text-white hover:bg-gray-800' : ''}
+        className={`min-h-[40px] ${selectedPreset === '12m' ? 'bg-black text-white hover:bg-gray-800' : ''}`}
       >
         Last 12 Months
       </Button>
