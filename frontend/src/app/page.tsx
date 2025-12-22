@@ -13,6 +13,8 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 import { 
   Ticket, 
   CheckCircle2, 
@@ -51,6 +53,8 @@ const MetricCardSkeleton = () => (
 type DatePreset = 'current_week' | 'past_month' | 'custom';
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [datePreset, setDatePreset] = useState<DatePreset>('current_week');
   const { selectedYear } = useYearStore();
   const currentYear = getNowIST().getFullYear();
@@ -65,6 +69,22 @@ export default function DashboardPage() {
     fetchAllTickets,
     lastFetched,
   } = useTicketStore();
+
+  // Redirect leadership users to leadership dashboard
+  useEffect(() => {
+    const checkRoleAndRedirect = async () => {
+      if (!authLoading && user) {
+        const token = await user.getIdTokenResult();
+        const claims = token.claims;
+        
+        if (claims.founder || claims.leadership) {
+          router.push('/leadership');
+        }
+      }
+    };
+    
+    checkRoleAndRedirect();
+  }, [user, authLoading, router]);
 
   // Fetch tickets on mount
   useEffect(() => {

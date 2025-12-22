@@ -24,9 +24,22 @@ function LoginContent() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (!loading && user) {
-      router.push(redirect);
-    }
+    const checkRoleAndRedirect = async () => {
+      if (!loading && user) {
+        // Check user's role and redirect accordingly
+        const token = await user.getIdTokenResult();
+        const claims = token.claims;
+        
+        // Redirect founder/leadership to leadership dashboard
+        if (claims.founder || claims.leadership) {
+          router.push('/leadership');
+        } else {
+          router.push(redirect);
+        }
+      }
+    };
+    
+    checkRoleAndRedirect();
   }, [user, loading, router, redirect]);
 
   const handleLogin = async (e: React.FormEvent) => {
