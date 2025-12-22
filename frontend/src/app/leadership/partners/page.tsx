@@ -283,23 +283,22 @@ export default function PartnersPage() {
                     <TooltipTrigger>
                       <div>
                         <p className="text-2xl font-bold flex items-center gap-1">
-                          {partner.total_tickets_12m > 0 
-                            ? `${Math.round((partner.resolved_count / partner.total_tickets_12m) * 100)}%`
-                            : '0%'}
+                          {(() => {
+                            const total = partner.total_tickets_12m || 0;
+                            const resolved = partner.resolved_count || 0;
+                            if (total === 0) return '0%';
+                            const rate = Math.round((resolved / total) * 100);
+                            return isNaN(rate) ? '0%' : `${rate}%`;
+                          })()}
                           <Info className="h-3 w-3 text-gray-400" />
                         </p>
                         <p className="text-sm opacity-75">Resolution Rate</p>
-                        {partner.avg_resolution_hours && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            ({Math.round(partner.avg_resolution_hours)}h avg)
-                          </p>
-                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs max-w-xs font-semibold mb-1">Resolution Rate</p>
                       <p className="text-xs max-w-xs mb-1">
-                        {partner.resolved_count} resolved out of {partner.total_tickets_12m} total tickets
+                        {partner.resolved_count || 0} resolved out of {partner.total_tickets_12m || 0} total tickets
                       </p>
                       {partner.avg_resolution_hours ? (
                         <p className="text-xs max-w-xs text-gray-400">
