@@ -20,7 +20,8 @@ interface PartnerRisk {
   total_tickets_12m: number;
   tickets_last_30d: number;
   tickets_prev_30d: number;
-  avg_resolution_hours: number;
+  resolved_count: number;
+  avg_resolution_hours: number | null;
   unresolved_count: number;
   urgent_tickets: number;
   high_tickets: number;
@@ -282,16 +283,33 @@ export default function PartnersPage() {
                     <TooltipTrigger>
                       <div>
                         <p className="text-2xl font-bold flex items-center gap-1">
-                          {partner.avg_resolution_hours ? Math.round(partner.avg_resolution_hours) : 'N/A'}h
+                          {partner.total_tickets_12m > 0 
+                            ? `${Math.round((partner.resolved_count / partner.total_tickets_12m) * 100)}%`
+                            : '0%'}
                           <Info className="h-3 w-3 text-gray-400" />
                         </p>
-                        <p className="text-sm opacity-75">Avg Resolution</p>
+                        <p className="text-sm opacity-75">Resolution Rate</p>
+                        {partner.avg_resolution_hours && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            ({Math.round(partner.avg_resolution_hours)}h avg)
+                          </p>
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs max-w-xs font-semibold mb-1">Average time to resolve tickets</p>
-                      <p className="text-xs max-w-xs mb-1">Formula: SUM(resolved_at - created_at) / COUNT(resolved tickets)</p>
-                      <p className="text-xs max-w-xs text-gray-400">Only includes resolved tickets for this partner</p>
+                      <p className="text-xs max-w-xs font-semibold mb-1">Resolution Rate</p>
+                      <p className="text-xs max-w-xs mb-1">
+                        {partner.resolved_count} resolved out of {partner.total_tickets_12m} total tickets
+                      </p>
+                      {partner.avg_resolution_hours ? (
+                        <p className="text-xs max-w-xs text-gray-400">
+                          Average resolution time: {Math.round(partner.avg_resolution_hours)} hours
+                        </p>
+                      ) : (
+                        <p className="text-xs max-w-xs text-gray-400">
+                          No resolved tickets yet
+                        </p>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 </div>
