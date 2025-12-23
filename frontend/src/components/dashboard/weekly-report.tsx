@@ -315,9 +315,8 @@ Pending: ${psPending}`;
   const hasEngineerHours = engineerHours.length > 0;
   
   // Check if this is current week (can push to sheet) - use IST
-  const nowIST = getNowIST();
-  const oneWeekAgo = new Date(nowIST.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const isCurrentWeek = effectiveWeekEndDate >= oneWeekAgo;
+  // Current week is defined as the week that includes "now" in its label
+  const isCurrentWeek = isCurrentWeekSelected;
   
   // Check if selected week is the "current week" option (first in list with "now" label)
   const isCurrentWeekSelected = selectedWeekData?.label.includes('now') || false;
