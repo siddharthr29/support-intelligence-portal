@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BarChart3, Users, TrendingUp, FileText, LogOut, Settings, ChevronDown, Activity } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, FileText, LogOut, Settings, ChevronDown, Activity, Bug } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
