@@ -5,8 +5,15 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { config, validateSecrets } from './config';
 import { logger, isAppError, toErrorMessage } from './utils';
-import { startWeeklyScheduler, stopWeeklyScheduler, isSchedulerRunning, isIngestionJobRunning, startMonthlyReportScheduler, stopMonthlyReportScheduler } from './jobs';
+import {
+  startWeeklyScheduler,
+  stopWeeklyScheduler,
+  isSchedulerRunning,
+  isIngestionJobRunning,
+  startMonthlyReportScheduler,
+} from './jobs';
 import { startYearlyCleanupScheduler, stopYearlyCleanupScheduler } from './jobs/yearly-cleanup';
+import { startDailyRftRefresh, stopDailyRftRefresh } from './jobs/daily-rft-refresh';
 import { connectPrisma, disconnectPrisma } from './persistence';
 import { registerRoutes } from './routes';
 import { logError } from './services/error-log-service';
@@ -238,6 +245,7 @@ async function shutdown(): Promise<void> {
 
   stopWeeklyScheduler();
   stopYearlyCleanupScheduler();
+  stopDailyRftRefresh();
   await fastify.close();
   await disconnectPrisma();
 
