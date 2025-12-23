@@ -58,7 +58,10 @@ export async function registerSyncPerformanceRoutes(fastify: FastifyInstance): P
               avgSuccessRate: syncPerformanceData.avgSuccessRate,
               avgUsabilityScore: syncPerformanceData.avgUsabilityScore,
             },
-            byOrganisation: syncPerformanceData.organisationBreakdown,
+            byOrganisation: syncPerformanceData.organisationBreakdown.map(org => ({
+              ...org,
+              incompleteSyncs: org.failedSyncs,
+            })),
           },
         });
       } catch (error) {
