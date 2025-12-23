@@ -222,6 +222,7 @@ async function bootstrap(): Promise<void> {
     startYearlyCleanupScheduler();
     startMonthlyReportScheduler();
     startDailyRftRefresh();
+    startDailySyncPerformanceRefresh();
     startUrgentTicketMonitor();
 
     const address = await fastify.listen({
@@ -249,6 +250,7 @@ async function shutdown(): Promise<void> {
   stopWeeklyScheduler();
   stopYearlyCleanupScheduler();
   stopDailyRftRefresh();
+  stopDailySyncPerformanceRefresh();
   stopUrgentTicketMonitor();
   await fastify.close();
   await disconnectPrisma();

@@ -33,3 +33,8 @@ export {
   stopMonthlyReportScheduler,
   isMonthlyReportSchedulerRunning,
 } from './monthly-report-cache';
+export {
+  startDailySyncPerformanceRefresh,
+  stopDailySyncPerformanceRefresh,
+  isDailySyncPerformanceRefreshRunning,
+} from './daily-sync-performance-refresh';
