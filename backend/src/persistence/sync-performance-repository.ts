@@ -69,6 +69,26 @@ export async function writeSyncPerformanceSnapshot(
             successRate: org.successRate,
             usabilityScore: org.usabilityScore,
             rank: org.rank,
+            // NEW: Performance Overview
+            performanceStatus: org.performanceStatus,
+            avgReliability: org.avgReliability,
+            totalUsage6M: org.totalUsage6M,
+            healthStatus: org.healthStatus,
+            // NEW: Monthly Trends (M-2)
+            monthM2Name: org.monthM2Name,
+            monthM2Reliability: org.monthM2Reliability,
+            monthM2Usage: org.monthM2Usage,
+            // NEW: Monthly Trends (M-1)
+            monthM1Name: org.monthM1Name,
+            monthM1Reliability: org.monthM1Reliability,
+            monthM1Usage: org.monthM1Usage,
+            // NEW: Monthly Trends (Current)
+            monthCurrentName: org.monthCurrentName,
+            monthCurrentReliability: org.monthCurrentReliability,
+            monthCurrentUsage: org.monthCurrentUsage,
+            // NEW: Trend Deltas
+            reliabilityDelta: org.reliabilityDelta,
+            usageDeltaPct: org.usageDeltaPct,
           })),
         });
       }

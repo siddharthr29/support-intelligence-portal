@@ -328,9 +328,70 @@ export class MetabaseReadOnlyClient {
       let successRate: number;
       let usabilityScore: number;
       let rank: number;
+      
+      // NEW: Performance Overview
+      let performanceStatus: string | undefined;
+      let avgReliability: number | undefined;
+      let totalUsage6M: number | undefined;
+      let healthStatus: string | undefined;
+      
+      // NEW: Monthly Trends
+      let monthM2Name: string | undefined;
+      let monthM2Reliability: number | undefined;
+      let monthM2Usage: number | undefined;
+      let monthM1Name: string | undefined;
+      let monthM1Reliability: number | undefined;
+      let monthM1Usage: number | undefined;
+      let monthCurrentName: string | undefined;
+      let monthCurrentReliability: number | undefined;
+      let monthCurrentUsage: number | undefined;
+      let reliabilityDelta: number | undefined;
+      let usageDeltaPct: number | undefined;
 
-      if (Array.isArray(row) && row.length >= 8) {
-        // Array format
+      if (typeof row === 'object' && !Array.isArray(row)) {
+        // Object format from Metabase (NEW FORMAT with 19 columns)
+        const obj = row as Record<string, string | number>;
+        
+        // Core fields
+        rank = parseNumber(obj['Rank']);
+        organisationName = String(obj['Organization'] || '').trim();
+        
+        // Performance Overview
+        performanceStatus = String(obj['Performance Status'] || '').trim();
+        usabilityScore = parseFloat(obj['Usability Score']);
+        avgReliability = parseFloat(obj['Avg Reliability (%)']);
+        totalUsage6M = parseNumber(obj['Total Usage (6M)']);
+        healthStatus = String(obj['Health Status'] || '').trim();
+        
+        // Monthly Trends (M-2)
+        monthM2Name = String(obj['M-2'] || '').trim();
+        monthM2Reliability = parseFloat(obj['M-2 Rel%']);
+        monthM2Usage = parseNumber(obj['M-2 Usage']);
+        
+        // Monthly Trends (M-1)
+        monthM1Name = String(obj['M-1'] || '').trim();
+        monthM1Reliability = parseFloat(obj['M-1 Rel%']);
+        monthM1Usage = parseNumber(obj['M-1 Usage']);
+        
+        // Monthly Trends (Current)
+        monthCurrentName = String(obj['Current'] || '').trim();
+        monthCurrentReliability = parseFloat(obj['Current Rel%']);
+        monthCurrentUsage = parseNumber(obj['Current Usage']);
+        
+        // Deltas
+        reliabilityDelta = parseFloat(obj['Reliability Δ']);
+        usageDeltaPct = parseFloat(obj['Usage Δ (%)']);
+        
+        // Summary fields
+        successfulSyncs = parseNumber(obj['Successful Syncs']);
+        incompleteSyncs = parseNumber(obj['Incomplete Syncs']);
+        
+        // Derived fields for backward compatibility
+        totalSyncs = totalUsage6M || 0;
+        successRate = avgReliability || 0;
+        sNo = rank;
+      } else if (Array.isArray(row) && row.length >= 8) {
+        // OLD Array format (backward compatibility)
         sNo = parseNumber(row[0]);
         organisationName = String(row[1] || '').trim();
         totalSyncs = parseNumber(row[2]);
@@ -339,17 +400,6 @@ export class MetabaseReadOnlyClient {
         successRate = parseFloat(row[5]);
         usabilityScore = parseFloat(row[6]);
         rank = parseNumber(row[7]);
-      } else if (typeof row === 'object' && !Array.isArray(row)) {
-        // Object format from Metabase
-        const obj = row as Record<string, string | number>;
-        sNo = parseNumber(obj['S.No']);
-        organisationName = String(obj['Organization Name'] || '').trim();
-        totalSyncs = parseNumber(obj['Total Syncs']);
-        successfulSyncs = parseNumber(obj['Successful Syncs']);
-        incompleteSyncs = parseNumber(obj['Incomplete Syncs']);
-        successRate = parseFloat(obj['Success Rate (%)']);
-        usabilityScore = parseFloat(obj['Usability Score (%)']);
-        rank = parseNumber(obj['Rank']);
       } else {
         continue;
       }
@@ -364,6 +414,21 @@ export class MetabaseReadOnlyClient {
           successRate,
           usabilityScore,
           rank,
+          performanceStatus,
+          avgReliability,
+          totalUsage6M,
+          healthStatus,
+          monthM2Name,
+          monthM2Reliability,
+          monthM2Usage,
+          monthM1Name,
+          monthM1Reliability,
+          monthM1Usage,
+          monthCurrentName,
+          monthCurrentReliability,
+          monthCurrentUsage,
+          reliabilityDelta,
+          usageDeltaPct,
         });
       }
     }

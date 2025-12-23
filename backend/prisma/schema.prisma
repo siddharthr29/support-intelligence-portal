@@ -328,11 +328,38 @@ model SyncPerformanceOrganisation {
   usabilityScore           Float  @map("usability_score")
   rank                     Int
 
+  // NEW FIELDS - All optional to preserve existing data
+  performanceStatus        String? @map("performance_status")
+  avgReliability           Float?  @map("avg_reliability")
+  totalUsage6M             Int?    @map("total_usage_6m")
+  healthStatus             String? @map("health_status")
+  
+  // Monthly Trend Data (M-2: 2 months ago)
+  monthM2Name              String? @map("month_m2_name")
+  monthM2Reliability       Float?  @map("month_m2_reliability")
+  monthM2Usage             Int?    @map("month_m2_usage")
+  
+  // Monthly Trend Data (M-1: 1 month ago)
+  monthM1Name              String? @map("month_m1_name")
+  monthM1Reliability       Float?  @map("month_m1_reliability")
+  monthM1Usage             Int?    @map("month_m1_usage")
+  
+  // Monthly Trend Data (Current month)
+  monthCurrentName         String? @map("month_current_name")
+  monthCurrentReliability  Float?  @map("month_current_reliability")
+  monthCurrentUsage        Int?    @map("month_current_usage")
+  
+  // Trend Deltas
+  reliabilityDelta         Float?  @map("reliability_delta")
+  usageDeltaPct            Float?  @map("usage_delta_pct")
+
   syncPerformanceSnapshot  SyncPerformanceSnapshot @relation(fields: [syncPerformanceSnapshotId], references: [snapshotId], onDelete: Cascade)
 
   @@unique([syncPerformanceSnapshotId, organisationName])
   @@index([organisationName])
   @@index([usabilityScore])
+  @@index([performanceStatus])
+  @@index([healthStatus])
   @@map("sync_performance_organisations")
 }
 

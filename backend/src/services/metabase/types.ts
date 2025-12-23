@@ -36,6 +36,31 @@ export interface SyncPerformanceOrganisationMetrics {
   readonly successRate: number;
   readonly usabilityScore: number;
   readonly rank: number;
+  
+  // NEW: Performance Overview
+  readonly performanceStatus?: string;
+  readonly avgReliability?: number;
+  readonly totalUsage6M?: number;
+  readonly healthStatus?: string;
+  
+  // NEW: Monthly Trend Data (M-2: 2 months ago)
+  readonly monthM2Name?: string;
+  readonly monthM2Reliability?: number;
+  readonly monthM2Usage?: number;
+  
+  // NEW: Monthly Trend Data (M-1: 1 month ago)
+  readonly monthM1Name?: string;
+  readonly monthM1Reliability?: number;
+  readonly monthM1Usage?: number;
+  
+  // NEW: Monthly Trend Data (Current month)
+  readonly monthCurrentName?: string;
+  readonly monthCurrentReliability?: number;
+  readonly monthCurrentUsage?: number;
+  
+  // NEW: Trend Deltas
+  readonly reliabilityDelta?: number;
+  readonly usageDeltaPct?: number;
 }
 
 export interface SyncPerformanceTotals {

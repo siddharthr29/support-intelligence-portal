@@ -60,7 +60,7 @@ export async function registerSyncPerformanceRoutes(fastify: FastifyInstance): P
             },
             byOrganisation: syncPerformanceData.organisationBreakdown.map(org => ({
               ...org,
-              incompleteSyncs: org.failedSyncs,
+              incompleteSyncs: org.failedSyncs, // Map for backward compatibility
             })),
           },
         });
