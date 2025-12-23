@@ -323,28 +323,28 @@ export default function LeadershipSyncPerformancePage() {
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Excellent')}
                     >
-                      🟢 Excellent ({pieData.find((d: any) => d.name === 'Excellent')?.value || 0})
+                      {`🟢 Excellent (${pieData.find((d: any) => d.name === 'Excellent')?.value || 0})`}
                     </Button>
                     <Button
                       variant={performanceFilter === 'Good' ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Good')}
                     >
-                      🟡 Good ({pieData.find((d: any) => d.name === 'Good')?.value || 0})
+                      {`🟡 Good (${pieData.find((d: any) => d.name === 'Good')?.value || 0})`}
                     </Button>
                     <Button
                       variant={performanceFilter === 'Fair' ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Fair')}
                     >
-                      🟠 Fair ({pieData.find((d: any) => d.name === 'Fair')?.value || 0})
+                      {`🟠 Fair (${pieData.find((d: any) => d.name === 'Fair')?.value || 0})`}
                     </Button>
                     <Button
                       variant={performanceFilter === 'Needs Attention' ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Needs Attention')}
                     >
-                      🔴 Needs Attention ({pieData.find((d: any) => d.name === 'Needs Attention')?.value || 0})
+                      {`🔴 Needs Attention (${pieData.find((d: any) => d.name === 'Needs Attention')?.value || 0})`}
                     </Button>
                   </CardContent>
                 </Card>
