@@ -254,7 +254,7 @@ export default function SyncPerformancePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px]">
+                          <TableHead className="w-[80px]">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger className="flex items-center gap-1">
@@ -267,7 +267,7 @@ export default function SyncPerformancePage() {
                               </Tooltip>
                             </TooltipProvider>
                           </TableHead>
-                          <TableHead className="w-[250px]">
+                          <TableHead className="w-[280px]">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger className="flex items-center gap-1">
@@ -352,7 +352,7 @@ export default function SyncPerformancePage() {
                           .filter((org: any) => !showLowPerformersOnly || org.usabilityScore < 50)
                           .map((org: any) => (
                           <TableRow key={org.organisationName}>
-                            <TableCell className="font-medium text-muted-foreground">
+                            <TableCell className="text-center font-medium text-muted-foreground">
                               {org.rank}
                             </TableCell>
                             <TableCell className="font-medium">
@@ -365,7 +365,7 @@ export default function SyncPerformancePage() {
                               {org.successfulSyncs.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-right text-red-600">
-                              {org.failedSyncs.toLocaleString()}
+                              {org.incompleteSyncs.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-right">
                               {org.successRate.toFixed(1)}%
