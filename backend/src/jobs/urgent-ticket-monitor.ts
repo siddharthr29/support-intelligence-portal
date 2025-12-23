@@ -126,13 +126,15 @@ async function checkForUrgentTickets(): Promise<void> {
     const client = createFreshdeskClient();
     
     // Fetch tickets updated in the last 5 minutes with urgent priority
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString().split('T')[0];
     
     logger.info('Checking for urgent tickets...');
     
-    // Use Freshdesk filter to get urgent tickets
+    // Use Freshdesk search API with proper query format
+    // Query: priority:4 AND updated_at:>YYYY-MM-DD
+    const query = encodeURIComponent(`priority:4 AND updated_at:>'${fiveMinutesAgo}'`);
     const response = await fetch(
-      `https://${config.freshdesk.domain}/api/v2/tickets?updated_since=${fiveMinutesAgo}&priority=4&per_page=100`,
+      `https://${config.freshdesk.domain}/api/v2/search/tickets?query="${query}"`,
       {
         method: 'GET',
         headers: {
@@ -143,11 +145,13 @@ async function checkForUrgentTickets(): Promise<void> {
     );
 
     if (!response.ok) {
-      logger.error({ status: response.status }, 'Failed to fetch urgent tickets from Freshdesk');
+      const errorText = await response.text();
+      logger.error({ status: response.status, error: errorText }, 'Failed to fetch urgent tickets from Freshdesk');
       return;
     }
 
-    const tickets = await response.json() as UrgentTicket[];
+    const data = await response.json() as { total: number; results: UrgentTicket[] };
+    const tickets = data.results || [];
     
     logger.info({ ticketCount: tickets.length }, 'Fetched urgent tickets from Freshdesk');
 
