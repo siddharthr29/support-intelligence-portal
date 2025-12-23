@@ -25,6 +25,7 @@ import { registerTicketRoutes } from './leadership/tickets';
 import { registerMetabaseImplementationsRoutes } from './metabase-implementations';
 import { registerMetabaseEmbedRoutes } from './metabase-embed';
 import { registerEnvironmentSettingsRoutes } from './environment-settings';
+import { registerGoogleSheetsImplementationsRoutes } from './google-sheets-implementations';
 import shareLinksRoutes from './share-links';
 import { pdfRoutes } from './pdf';
 
@@ -55,6 +56,7 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerMetabaseImplementationsRoutes(fastify);
   await registerMetabaseEmbedRoutes(fastify);
   await registerEnvironmentSettingsRoutes(fastify);
+  await registerGoogleSheetsImplementationsRoutes(fastify);
   await shareLinksRoutes(fastify);
   await pdfRoutes(fastify);
 }

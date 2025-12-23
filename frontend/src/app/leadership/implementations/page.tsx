@@ -27,7 +27,8 @@ import {
   X,
   Save,
   Download,
-  Loader2
+  Loader2,
+  RefreshCcw
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -83,11 +84,13 @@ export default function ImplementationsPage() {
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const fetchImplementations = useCallback(async () => {
-    const cacheKey = 'implementations-all';
+    const cacheKey = 'implementations-google-sheets';
     
-    // Check cache first
-    if (cachedData[cacheKey]) {
-      setImplementations(cachedData[cacheKey]);
+    // Check cache first (cache for 5 minutes)
+    const cachedEntry = cachedData[cacheKey];
+    const now = Date.now();
+    if (cachedEntry && cachedEntry.timestamp && (now - cachedEntry.timestamp < 5 * 60 * 1000)) {
+      setImplementations(cachedEntry.data);
       setLoading(false);
       return;
     }
@@ -98,12 +101,12 @@ export default function ImplementationsPage() {
     }
 
     try {
-      const response = await apiGet('/api/implementations');
+      const response = await apiGet('/api/google-sheets/implementations');
       const data = response.data.implementations || [];
       setImplementations(data);
-      setCachedData(cacheKey, data);
+      setCachedData(cacheKey, { data, timestamp: now });
     } catch (error) {
-      console.error('Failed to load implementations:', error);
+      console.error('Failed to load implementations from Google Sheets:', error);
     } finally {
       setLoading(false);
       if (isInitialLoad) {
@@ -356,24 +359,35 @@ export default function ImplementationsPage() {
         <div className="bg-white rounded-lg border p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
-              <h2 className="text-lg font-semibold mb-2">Manage Implementation Data</h2>
+              <h2 className="text-lg font-semibold mb-2">Implementation Data from Google Sheets</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Add, edit, or delete implementations
+                Data is synced from the master Google Sheets document. To add, edit, or delete implementations, please update the Google Sheet directly.
               </p>
-              <Button
-                onClick={handleAddNew}
-                className="gap-2 bg-green-600 hover:bg-green-700"
+              <a
+                href="https://docs.google.com/spreadsheets/d/1SQkrkD1JQihp4nRsojl1YDUrVdMr2bS9--voyOkpU9A/edit?gid=57503310#gid=57503310"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
               >
-                <Plus className="h-4 w-4" />
-                Add New Implementation
-              </Button>
+                <ExternalLink className="h-4 w-4" />
+                Open Google Sheet
+              </a>
             </div>
             <div className="text-sm">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="font-semibold text-blue-900 mb-1">Current Data:</p>
                 <p className="text-blue-700">{implementations.length} implementations</p>
                 <p className="text-blue-700">{Object.keys(stateStats).length} states</p>
-                <p className="text-xs text-blue-600 mt-2">✓ Data stored in database</p>
+                <p className="text-xs text-blue-600 mt-2">✓ Synced from Google Sheets</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchImplementations}
+                  className="mt-2 w-full"
+                >
+                  <RefreshCcw className="h-3 w-3 mr-2" />
+                  Refresh Data
+                </Button>
               </div>
             </div>
           </div>
@@ -412,27 +426,15 @@ export default function ImplementationsPage() {
                   Map
                 </Button>
                 {viewMode === 'map' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={shareMap}
-                      className="gap-2"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={downloadMapAsPDF}
-                      disabled={isDownloading}
-                      className="gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      {isDownloading ? 'Downloading...' : 'Download PDF'}
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={shareMap}
+                    className="gap-2"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
                 )}
               </div>
             </div>
@@ -498,9 +500,6 @@ export default function ImplementationsPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                           Website
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                          Actions
-                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -529,24 +528,6 @@ export default function ImplementationsPage() {
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleEdit(impl)}
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Edit"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(impl)}
-                                className="text-red-600 hover:text-red-800"
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
                           </td>
                         </tr>
                       ))}
@@ -583,118 +564,6 @@ export default function ImplementationsPage() {
               </>
             )}
 
-            {viewMode === 'table' && false && (
-              <ResponsiveTable>
-                  <table className="w-full min-w-[800px]">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                          Sl. No
-                        </th>
-                        <th 
-                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('organisationName')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Organisation
-                            {getSortIcon('organisationName')}
-                          </div>
-                        </th>
-                        <th 
-                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('sector')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Sector
-                            {getSortIcon('sector')}
-                          </div>
-                        </th>
-                        <th 
-                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('projectName')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Program
-                            {getSortIcon('projectName')}
-                          </div>
-                        </th>
-                        <th 
-                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('forType')}
-                        >
-                          <div className="flex items-center gap-2">
-                            For
-                            {getSortIcon('forType')}
-                          </div>
-                        </th>
-                        <th 
-                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSort('state')}
-                        >
-                          <div className="flex items-center gap-2">
-                            State
-                            {getSortIcon('state')}
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                          Website
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {sortedImplementations.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((impl) => (
-                        <tr key={impl.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{impl.slNo}</td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{impl.organisationName}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{impl.sector}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{impl.projectName}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{impl.forType}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-gray-400" />
-                              {impl.state}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {impl.website && (
-                              <a
-                                href={impl.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                              >
-                                Visit
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleEdit(impl)}
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Edit"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(impl)}
-                                className="text-red-600 hover:text-red-800"
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-              </ResponsiveTable>
-            )}
 
             {viewMode === 'map' && (
               <div ref={mapRef} className="bg-white rounded-lg border p-8">
@@ -776,146 +645,6 @@ export default function ImplementationsPage() {
         )}
       </div>
 
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingImpl ? 'Edit Implementation' : 'Add New Implementation'}
-              </h2>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Organisation Name *
-                </label>
-                <Input
-                  value={formData.organisationName || ''}
-                  onChange={(e) => setFormData({ ...formData, organisationName: e.target.value })}
-                  placeholder="Enter organisation name"
-                  className={formErrors.organisationName ? 'border-red-500' : ''}
-                />
-                {formErrors.organisationName && (
-                  <p className="text-red-600 text-xs mt-1">{formErrors.organisationName}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sector *
-                  </label>
-                  <Input
-                    value={formData.sector || ''}
-                    onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                    placeholder="e.g., Health, Education"
-                    className={formErrors.sector ? 'border-red-500' : ''}
-                  />
-                  {formErrors.sector && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.sector}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    For
-                  </label>
-                  <select
-                    value={formData.forType || 'Self'}
-                    onChange={(e) => setFormData({ ...formData, forType: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="Self">Self</option>
-                    <option value="Government">Government</option>
-                    <option value="State NGOs Partnership">State NGOs Partnership</option>
-                    <option value="M.P. Government">M.P. Government</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Program Name *
-                </label>
-                <Input
-                  value={formData.projectName || ''}
-                  onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
-                  placeholder="Enter program name"
-                  className={formErrors.projectName ? 'border-red-500' : ''}
-                />
-                {formErrors.projectName && (
-                  <p className="text-red-600 text-xs mt-1">{formErrors.projectName}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  State *
-                </label>
-                <select
-                  value={formData.state || ''}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${formErrors.state ? 'border-red-500' : 'border-gray-300'}`}
-                >
-                  <option value="">Select a state</option>
-                  {INDIAN_STATES.map(state => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
-                {formErrors.state && (
-                  <p className="text-red-600 text-xs mt-1">{formErrors.state}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Website
-                </label>
-                <Input
-                  value={formData.website || ''}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://example.com"
-                  className={formErrors.website ? 'border-red-500' : ''}
-                />
-                {formErrors.website && (
-                  <p className="text-red-600 text-xs mt-1">{formErrors.website}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 justify-end border-t">
-              <Button
-                variant="outline"
-                onClick={() => setShowAddModal(false)}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="gap-2 bg-green-600 hover:bg-green-700"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    {editingImpl ? 'Update' : 'Add'} Implementation
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </ErrorBoundary>
   );
