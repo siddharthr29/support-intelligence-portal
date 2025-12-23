@@ -221,6 +221,8 @@ async function bootstrap(): Promise<void> {
     startWeeklyScheduler();
     startYearlyCleanupScheduler();
     startMonthlyReportScheduler();
+    startDailyRftRefresh();
+    startUrgentTicketMonitor();
 
     const address = await fastify.listen({
       port: config.port,
