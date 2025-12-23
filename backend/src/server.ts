@@ -14,6 +14,8 @@ import {
   stopMonthlyReportScheduler,
   startDailySyncPerformanceRefresh,
   stopDailySyncPerformanceRefresh,
+  startWeeklyReportAutoPush,
+  stopWeeklyReportAutoPush,
 } from './jobs';
 import { startYearlyCleanupScheduler, stopYearlyCleanupScheduler } from './jobs/yearly-cleanup';
 import { startDailyRftRefresh, stopDailyRftRefresh } from './jobs/daily-rft-refresh';
@@ -227,6 +229,7 @@ async function bootstrap(): Promise<void> {
     startDailyRftRefresh();
     startDailySyncPerformanceRefresh();
     startUrgentTicketMonitor();
+    startWeeklyReportAutoPush();
 
     const address = await fastify.listen({
       port: config.port,
@@ -255,6 +258,7 @@ async function shutdown(): Promise<void> {
   stopDailyRftRefresh();
   stopDailySyncPerformanceRefresh();
   stopUrgentTicketMonitor();
+  stopWeeklyReportAutoPush();
   await fastify.close();
   await disconnectPrisma();
 

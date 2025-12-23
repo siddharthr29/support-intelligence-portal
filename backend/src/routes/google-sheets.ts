@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getGoogleSheetsClient } from '../services/google-sheets';
 import { sendDiscordNotification, testDiscordWebhook, type WeeklyReportData } from '../services/discord';
 import { logActivity } from '../persistence/activity-log-repository';
+import { markWeeklyReportAsPushed, isWeeklyReportPushed, getWeeklyReportPushStatus } from '../persistence/weekly-report-push-repository';
 import { logger } from '../utils/logger';
 
 // Rate limiting for Google Sheets endpoints
@@ -201,9 +202,8 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
 
         logger.info({ snapshotId, totalHours }, 'Weekly report pushed to Google Sheet');
 
-        // Mark report as pushed to stop hourly reminders
-        const { markWeeklyReportPushed } = await import('../jobs/scheduler');
-        markWeeklyReportPushed();
+        // Mark report as pushed in database (prevents duplicate pushes and locks entry)
+        await markWeeklyReportAsPushed(snapshotId, 'admin');
 
         // Send Discord notification after successful Google Sheets push
         let discordSent = false;
@@ -286,7 +286,7 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
           configured: initialized,
           message: initialized 
             ? 'Google Sheets is configured and ready' 
-            : 'Google Sheets URL not configured. Set GOOGLE_SHEETS_URL in settings.',
+            : 'Google Sheets URL not configured. Set GOOGLE_sheets_URL in settings.',
         },
       });
     } catch (error) {
@@ -294,4 +294,35 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
       throw error;
     }
   });
+
+  // Check if weekly report has been pushed
+  fastify.get<{ Querystring: { snapshotId: string } }>(
+    '/api/weekly-report/push-status',
+    async (request, reply) => {
+      const { snapshotId } = request.query;
+
+      if (!snapshotId) {
+        return reply.status(400).send({
+          success: false,
+          error: 'snapshotId is required',
+        });
+      }
+
+      try {
+        const status = await getWeeklyReportPushStatus(snapshotId);
+
+        return reply.send({
+          success: true,
+          data: {
+            isPushed: status !== null,
+            pushedAt: status?.pushedAt || null,
+            pushedBy: status?.pushedBy || null,
+          },
+        });
+      } catch (error) {
+        logger.error({ error, snapshotId }, 'Failed to check push status');
+        throw error;
+      }
+    }
+  );
 }

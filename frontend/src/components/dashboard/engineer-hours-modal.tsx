@@ -35,6 +35,13 @@ async function fetchEngineerHours(snapshotId: string): Promise<EngineerHour[]> {
   return json.data || [];
 }
 
+async function checkPushStatus(snapshotId: string): Promise<{ isPushed: boolean; pushedBy: string | null }> {
+  const res = await fetch(`${API_BASE_URL}/api/weekly-report/push-status?snapshotId=${snapshotId}`);
+  if (!res.ok) return { isPushed: false, pushedBy: null };
+  const json = await res.json();
+  return json.data || { isPushed: false, pushedBy: null };
+}
+
 async function saveEngineerHour(data: {
   snapshotId: string;
   engineerName: string;
@@ -107,6 +114,12 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
   const [timeUntilUnlock, setTimeUntilUnlock] = useState(getTimeUntilUnlock());
   const queryClient = useQueryClient();
   
+  // Check if report has been pushed
+  const { data: pushStatus } = useQuery({
+    queryKey: ['pushStatus', snapshotId],
+    queryFn: () => checkPushStatus(snapshotId),
+  });
+  
   // Update lock status every minute
   useEffect(() => {
     const interval = setInterval(() => {
@@ -150,12 +163,26 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
   };
 
   const totalHours = engineerHours.reduce((sum, e) => sum + e.totalHoursWorked, 0);
+  
+  // Determine if entry is locked
+  const isPushed = pushStatus?.isPushed || false;
+  const hasHours = engineerHours.length > 0;
+  const isEntryLocked = !isUnlocked || isPushed || hasHours;
+  
+  let lockReason = '';
+  if (isPushed) {
+    lockReason = `Already pushed by ${pushStatus?.pushedBy}`;
+  } else if (hasHours) {
+    lockReason = 'Hours already filled';
+  } else if (!isUnlocked) {
+    lockReason = timeUntilUnlock;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2" disabled={!isUnlocked}>
-          {isUnlocked ? (
+        <Button variant="outline" size="sm" className="gap-2" disabled={isEntryLocked}>
+          {!isEntryLocked ? (
             <>
               <Clock className="h-4 w-4" />
               Enter Support Hours
@@ -163,7 +190,7 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
           ) : (
             <>
               <Lock className="h-4 w-4" />
-              Locked ({timeUntilUnlock})
+              Locked ({lockReason})
             </>
           )}
         </Button>
@@ -176,21 +203,30 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
           </DialogTitle>
         </DialogHeader>
 
-        {!isUnlocked && (
+        {isEntryLocked && (
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-center gap-2 text-yellow-800 mb-2">
               <Lock className="h-4 w-4" />
               <span className="font-medium">Entry Locked</span>
             </div>
-            <p className="text-sm text-yellow-700">
-              Engineer hours entry unlocks on Friday at 1:00 PM IST and locks at 9:00 PM IST (if report pushed).
-            </p>
-            <p className="text-sm text-yellow-600 mt-1">
-              Time until unlock: {timeUntilUnlock}
-            </p>
-            <p className="text-xs text-yellow-600 mt-2">
-              Note: You can add past week hours on Monday if report was not pushed by Friday.
-            </p>
+            {isPushed ? (
+              <p className="text-sm text-yellow-700">
+                This weekly report has already been pushed to Google Sheets by {pushStatus?.pushedBy}.
+              </p>
+            ) : hasHours ? (
+              <p className="text-sm text-yellow-700">
+                Engineer hours have already been filled for this week. Push to Sheets is now unlocked.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-yellow-700">
+                  Engineer hours entry unlocks on Friday at 1:00 PM IST and stays unlocked until filled.
+                </p>
+                <p className="text-sm text-yellow-600 mt-1">
+                  Time until unlock: {timeUntilUnlock}
+                </p>
+              </>
+            )}
           </div>
         )}
 
@@ -227,19 +263,19 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
                 placeholder="Name"
                 value={newEngineer.name}
                 onChange={(e) => setNewEngineer({ ...newEngineer, name: e.target.value })}
-                disabled={!isUnlocked}
+                disabled={isEntryLocked}
               />
               <Input
                 type="number"
                 placeholder="Hours"
                 value={newEngineer.hours}
                 onChange={(e) => setNewEngineer({ ...newEngineer, hours: e.target.value })}
-                disabled={!isUnlocked}
+                disabled={isEntryLocked}
               />
             </div>
             <Button
               onClick={handleAddEngineer}
-              disabled={!isUnlocked || mutation.isPending}
+              disabled={isEntryLocked || mutation.isPending}
               className="w-full gap-2"
             >
               <Plus className="h-4 w-4" />

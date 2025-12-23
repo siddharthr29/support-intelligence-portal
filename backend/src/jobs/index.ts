@@ -38,3 +38,8 @@ export {
   stopDailySyncPerformanceRefresh,
   isDailySyncPerformanceRefreshRunning,
 } from './daily-sync-performance-refresh';
+export {
+  startWeeklyReportAutoPush,
+  stopWeeklyReportAutoPush,
+  isWeeklyReportAutoPushRunning,
+} from './weekly-report-auto-push';

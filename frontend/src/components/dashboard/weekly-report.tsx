@@ -93,6 +93,17 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
     },
   });
 
+  // Check if report has been pushed
+  const { data: pushStatus } = useQuery({
+    queryKey: ['pushStatus', effectiveSnapshotId],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/weekly-report/push-status?snapshotId=${effectiveSnapshotId}`);
+      if (!res.ok) return { isPushed: false, pushedBy: null };
+      const json = await res.json();
+      return json.data || { isPushed: false, pushedBy: null };
+    },
+  });
+
   const generateReport = (): string => {
     if (weekStatsError) return `Error loading data: ${String(weekStatsError)}`;
     if (!weekStats) return isWeekStatsLoading ? 'Loading week data...' : 'No data available. Check console for errors.';
@@ -361,14 +372,27 @@ Pending: ${psPending}`;
             <Button
               size="sm"
               onClick={handlePushToGoogleSheet}
-              disabled={!hasEngineerHours || isPushing || !isCurrentWeek}
+              disabled={!hasEngineerHours || isPushing || !isCurrentWeek || pushStatus?.isPushed}
               className="gap-2"
-              title={!isCurrentWeek ? 'Only current week can be pushed' : !hasEngineerHours ? 'Add engineer hours first' : 'Push report to Google Sheet'}
+              title={
+                pushStatus?.isPushed 
+                  ? `Already pushed by ${pushStatus.pushedBy}` 
+                  : !isCurrentWeek 
+                  ? 'Only current week can be pushed' 
+                  : !hasEngineerHours 
+                  ? 'Add engineer hours first' 
+                  : 'Push report to Google Sheet'
+              }
             >
               {isPushing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Pushing...
+                </>
+              ) : pushStatus?.isPushed ? (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Already Pushed
                 </>
               ) : (
                 <>
@@ -454,13 +478,24 @@ Pending: ${psPending}`;
             readOnly
             className="font-mono text-xs h-[400px] resize-none bg-muted/50"
           />
-          {!hasEngineerHours && isCurrentWeekSelected && (
-            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-              <p className="text-xs text-amber-800 flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                <span><strong>Push to Sheets is locked.</strong> Please add engineer hours to unlock.</span>
-              </p>
-            </div>
+          {isCurrentWeekSelected && (
+            <>
+              {pushStatus?.isPushed ? (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-xs text-green-800 flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    <span><strong>Report pushed to Google Sheets</strong> by {pushStatus.pushedBy} on {new Date(pushStatus.pushedAt).toLocaleString()}.</span>
+                  </p>
+                </div>
+              ) : !hasEngineerHours ? (
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <p className="text-xs text-amber-800 flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    <span><strong>Push to Sheets is locked.</strong> Please add engineer hours to unlock.</span>
+                  </p>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
       </CardContent>

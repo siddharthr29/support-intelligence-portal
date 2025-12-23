@@ -335,3 +335,13 @@ model SyncPerformanceOrganisation {
   @@index([usabilityScore])
   @@map("sync_performance_organisations")
 }
+
+model WeeklyReportPushStatus {
+  id          String   @id @default(uuid())
+  snapshotId  String   @unique @map("snapshot_id")
+  pushedAt    DateTime @map("pushed_at")
+  pushedBy    String   @map("pushed_by") // 'admin' or 'auto-scheduler'
+  
+  @@index([snapshotId])
+  @@map("weekly_report_push_status")
+}
