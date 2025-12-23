@@ -311,8 +311,9 @@ Pending: ${psPending}`;
   // Check if selected week is the "current week" option (first in list with "now" label)
   const isCurrentWeekSelected = selectedWeekData?.label.includes('now') || false;
   
-  // Lock stats for current week if engineer hours not filled
-  const isStatsLocked = isCurrentWeekSelected && !hasEngineerHours;
+  // NEVER lock stats - always show current week data
+  // Only lock "Push to Sheets" button if engineer hours not filled
+  const isStatsLocked = false;
   
   const report = generateReport();
 
@@ -446,28 +447,21 @@ Pending: ${psPending}`;
           </TooltipProvider>
         </div>
 
-        {/* Stats Content - Locked for current week until engineer hours are filled */}
+        {/* Stats Content - Always visible, Push to Sheets locked until engineer hours filled */}
         <div className="relative">
-          {isStatsLocked && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-md">
-              <Lock className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-sm font-medium text-muted-foreground text-center px-4">
-                Stats locked for current week
+          <Textarea
+            value={report}
+            readOnly
+            className="font-mono text-xs h-[400px] resize-none bg-muted/50"
+          />
+          {!hasEngineerHours && isCurrentWeekSelected && (
+            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-xs text-amber-800 flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                <span><strong>Push to Sheets is locked.</strong> Please add engineer hours to unlock.</span>
               </p>
-              <p className="text-xs text-muted-foreground text-center px-4 mt-1">
-                Please add engineer hours to unlock the report
-              </p>
-              <div className="mt-4">
-                <EngineerHoursModal snapshotId={effectiveSnapshotId} onHoursUpdated={() => refetchHours()} />
-              </div>
             </div>
           )}
-          <Textarea
-            value={isStatsLocked ? '' : report}
-            readOnly
-            className={`font-mono text-xs h-[400px] resize-none bg-muted/50 ${isStatsLocked ? 'blur-sm select-none' : ''}`}
-            placeholder={isStatsLocked ? 'Stats will appear here after adding engineer hours...' : undefined}
-          />
         </div>
       </CardContent>
     </Card>

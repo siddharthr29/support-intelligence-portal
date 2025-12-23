@@ -51,22 +51,30 @@ async function saveEngineerHour(data: {
 
 // Check if current week entry is unlocked
 // Unlocks: Friday 1PM IST
-// Locks: Friday 9PM IST (if data pushed to sheet) OR next Friday 1PM (if not pushed)
+// Stays unlocked until engineer hours are filled (no time-based lock)
 function isCurrentWeekUnlocked(): boolean {
   const now = new Date();
   const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const dayOfWeek = istTime.getDay(); // 5 = Friday
   const hours = istTime.getHours();
   
-  // Unlocked if it's Friday and between 1 PM (13:00) and 9 PM (21:00)
-  // After 9PM Friday, it locks (assuming data was pushed)
-  if (dayOfWeek === 5) {
-    return hours >= 13 && hours < 21;
+  // Unlocked from Friday 1 PM onwards (no upper time limit)
+  if (dayOfWeek === 5 && hours >= 13) {
+    return true;
   }
   
-  // Unlocked on Saturday if data was NOT pushed (allows late entry)
-  // This will be handled by backend check
-  return dayOfWeek === 6; // Allow Saturday entry if needed
+  // Unlocked on Saturday and Sunday (weekend grace period)
+  if (dayOfWeek === 6 || dayOfWeek === 0) {
+    return true;
+  }
+  
+  // Unlocked on Monday-Thursday (stays unlocked until filled)
+  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+    return true;
+  }
+  
+  // Locked before Friday 1 PM
+  return false;
 }
 
 // Get time until unlock
@@ -76,17 +84,16 @@ function getTimeUntilUnlock(): string {
   const dayOfWeek = istTime.getDay();
   const hours = istTime.getHours();
   
-  if (dayOfWeek === 5 && hours >= 13 && hours < 21) return 'Unlocked';
-  if (dayOfWeek === 6) return 'Unlocked (late entry)';
+  // If currently unlocked
+  if (dayOfWeek === 5 && hours >= 13) return 'Unlocked';
+  if (dayOfWeek === 6 || dayOfWeek === 0) return 'Unlocked';
+  if (dayOfWeek >= 1 && dayOfWeek <= 4) return 'Unlocked';
   
   // Calculate next Friday 1PM IST
   let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
   if (daysUntilFriday === 0 && hours < 13) {
     const hoursLeft = 13 - hours;
     return `${hoursLeft}h until unlock`;
-  }
-  if (daysUntilFriday === 0 && hours >= 21) {
-    return '6 days until next Friday 1PM IST';
   }
   if (daysUntilFriday === 0) daysUntilFriday = 7;
   
