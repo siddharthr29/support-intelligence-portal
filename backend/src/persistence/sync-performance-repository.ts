@@ -65,7 +65,7 @@ export async function writeSyncPerformanceSnapshot(
             organisationName: org.organisationName,
             totalSyncs: org.totalSyncs,
             successfulSyncs: org.successfulSyncs,
-            failedSyncs: org.failedSyncs,
+            failedSyncs: org.incompleteSyncs,
             successRate: org.successRate,
             usabilityScore: org.usabilityScore,
             rank: org.rank,

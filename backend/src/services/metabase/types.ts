@@ -32,7 +32,7 @@ export interface SyncPerformanceOrganisationMetrics {
   readonly organisationName: string;
   readonly totalSyncs: number;
   readonly successfulSyncs: number;
-  readonly failedSyncs: number;
+  readonly incompleteSyncs: number;
   readonly successRate: number;
   readonly usabilityScore: number;
   readonly rank: number;

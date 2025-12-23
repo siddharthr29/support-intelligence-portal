@@ -324,21 +324,21 @@ export class MetabaseReadOnlyClient {
       let organisationName: string;
       let totalSyncs: number;
       let successfulSyncs: number;
-      let failedSyncs: number;
+      let incompleteSyncs: number;
       let successRate: number;
       let usabilityScore: number;
       let rank: number;
 
-      if (Array.isArray(row) && row.length >= 7) {
+      if (Array.isArray(row) && row.length >= 8) {
         // Array format
         sNo = parseNumber(row[0]);
         organisationName = String(row[1] || '').trim();
         totalSyncs = parseNumber(row[2]);
         successfulSyncs = parseNumber(row[3]);
-        failedSyncs = parseNumber(row[4]);
+        incompleteSyncs = parseNumber(row[4]);
         successRate = parseFloat(row[5]);
         usabilityScore = parseFloat(row[6]);
-        rank = sNo;
+        rank = parseNumber(row[7]);
       } else if (typeof row === 'object' && !Array.isArray(row)) {
         // Object format from Metabase
         const obj = row as Record<string, string | number>;
@@ -346,7 +346,7 @@ export class MetabaseReadOnlyClient {
         organisationName = String(obj['Organization Name'] || '').trim();
         totalSyncs = parseNumber(obj['Total Syncs']);
         successfulSyncs = parseNumber(obj['Successful Syncs']);
-        failedSyncs = parseNumber(obj['Failed Syncs']);
+        incompleteSyncs = parseNumber(obj['Incomplete Syncs']);
         successRate = parseFloat(obj['Success Rate (%)']);
         usabilityScore = parseFloat(obj['Usability Score (%)']);
         rank = parseNumber(obj['Rank']);
@@ -360,7 +360,7 @@ export class MetabaseReadOnlyClient {
           organisationName,
           totalSyncs,
           successfulSyncs,
-          failedSyncs,
+          incompleteSyncs,
           successRate,
           usabilityScore,
           rank,
