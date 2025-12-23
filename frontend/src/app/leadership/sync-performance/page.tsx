@@ -361,20 +361,20 @@ export default function LeadershipSyncPerformancePage() {
                               {org.organisationName}
                             </TableCell>
                             <TableCell className="text-right">
-                              {org.totalSyncs.toLocaleString()}
+                              {org.totalSyncs?.toLocaleString() || 0}
                             </TableCell>
                             <TableCell className="text-right text-green-600">
-                              {org.successfulSyncs.toLocaleString()}
+                              {org.successfulSyncs?.toLocaleString() || 0}
                             </TableCell>
                             <TableCell className="text-right text-red-600">
-                              {org.incompleteSyncs.toLocaleString()}
+                              {org.incompleteSyncs?.toLocaleString() || 0}
                             </TableCell>
                             <TableCell className="text-right">
-                              {org.successRate.toFixed(1)}%
+                              {org.successRate?.toFixed(1) || 0}%
                             </TableCell>
                             <TableCell className="text-right">
-                              <Badge variant={getUsabilityBadgeVariant(org.usabilityScore)}>
-                                {org.usabilityScore.toFixed(1)}%
+                              <Badge variant={getUsabilityBadgeVariant(org.usabilityScore || 0)}>
+                                {org.usabilityScore?.toFixed(1) || 0}%
                               </Badge>
                             </TableCell>
                           </TableRow>
