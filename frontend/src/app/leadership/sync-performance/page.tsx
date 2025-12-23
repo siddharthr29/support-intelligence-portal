@@ -480,6 +480,21 @@ export default function LeadershipSyncPerformancePage() {
                               </Tooltip>
                             </TooltipProvider>
                           </TableHead>
+                          <TableHead>Performance Status</TableHead>
+                          <TableHead>Health Status</TableHead>
+                          <TableHead className="text-right">Avg Reliability</TableHead>
+                          <TableHead className="text-right">Total Usage (6M)</TableHead>
+                          <TableHead className="text-center">M-2</TableHead>
+                          <TableHead className="text-right">M-2 Rel%</TableHead>
+                          <TableHead className="text-right">M-2 Usage</TableHead>
+                          <TableHead className="text-center">M-1</TableHead>
+                          <TableHead className="text-right">M-1 Rel%</TableHead>
+                          <TableHead className="text-right">M-1 Usage</TableHead>
+                          <TableHead className="text-center">Current</TableHead>
+                          <TableHead className="text-right">Current Rel%</TableHead>
+                          <TableHead className="text-right">Current Usage</TableHead>
+                          <TableHead className="text-right">Reliability Δ</TableHead>
+                          <TableHead className="text-right">Usage Δ (%)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -507,44 +522,6 @@ export default function LeadershipSyncPerformancePage() {
                               <Badge variant={getUsabilityBadgeVariant(org.usabilityScore || 0)}>
                                 {org.usabilityScore?.toFixed(1) || 0}%
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {org.performanceStatus && (
-                                <Badge className={getPerformanceStatusColor(org.performanceStatus)}>
-                                  {org.performanceStatus}
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {org.healthStatus && getHealthStatusIcon(org.healthStatus)}
-                                <span className="text-xs">{org.healthStatus}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">{org.avgReliability?.toFixed(1) ?? '-'}%</TableCell>
-                            <TableCell className="text-right">{org.totalUsage6M?.toLocaleString() ?? '-'}</TableCell>
-                            <TableCell className="text-center text-xs font-medium">{org.monthM2Name ?? '-'}</TableCell>
-                            <TableCell className="text-right">{org.monthM2Reliability?.toFixed(1) ?? '-'}%</TableCell>
-                            <TableCell className="text-right">{org.monthM2Usage?.toLocaleString() ?? '-'}</TableCell>
-                            <TableCell className="text-center text-xs font-medium">{org.monthM1Name ?? '-'}</TableCell>
-                            <TableCell className="text-right">{org.monthM1Reliability?.toFixed(1) ?? '-'}%</TableCell>
-                            <TableCell className="text-right">{org.monthM1Usage?.toLocaleString() ?? '-'}</TableCell>
-                            <TableCell className="text-center text-xs font-medium">{org.monthCurrentName ?? '-'}</TableCell>
-                            <TableCell className="text-right">{org.monthCurrentReliability?.toFixed(1) ?? '-'}%</TableCell>
-                            <TableCell className="text-right">{org.monthCurrentUsage?.toLocaleString() ?? '-'}</TableCell>
-                            <TableCell className="text-right">
-                              {org.reliabilityDelta !== null && org.reliabilityDelta !== undefined ? (
-                                <span className={org.reliabilityDelta >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                  {org.reliabilityDelta > 0 ? '+' : ''}{org.reliabilityDelta.toFixed(2)}
-                                </span>
-                              ) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {org.usageDeltaPct !== null && org.usageDeltaPct !== undefined ? (
-                                <span className={org.usageDeltaPct >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                  {org.usageDeltaPct > 0 ? '+' : ''}{org.usageDeltaPct.toFixed(2)}%
-                                </span>
-                              ) : '-'}
                             </TableCell>
                           </TableRow>
                         ))}
