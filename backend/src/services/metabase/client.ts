@@ -320,28 +320,51 @@ export class MetabaseReadOnlyClient {
     };
 
     for (const row of rawRows) {
-      if (Array.isArray(row) && row.length >= 7) {
-        const sNo = parseNumber(row[0]);
-        const organisationName = String(row[1] || '').trim();
-        const totalSyncs = parseNumber(row[2]);
-        const successfulSyncs = parseNumber(row[3]);
-        const failedSyncs = parseNumber(row[4]);
-        const successRate = parseFloat(row[5]);
-        const usabilityScore = parseFloat(row[6]);
-        const rank = sNo;
+      let sNo: number;
+      let organisationName: string;
+      let totalSyncs: number;
+      let successfulSyncs: number;
+      let failedSyncs: number;
+      let successRate: number;
+      let usabilityScore: number;
+      let rank: number;
 
-        if (organisationName) {
-          byOrganisation.push({
-            sNo,
-            organisationName,
-            totalSyncs,
-            successfulSyncs,
-            failedSyncs,
-            successRate,
-            usabilityScore,
-            rank,
-          });
-        }
+      if (Array.isArray(row) && row.length >= 7) {
+        // Array format
+        sNo = parseNumber(row[0]);
+        organisationName = String(row[1] || '').trim();
+        totalSyncs = parseNumber(row[2]);
+        successfulSyncs = parseNumber(row[3]);
+        failedSyncs = parseNumber(row[4]);
+        successRate = parseFloat(row[5]);
+        usabilityScore = parseFloat(row[6]);
+        rank = sNo;
+      } else if (typeof row === 'object' && !Array.isArray(row)) {
+        // Object format from Metabase
+        const obj = row as Record<string, string | number>;
+        sNo = parseNumber(obj['S.No']);
+        organisationName = String(obj['Organization Name'] || '').trim();
+        totalSyncs = parseNumber(obj['Total Syncs']);
+        successfulSyncs = parseNumber(obj['Successful Syncs']);
+        failedSyncs = parseNumber(obj['Failed Syncs']);
+        successRate = parseFloat(obj['Success Rate (%)']);
+        usabilityScore = parseFloat(obj['Usability Score (%)']);
+        rank = parseNumber(obj['Rank']);
+      } else {
+        continue;
+      }
+
+      if (organisationName) {
+        byOrganisation.push({
+          sNo,
+          organisationName,
+          totalSyncs,
+          successfulSyncs,
+          failedSyncs,
+          successRate,
+          usabilityScore,
+          rank,
+        });
       }
     }
 
