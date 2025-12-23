@@ -93,6 +93,30 @@ export interface WeeklyNote {
   updatedAt: string;
 }
 
+export interface SyncPerformanceOrganisationMetrics {
+  sNo: number;
+  organisationName: string;
+  totalSyncs: number;
+  successfulSyncs: number;
+  failedSyncs: number;
+  successRate: number;
+  usabilityScore: number;
+  rank: number;
+}
+
+export interface SyncPerformanceTotals {
+  totalOrganisations: number;
+  avgSuccessRate: number;
+  avgUsabilityScore: number;
+}
+
+export interface SyncPerformanceData {
+  snapshotId: string;
+  fetchedAt: string;
+  totals: SyncPerformanceTotals;
+  byOrganisation: SyncPerformanceOrganisationMetrics[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

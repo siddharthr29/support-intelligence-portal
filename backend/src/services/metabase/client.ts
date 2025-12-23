@@ -6,6 +6,9 @@ import type {
   RftOrganisationMetrics,
   RftWeeklyTotals,
   MetabaseQueryResponse,
+  SyncPerformanceMetrics,
+  SyncPerformanceOrganisationMetrics,
+  SyncPerformanceTotals,
 } from './types';
 
 const RATE_LIMIT_DELAY_MS = 500;
@@ -267,6 +270,95 @@ export class MetabaseReadOnlyClient {
       organisationCount: byOrganisation.length,
       totalOpenRfts: totals.totalOpenRfts,
     }, 'RFT metrics parsed successfully');
+
+    return {
+      fetchedAt: new Date().toISOString(),
+      questionId,
+      totals,
+      byOrganisation,
+    };
+  }
+
+  async getSyncPerformanceMetrics(questionId?: number): Promise<SyncPerformanceMetrics> {
+    const qId = questionId || config.metabase.syncPerformanceQuestionId;
+    
+    const endpoint = `/api/card/${qId}/query/json`;
+
+    logger.info({ questionId: qId, endpoint }, 'Fetching sync performance metrics from Metabase');
+
+    const rawData = await this.executeRequest<(string | number)[][]>(endpoint, 'POST');
+    return this.parseSyncPerformanceMetrics(rawData, qId);
+  }
+
+  private parseSyncPerformanceMetrics(
+    rawRows: (string | number)[][],
+    questionId: number
+  ): SyncPerformanceMetrics {
+    const byOrganisation: SyncPerformanceOrganisationMetrics[] = [];
+
+    logger.info({ rawRowCount: rawRows.length, firstRow: rawRows[0] }, 'Parsing sync performance metrics from Metabase');
+
+    const parseNumber = (val: string | number | undefined): number => {
+      if (val === undefined || val === null) return 0;
+      if (typeof val === 'number') return val;
+      const cleaned = String(val).replace(/,/g, '');
+      const num = Number(cleaned);
+      return isNaN(num) ? 0 : num;
+    };
+
+    const parseFloat = (val: string | number | undefined): number => {
+      if (val === undefined || val === null) return 0;
+      if (typeof val === 'number') return val;
+      const cleaned = String(val).replace(/,/g, '').replace(/%/g, '');
+      const num = Number(cleaned);
+      return isNaN(num) ? 0 : num;
+    };
+
+    for (const row of rawRows) {
+      if (Array.isArray(row) && row.length >= 7) {
+        const sNo = parseNumber(row[0]);
+        const organisationName = String(row[1] || '').trim();
+        const totalSyncs = parseNumber(row[2]);
+        const successfulSyncs = parseNumber(row[3]);
+        const failedSyncs = parseNumber(row[4]);
+        const successRate = parseFloat(row[5]);
+        const usabilityScore = parseFloat(row[6]);
+        const rank = sNo;
+
+        if (organisationName) {
+          byOrganisation.push({
+            sNo,
+            organisationName,
+            totalSyncs,
+            successfulSyncs,
+            failedSyncs,
+            successRate,
+            usabilityScore,
+            rank,
+          });
+        }
+      }
+    }
+
+    const totalOrganisations = byOrganisation.length;
+    const avgSuccessRate = totalOrganisations > 0
+      ? byOrganisation.reduce((sum, org) => sum + org.successRate, 0) / totalOrganisations
+      : 0;
+    const avgUsabilityScore = totalOrganisations > 0
+      ? byOrganisation.reduce((sum, org) => sum + org.usabilityScore, 0) / totalOrganisations
+      : 0;
+
+    const totals: SyncPerformanceTotals = {
+      totalOrganisations,
+      avgSuccessRate,
+      avgUsabilityScore,
+    };
+
+    logger.info({
+      questionId,
+      organisationCount: byOrganisation.length,
+      avgUsabilityScore: avgUsabilityScore.toFixed(2),
+    }, 'Sync performance metrics parsed successfully');
 
     return {
       fetchedAt: new Date().toISOString(),

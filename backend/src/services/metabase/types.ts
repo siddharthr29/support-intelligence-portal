@@ -26,3 +26,27 @@ export interface MetabaseQueryResponse {
     readonly cols: readonly { name: string; display_name: string }[];
   };
 }
+
+export interface SyncPerformanceOrganisationMetrics {
+  readonly sNo: number;
+  readonly organisationName: string;
+  readonly totalSyncs: number;
+  readonly successfulSyncs: number;
+  readonly failedSyncs: number;
+  readonly successRate: number;
+  readonly usabilityScore: number;
+  readonly rank: number;
+}
+
+export interface SyncPerformanceTotals {
+  readonly totalOrganisations: number;
+  readonly avgSuccessRate: number;
+  readonly avgUsabilityScore: number;
+}
+
+export interface SyncPerformanceMetrics {
+  readonly fetchedAt: string;
+  readonly questionId: number;
+  readonly totals: SyncPerformanceTotals;
+  readonly byOrganisation: readonly SyncPerformanceOrganisationMetrics[];
+}

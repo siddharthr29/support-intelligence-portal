@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, LayoutDashboard, FileText, Calendar, Building2, Bug, LogOut, AlertTriangle, BarChart3, CalendarDays, ChevronDown, TrendingUp, Users } from 'lucide-react';
+import { Menu, LayoutDashboard, FileText, Calendar, Building2, Bug, LogOut, AlertTriangle, BarChart3, CalendarDays, ChevronDown, TrendingUp, Users, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
@@ -39,6 +39,7 @@ const NAV_ITEMS = [
     children: [
       { label: 'Companies', href: '/companies', icon: Building2 },
       { label: 'RFT Metrics', href: '/rft', icon: Bug },
+      { label: 'Usability & Sync Status', href: '/sync-performance', icon: Activity, isNew: true },
       { label: 'Error Logs', href: '/error-logs', icon: AlertTriangle },
     ]
   },
@@ -125,6 +126,11 @@ export function Navbar() {
                           >
                             <ChildIcon className="h-4 w-4" />
                             {child.label}
+                            {(child as any).isNew && (
+                              <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500 text-white">
+                                NEW
+                              </span>
+                            )}
                           </Link>
                         </DropdownMenuItem>
                       );
@@ -233,6 +239,11 @@ export function Navbar() {
                           >
                             <ChildIcon className="h-5 w-5" />
                             {child.label}
+                            {(child as any).isNew && (
+                              <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500 text-white">
+                                NEW
+                              </span>
+                            )}
                           </Link>
                         );
                       })}

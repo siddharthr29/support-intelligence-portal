@@ -4,4 +4,7 @@ export type {
   RftWeeklyTotals,
   RftWeeklyMetrics,
   MetabaseQueryResponse,
+  SyncPerformanceMetrics,
+  SyncPerformanceOrganisationMetrics,
+  SyncPerformanceTotals,
 } from './types';

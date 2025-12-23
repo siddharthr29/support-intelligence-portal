@@ -136,7 +136,18 @@ export class FreshdeskReadOnlyClient {
       logger.info({ page: page - 1, ticketsFetched: response.data.length, totalSoFar: allTickets.length }, 'Fetched tickets page');
     }
 
-    return allTickets;
+    // Filter out HEALTHCHECK tickets
+    const filteredTickets = allTickets.filter(ticket => 
+      !ticket.tags?.some(tag => tag.toUpperCase() === 'HEALTHCHECK')
+    );
+
+    logger.info({ 
+      totalFetched: allTickets.length, 
+      healthcheckFiltered: allTickets.length - filteredTickets.length,
+      finalCount: filteredTickets.length 
+    }, 'Filtered HEALTHCHECK tickets');
+
+    return filteredTickets;
   }
 
   async getTicketConversations(ticketId: number): Promise<readonly FreshdeskConversation[]> {
@@ -209,8 +220,18 @@ export class FreshdeskReadOnlyClient {
       }, 'YTD fetch progress');
     }
 
-    logger.info({ totalTickets: allTickets.length }, 'YTD ticket fetch complete');
-    return allTickets;
+    // Filter out HEALTHCHECK tickets
+    const filteredTickets = allTickets.filter(ticket => 
+      !ticket.tags?.some(tag => tag.toUpperCase() === 'HEALTHCHECK')
+    );
+
+    logger.info({ 
+      totalFetched: allTickets.length,
+      healthcheckFiltered: allTickets.length - filteredTickets.length,
+      finalCount: filteredTickets.length 
+    }, 'YTD ticket fetch complete (HEALTHCHECK filtered)');
+
+    return filteredTickets;
   }
 
   /**
@@ -241,8 +262,19 @@ export class FreshdeskReadOnlyClient {
       }, 'Incremental fetch progress');
     }
 
-    logger.info({ totalTickets: allTickets.length, since: since.toISOString() }, 'Incremental ticket fetch complete');
-    return allTickets;
+    // Filter out HEALTHCHECK tickets
+    const filteredTickets = allTickets.filter(ticket => 
+      !ticket.tags?.some(tag => tag.toUpperCase() === 'HEALTHCHECK')
+    );
+
+    logger.info({ 
+      totalFetched: allTickets.length,
+      healthcheckFiltered: allTickets.length - filteredTickets.length,
+      finalCount: filteredTickets.length,
+      since: since.toISOString() 
+    }, 'Incremental ticket fetch complete (HEALTHCHECK filtered)');
+
+    return filteredTickets;
   }
 }
 

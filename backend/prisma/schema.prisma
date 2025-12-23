@@ -299,3 +299,39 @@ model Implementation {
   @@index([sector])
   @@map("implementations")
 }
+
+model SyncPerformanceSnapshot {
+  id                     String   @id @default(uuid())
+  snapshotId             String   @unique @map("snapshot_id")
+  fetchedAt              DateTime @map("fetched_at")
+  questionId             Int      @map("question_id")
+
+  totalOrganisations     Int      @map("total_organisations")
+  avgSuccessRate         Float    @map("avg_success_rate")
+  avgUsabilityScore      Float    @map("avg_usability_score")
+
+  organisationBreakdown  SyncPerformanceOrganisation[]
+
+  @@index([fetchedAt])
+  @@map("sync_performance_snapshots")
+}
+
+model SyncPerformanceOrganisation {
+  id                       String @id @default(uuid())
+  syncPerformanceSnapshotId String @map("sync_performance_snapshot_id")
+  sNo                      Int    @map("s_no")
+  organisationName         String @map("organisation_name")
+  totalSyncs               Int    @map("total_syncs")
+  successfulSyncs          Int    @map("successful_syncs")
+  failedSyncs              Int    @map("failed_syncs")
+  successRate              Float  @map("success_rate")
+  usabilityScore           Float  @map("usability_score")
+  rank                     Int
+
+  syncPerformanceSnapshot  SyncPerformanceSnapshot @relation(fields: [syncPerformanceSnapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@unique([syncPerformanceSnapshotId, organisationName])
+  @@index([organisationName])
+  @@index([usabilityScore])
+  @@map("sync_performance_organisations")
+}

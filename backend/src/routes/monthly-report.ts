@@ -266,20 +266,30 @@ async function generateMonthlyReport(year: number, month: number): Promise<Month
   // Fetch all tickets from YtdTicket table (populated by Friday sync job)
   const dbTickets = await prisma.ytdTicket.findMany();
   
-  // Map to expected format
-  const allTickets = dbTickets.map(t => ({
-    id: Number(t.freshdeskTicketId),
-    created_at: t.createdAt.toISOString(),
-    updated_at: t.updatedAt.toISOString(),
-    status: t.status,
-    priority: t.priority,
-    group_id: t.groupId ? Number(t.groupId) : null,
-    company_id: t.companyId ? Number(t.companyId) : null,
-    tags: t.tags || [],
-    subject: t.subject,
-  }));
+  // Map to expected format and filter by Support Engineer and Product Support groups ONLY
+  const allTickets = dbTickets
+    .map(t => ({
+      id: Number(t.freshdeskTicketId),
+      created_at: t.createdAt.toISOString(),
+      updated_at: t.updatedAt.toISOString(),
+      status: t.status,
+      priority: t.priority,
+      group_id: t.groupId ? Number(t.groupId) : null,
+      company_id: t.companyId ? Number(t.companyId) : null,
+      tags: t.tags || [],
+      subject: t.subject,
+    }))
+    .filter(t => 
+      t.group_id === SUPPORT_ENGINEERS_GROUP_ID || 
+      t.group_id === PRODUCT_SUPPORT_GROUP_ID
+    );
   
-  logger.info({ totalTickets: allTickets.length }, 'Fetched tickets from YtdTicket table for monthly report');
+  logger.info({ 
+    totalTickets: dbTickets.length,
+    filteredTickets: allTickets.length,
+    supportEngineersGroupId: SUPPORT_ENGINEERS_GROUP_ID,
+    productSupportGroupId: PRODUCT_SUPPORT_GROUP_ID
+  }, 'Fetched and filtered tickets for monthly report (Support Engineer + Product Support only)');
 
   // Filter tickets created in this specific month
   const ticketsCreatedThisMonth = allTickets.filter(t => {

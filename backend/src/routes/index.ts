@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { registerStatsRoutes } from './stats';
 import { registerRftRoutes } from './rft';
+import { registerSyncPerformanceRoutes } from './sync-performance';
 import { registerNotesRoutes } from './notes';
 import { registerIngestionRoutes } from './ingestion';
 import { registerCompaniesRoutes } from './companies';
@@ -29,6 +30,7 @@ import { pdfRoutes } from './pdf';
 export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerStatsRoutes(fastify);
   await registerRftRoutes(fastify);
+  await registerSyncPerformanceRoutes(fastify);
   await registerNotesRoutes(fastify);
   await registerIngestionRoutes(fastify);
   await registerCompaniesRoutes(fastify);

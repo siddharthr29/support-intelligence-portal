@@ -29,6 +29,7 @@ export interface MetabaseConfig {
   readonly username: string;
   readonly password: string;
   readonly rftQuestionId: number;
+  readonly syncPerformanceQuestionId: number;
 }
 
 export interface EnvironmentConfig {
@@ -86,5 +87,6 @@ export const config: EnvironmentConfig = {
     username: getRequiredEnv('METABASE_USERNAME'),
     password: getRequiredEnv('METABASE_PASSWORD'),
     rftQuestionId: parseInt(getOptionalEnv('METABASE_RFT_QUESTION_ID', '4848'), 10),
+    syncPerformanceQuestionId: parseInt(getOptionalEnv('METABASE_SYNC_PERFORMANCE_QUESTION_ID', '8767'), 10),
   },
 } as const;

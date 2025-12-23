@@ -80,3 +80,12 @@ export {
   clearYtdTickets,
 } from './ytd-ticket-repository';
 export type { YtdTicketRecord } from './ytd-ticket-repository';
+
+export {
+  writeSyncPerformanceSnapshot,
+  syncPerformanceSnapshotExists,
+  getSyncPerformanceSnapshot,
+  getLatestSyncPerformanceSnapshot,
+  listSyncPerformanceSnapshots,
+} from './sync-performance-repository';
+export type { SyncPerformanceSnapshotWriteResult } from './sync-performance-repository';

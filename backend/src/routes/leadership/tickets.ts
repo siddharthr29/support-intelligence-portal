@@ -18,8 +18,9 @@ export async function registerTicketRoutes(fastify: FastifyInstance): Promise<vo
     const prisma = getPrismaClient();
 
     try {
-      const tickets = await prisma.ytdTicket.findMany({
-        take: 30,
+      // Fetch more than 30 to account for HEALTHCHECK filtering
+      const allTickets = await prisma.ytdTicket.findMany({
+        take: 50,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -34,6 +35,11 @@ export async function registerTicketRoutes(fastify: FastifyInstance): Promise<vo
           tags: true,
         },
       });
+
+      // Filter out HEALTHCHECK tickets and take only 30
+      const tickets = allTickets
+        .filter(ticket => !ticket.tags.some(tag => tag.toUpperCase() === 'HEALTHCHECK'))
+        .slice(0, 30);
 
       // Get company names
       const companyIds = tickets

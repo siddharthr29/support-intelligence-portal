@@ -95,6 +95,17 @@ export async function fetchLatestRftFetch() {
   return apiPost('/api/rft/fetch');
 }
 
+export async function fetchSyncPerformanceData(snapshotId?: string) {
+  const params = new URLSearchParams();
+  if (snapshotId) params.append('snapshotId', snapshotId);
+
+  return apiGet(`/api/sync-performance?${params.toString()}`);
+}
+
+export async function fetchLatestSyncPerformanceFetch() {
+  return apiPost('/api/sync-performance/fetch');
+}
+
 export async function fetchNotes(snapshotId: string) {
   const params = new URLSearchParams();
   params.append('snapshotId', snapshotId);
