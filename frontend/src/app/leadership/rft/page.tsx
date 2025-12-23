@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LeadershipNavigation } from '@/components/leadership/navigation';
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,20 +55,25 @@ export default function LeadershipRftMetricsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-20 w-full rounded-xl" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-40 rounded-xl" />
-          ))}
+      <div className="min-h-screen bg-gray-50">
+        <LeadershipNavigation />
+        <div className="container mx-auto p-6 space-y-6">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-40 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-[400px] rounded-xl" />
         </div>
-        <Skeleton className="h-[400px] rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      <LeadershipNavigation />
+      <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <SectionHeader
         title="Rule Failure Telemetry (RFT)"
@@ -197,6 +203,7 @@ export default function LeadershipRftMetricsPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }

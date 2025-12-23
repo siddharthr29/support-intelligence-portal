@@ -75,12 +75,12 @@ async function fetchGoogleSheetsData(): Promise<Implementation[]> {
       implementations.push({
         id: parseInt(slNo) || implementations.length + 1,
         slNo: parseInt(slNo) || implementations.length + 1,
-        organisationName: organisationName.trim(),
-        sector: sector.trim(),
-        projectName: projectName.trim(),
-        forType: forType.trim() || 'Self',
+        organisationName: organisationName ? organisationName.trim() : '',
+        sector: sector ? sector.trim() : '',
+        projectName: projectName ? projectName.trim() : '',
+        forType: forType && forType.trim() ? forType.trim() : 'Self',
         website: website && website.trim() ? website.trim() : null,
-        state: state.trim(),
+        state: state ? state.trim() : '',
       });
     }
 
