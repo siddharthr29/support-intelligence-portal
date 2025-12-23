@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
+import {
   Table,
   TableBody,
   TableCell,
@@ -247,13 +254,97 @@ export default function SyncPerformancePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px]">Rank</TableHead>
-                          <TableHead className="w-[250px]">Organization</TableHead>
-                          <TableHead className="text-right">Total Syncs</TableHead>
-                          <TableHead className="text-right">Successful</TableHead>
-                          <TableHead className="text-right">Failed</TableHead>
-                          <TableHead className="text-right">Success Rate</TableHead>
-                          <TableHead className="text-right">Usability Score</TableHead>
+                          <TableHead className="w-[60px]">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1">
+                                  Rank
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Ranking based on total sync volume (1 = organization with least syncs)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="w-[250px]">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1">
+                                  Organization
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Name of the production organization with Live status</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1 ml-auto">
+                                  Total Syncs
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Total sync attempts in the last 6 months (complete + incomplete syncs)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1 ml-auto">
+                                  Successful
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Number of syncs completed successfully (status = 'complete')</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1 ml-auto">
+                                  Incomplete
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Number of syncs that did not complete (status != 'complete')</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1 ml-auto">
+                                  Success Rate
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Percentage of successful syncs out of total attempts</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1 ml-auto">
+                                  Usability Score
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Composite metric combining success rate (70% weight) and usage volume (30% weight). Organizations with low sync count get penalized even with high success rate.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
