@@ -105,7 +105,7 @@ export async function getSyncPerformanceSnapshot(snapshotId: string) {
     where: { snapshotId },
     include: {
       organisationBreakdown: {
-        orderBy: { usabilityScore: 'asc' },
+        orderBy: { rank: 'asc' },
       },
     },
   });
@@ -118,7 +118,7 @@ export async function getLatestSyncPerformanceSnapshot() {
     orderBy: { fetchedAt: 'desc' },
     include: {
       organisationBreakdown: {
-        orderBy: { usabilityScore: 'asc' },
+        orderBy: { rank: 'asc' },
       },
     },
   });
