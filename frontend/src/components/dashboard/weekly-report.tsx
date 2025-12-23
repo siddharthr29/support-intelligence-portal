@@ -119,9 +119,12 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
     const formattedDateRange = `${format(weekStartDate, 'EEEE, MMM d, yyyy')} 5:00 PM to ${format(weekEndDateLocal, 'EEEE, MMM d, yyyy')} 5:00 PM`;
     
     // Find top company from week stats (excluding Healthchecks - system health monitoring)
-    const topCompany = weekStats.companyBreakdown?.find(
+    const filteredCompanies = weekStats.companyBreakdown?.filter(
       (c: { companyId: number }) => c.companyId !== HEALTHCHECKS_COMPANY_ID
-    );
+    ) || [];
+    const topCompany = filteredCompanies.length > 0 
+      ? filteredCompanies.reduce((max, c) => c.ticketCount > max.ticketCount ? c : max, filteredCompanies[0])
+      : null;
     const topCompanyName = topCompany 
       ? getCompanyName(topCompany.companyId)
       : '-';
