@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Shell } from "@/components/layout/shell";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -32,6 +32,7 @@ import "driver.js/dist/driver.css";
 
 export default function SyncPerformancePage() {
   const queryClient = useQueryClient();
+  const [showLowPerformersOnly, setShowLowPerformersOnly] = useState(false);
 
   const { data: syncPerfResponse, isLoading, isError, refetch } = useQuery({
     queryKey: ['sync-performance'],
@@ -76,6 +77,15 @@ export default function SyncPerformancePage() {
             popover: {
               title: '🎉 Welcome to Sync Performance!',
               description: 'Track organization sync reliability and usability scores from the last 6 months. This helps identify platform stability issues.',
+              side: "bottom",
+              align: 'start'
+            }
+          },
+          {
+            element: '#sync-perf-cards',
+            popover: {
+              title: '📊 Key Metrics Overview',
+              description: 'Quick summary calculated from Metabase data: total organizations, average success rates, and usability scores. Click "Low Performers" to drill down to organizations with score < 50%.',
               side: "bottom",
               align: 'start'
             }
@@ -158,15 +168,78 @@ export default function SyncPerformancePage() {
             </CardContent>
           </Card>
         ) : (
-          <Card id="sync-perf-table">
+          <>
+            <div id="sync-perf-cards" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="Total Organizations"
+                value={syncPerfData.totals.totalOrganisations}
+                subtitle="Production orgs"
+                icon={Building2}
+                tooltipKey="sync_perf.total_orgs"
+                variant="info"
+              />
+
+              <StatCard
+                title="Avg Success Rate"
+                value={`${syncPerfData.totals.avgSuccessRate.toFixed(1)}%`}
+                subtitle="Successful syncs"
+                icon={CheckCircle2}
+                tooltipKey="sync_perf.avg_success"
+                variant="success"
+              />
+
+              <StatCard
+                title="Avg Usability Score"
+                value={`${syncPerfData.totals.avgUsabilityScore.toFixed(1)}%`}
+                subtitle="Overall health"
+                icon={TrendingUp}
+                tooltipKey="sync_perf.avg_usability"
+                variant={syncPerfData.totals.avgUsabilityScore >= 70 ? "success" : "warning"}
+              />
+
+              <StatCard
+                title="Low Performers"
+                value={lowPerformers}
+                subtitle="Score < 50%"
+                icon={AlertCircle}
+                tooltipKey="sync_perf.low_performers"
+                variant={lowPerformers > 0 ? "error" : "success"}
+                onClick={() => {
+                  setShowLowPerformersOnly(!showLowPerformersOnly);
+                  toast.info(showLowPerformersOnly ? "Showing all organizations" : `Showing ${lowPerformers} low performers`);
+                }}
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+              />
+            </div>
+
+            <Card id="sync-perf-table">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Sync Performance by Organization
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Organizations ranked by sync volume - lower rank indicates fewer syncs
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Sync Performance by Organization
+                      {showLowPerformersOnly && (
+                        <Badge variant="destructive" className="ml-2">Low Performers Only</Badge>
+                      )}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {showLowPerformersOnly 
+                        ? `Showing ${lowPerformers} organizations with usability score < 50%`
+                        : "Organizations ranked by sync volume - lower rank indicates fewer syncs"
+                      }
+                    </p>
+                  </div>
+                  {showLowPerformersOnly && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowLowPerformersOnly(false)}
+                    >
+                      Show All
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {syncPerfData.byOrganisation && syncPerfData.byOrganisation.length > 0 ? (
@@ -184,7 +257,9 @@ export default function SyncPerformancePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {syncPerfData.byOrganisation.map((org: any) => (
+                        {syncPerfData.byOrganisation
+                          .filter((org: any) => !showLowPerformersOnly || org.usabilityScore < 50)
+                          .map((org: any) => (
                           <TableRow key={org.organisationName}>
                             <TableCell className="font-medium text-muted-foreground">
                               {org.rank}
@@ -226,6 +301,7 @@ export default function SyncPerformancePage() {
                 Snapshot ID: {syncPerfData.snapshotId}
               </div>
             </Card>
+          </>
         )}
       </div>
     </Shell>
