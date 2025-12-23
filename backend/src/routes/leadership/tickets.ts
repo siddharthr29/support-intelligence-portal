@@ -9,6 +9,9 @@ import { getPrismaClient } from '../../persistence/prisma-client';
  * Provides recent ticket data for CSV export and table display
  */
 
+// Healthchecks company ID to exclude
+const HEALTHCHECKS_COMPANY_ID = BigInt(36000989803);
+
 export async function registerTicketRoutes(fastify: FastifyInstance): Promise<void> {
   
   // Get last 30 tickets (for both leadership and support engineers)
@@ -36,9 +39,12 @@ export async function registerTicketRoutes(fastify: FastifyInstance): Promise<vo
         },
       });
 
-      // Filter out HEALTHCHECK tickets and take only 30
+      // Filter out HEALTHCHECK tickets and Healthchecks company, then take only 30
       const tickets = allTickets
-        .filter(ticket => !ticket.tags.some(tag => tag.toUpperCase() === 'HEALTHCHECK'))
+        .filter(ticket => 
+          !ticket.tags.some(tag => tag.toUpperCase() === 'HEALTHCHECK') &&
+          ticket.companyId !== HEALTHCHECKS_COMPANY_ID
+        )
         .slice(0, 30);
 
       // Get company names
