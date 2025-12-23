@@ -296,7 +296,12 @@ export class MetabaseReadOnlyClient {
   ): SyncPerformanceMetrics {
     const byOrganisation: SyncPerformanceOrganisationMetrics[] = [];
 
-    logger.info({ rawRowCount: rawRows.length, firstRow: rawRows[0] }, 'Parsing sync performance metrics from Metabase');
+    logger.info({ 
+      rawRowCount: rawRows.length, 
+      firstRow: rawRows[0],
+      firstRowLength: rawRows[0]?.length,
+      sampleRows: rawRows.slice(0, 3)
+    }, 'Parsing sync performance metrics from Metabase');
 
     const parseNumber = (val: string | number | undefined): number => {
       if (val === undefined || val === null) return 0;
