@@ -74,17 +74,8 @@ export default function SyncPerformancePage() {
           {
             element: '#sync-perf-header',
             popover: {
-              title: '🎉 New Feature: Usability & Sync Status',
-              description: 'Welcome to the new Sync Performance dashboard! Track organization sync reliability and usability metrics from the last 6 months.',
-              side: "bottom",
-              align: 'start'
-            }
-          },
-          {
-            element: '#sync-perf-cards',
-            popover: {
-              title: '📊 Key Metrics Overview',
-              description: 'Get a quick snapshot of total organizations, average success rate, usability score, and low performers at a glance.',
+              title: '🎉 Welcome to Sync Performance!',
+              description: 'Track organization sync reliability and usability scores from the last 6 months. This helps identify platform stability issues.',
               side: "bottom",
               align: 'start'
             }
@@ -92,8 +83,8 @@ export default function SyncPerformancePage() {
           {
             element: '#sync-perf-table',
             popover: {
-              title: '📋 Detailed Organization Data',
-              description: 'View comprehensive sync performance data for each organization including total syncs, success rates, and usability scores. Organizations are ranked by sync volume.',
+              title: '📋 Organization Performance Table',
+              description: 'View sync performance for each organization: total syncs, success/failure counts, success rate, and usability score. Organizations are ranked by sync volume (lower rank = fewer syncs).',
               side: "top",
               align: 'start'
             }
@@ -102,7 +93,7 @@ export default function SyncPerformancePage() {
             element: '#sync-perf-refresh',
             popover: {
               title: '🔄 Refresh Data',
-              description: 'Click here to fetch the latest sync performance metrics from Metabase anytime.',
+              description: 'Click here to fetch the latest sync performance metrics from Metabase. Data is cached for 30 minutes.',
               side: "left",
               align: 'start'
             }
@@ -167,46 +158,7 @@ export default function SyncPerformancePage() {
             </CardContent>
           </Card>
         ) : (
-          <>
-            <div id="sync-perf-cards" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                title="Total Organizations"
-                value={syncPerfData.totals.totalOrganisations}
-                subtitle="Production orgs"
-                icon={Building2}
-                tooltipKey="sync_perf.total_orgs"
-                variant="info"
-              />
-
-              <StatCard
-                title="Avg Success Rate"
-                value={`${syncPerfData.totals.avgSuccessRate.toFixed(1)}%`}
-                subtitle="Successful syncs"
-                icon={CheckCircle2}
-                tooltipKey="sync_perf.avg_success"
-                variant="success"
-              />
-
-              <StatCard
-                title="Avg Usability Score"
-                value={`${syncPerfData.totals.avgUsabilityScore.toFixed(1)}%`}
-                subtitle="Overall health"
-                icon={TrendingUp}
-                tooltipKey="sync_perf.avg_usability"
-                variant={syncPerfData.totals.avgUsabilityScore >= 70 ? "success" : "warning"}
-              />
-
-              <StatCard
-                title="Low Performers"
-                value={lowPerformers}
-                subtitle="Score < 50%"
-                icon={AlertCircle}
-                tooltipKey="sync_perf.low_performers"
-                variant={lowPerformers > 0 ? "error" : "success"}
-              />
-            </div>
-
-            <Card id="sync-perf-table">
+          <Card id="sync-perf-table">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="h-5 w-5" />
@@ -268,14 +220,12 @@ export default function SyncPerformancePage() {
                   </div>
                 )}
               </CardContent>
+              <div className="px-6 pb-4 text-xs text-muted-foreground text-center">
+                Last fetched: {new Date(syncPerfData.fetchedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                {' • '}
+                Snapshot ID: {syncPerfData.snapshotId}
+              </div>
             </Card>
-
-            <div className="text-xs text-muted-foreground text-center">
-              Last fetched: {new Date(syncPerfData.fetchedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
-              {' • '}
-              Snapshot ID: {syncPerfData.snapshotId}
-            </div>
-          </>
         )}
       </div>
     </Shell>
