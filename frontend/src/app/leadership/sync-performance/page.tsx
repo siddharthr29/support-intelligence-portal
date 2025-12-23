@@ -32,14 +32,21 @@ import {
   AlertCircle, 
   TrendingUp, 
   CheckCircle2,
-  Building2
+  Building2,
+  TrendingDown,
+  Minus,
+  ArrowUpRight,
+  ArrowDownRight,
+  Filter
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
+import { Cell, Pie, PieChart, ResponsiveContainer, Legend, Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 export default function LeadershipSyncPerformancePage() {
   const queryClient = useQueryClient();
   const [showLowPerformersOnly, setShowLowPerformersOnly] = useState(false);
+  const [performanceFilter, setPerformanceFilter] = useState<string>('all');
 
   const { data: syncPerfResponse, isLoading, isError, refetch } = useQuery({
     queryKey: ['sync-performance'],
@@ -70,7 +77,43 @@ export default function LeadershipSyncPerformancePage() {
     return "destructive";
   };
 
+  const getPerformanceStatusColor = (status: string) => {
+    if (status?.includes('Excellent')) return 'bg-green-100 text-green-800 border-green-300';
+    if (status?.includes('Good')) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    if (status?.includes('Fair')) return 'bg-orange-100 text-orange-800 border-orange-300';
+    if (status?.includes('Needs Attention')) return 'bg-red-100 text-red-800 border-red-300';
+    return 'bg-gray-100 text-gray-800 border-gray-300';
+  };
+
+  const getHealthStatusIcon = (status: string) => {
+    if (status?.includes('Healthy Growth')) return <ArrowUpRight className="h-4 w-4 text-green-600" />;
+    if (status?.includes('Stable')) return <Minus className="h-4 w-4 text-blue-600" />;
+    if (status?.includes('Drop')) return <ArrowDownRight className="h-4 w-4 text-red-600" />;
+    return <Minus className="h-4 w-4 text-gray-600" />;
+  };
+
   const lowPerformers = syncPerfData?.byOrganisation?.filter((org: any) => org.usabilityScore < 50).length || 0;
+  
+  // Performance distribution for pie chart
+  const performanceDistribution = syncPerfData?.byOrganisation?.reduce((acc: any, org: any) => {
+    const status = org.performanceStatus || 'Unknown';
+    const key = status.replace(/[🟢🟡🟠🔴]/g, '').trim();
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const pieData = performanceDistribution ? Object.entries(performanceDistribution).map(([name, value]) => ({
+    name,
+    value,
+    color: name === 'Excellent' ? '#22c55e' : name === 'Good' ? '#eab308' : name === 'Fair' ? '#f97316' : '#ef4444'
+  })) : [];
+
+  // Filter organizations based on performance filter
+  const filteredOrgs = syncPerfData?.byOrganisation?.filter((org: any) => {
+    if (showLowPerformersOnly && org.usabilityScore >= 50) return false;
+    if (performanceFilter === 'all') return true;
+    return org.performanceStatus?.includes(performanceFilter);
+  }) || [];
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('sync-performance-tour-seen');
@@ -221,6 +264,93 @@ export default function LeadershipSyncPerformancePage() {
               />
             </div>
 
+            {/* Performance Distribution Chart */}
+            {pieData.length > 0 && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Performance Distribution
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Organizations by performance status
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {pieData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Filter className="h-5 w-5" />
+                      Filter by Performance
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Quick filters for performance status
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button
+                      variant={performanceFilter === 'all' ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setPerformanceFilter('all')}
+                    >
+                      All Organizations ({syncPerfData.byOrganisation?.length || 0})
+                    </Button>
+                    <Button
+                      variant={performanceFilter === 'Excellent' ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setPerformanceFilter('Excellent')}
+                    >
+                      🟢 Excellent ({pieData.find((d: any) => d.name === 'Excellent')?.value || 0})
+                    </Button>
+                    <Button
+                      variant={performanceFilter === 'Good' ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setPerformanceFilter('Good')}
+                    >
+                      🟡 Good ({pieData.find((d: any) => d.name === 'Good')?.value || 0})
+                    </Button>
+                    <Button
+                      variant={performanceFilter === 'Fair' ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setPerformanceFilter('Fair')}
+                    >
+                      🟠 Fair ({pieData.find((d: any) => d.name === 'Fair')?.value || 0})
+                    </Button>
+                    <Button
+                      variant={performanceFilter === 'Needs Attention' ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setPerformanceFilter('Needs Attention')}
+                    >
+                      🔴 Needs Attention ({pieData.find((d: any) => d.name === 'Needs Attention')?.value || 0})
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             <Card id="sync-perf-table">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -231,21 +361,24 @@ export default function LeadershipSyncPerformancePage() {
                       {showLowPerformersOnly && (
                         <Badge variant="destructive" className="ml-2">Low Performers Only</Badge>
                       )}
+                      {performanceFilter !== 'all' && (
+                        <Badge variant="secondary" className="ml-2">{performanceFilter} Only</Badge>
+                      )}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {showLowPerformersOnly 
-                        ? `Showing ${lowPerformers} organizations with usability score < 50%`
-                        : "Organizations ranked by sync volume - lower rank indicates fewer syncs"
-                      }
+                      Showing {filteredOrgs.length} of {syncPerfData.byOrganisation?.length || 0} organizations
                     </p>
                   </div>
-                  {showLowPerformersOnly && (
+                  {(showLowPerformersOnly || performanceFilter !== 'all') && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowLowPerformersOnly(false)}
+                      onClick={() => {
+                        setShowLowPerformersOnly(false);
+                        setPerformanceFilter('all');
+                      }}
                     >
-                      Show All
+                      Clear Filters
                     </Button>
                   )}
                 </div>
@@ -350,9 +483,7 @@ export default function LeadershipSyncPerformancePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {syncPerfData.byOrganisation
-                          .filter((org: any) => !showLowPerformersOnly || org.usabilityScore < 50)
-                          .map((org: any) => (
+                        {filteredOrgs.map((org: any) => (
                           <TableRow key={org.organisationName}>
                             <TableCell className="text-center font-medium text-muted-foreground">
                               {org.rank}
