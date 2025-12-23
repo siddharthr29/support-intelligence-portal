@@ -21,6 +21,20 @@ export default function MonthlyReportPage() {
             icon={CalendarDays}
           />
 
+          {/* Auto-generation Note */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <CalendarDays className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900 mb-1">📅 Automated Monthly Report Generation</p>
+                <p className="text-blue-700">
+                  Reports are automatically regenerated on the <strong>last day of every month at 9:00 PM IST</strong> with the latest data. 
+                  All tickets are refetched to ensure accuracy. Only <strong>Product Support</strong> and <strong>Support Engineer</strong> group tickets are included.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <Suspense fallback={
             <div className="flex items-center justify-center h-64 bg-white rounded-xl border">
               <div className="text-center">

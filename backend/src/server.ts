@@ -5,7 +5,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { config, validateSecrets } from './config';
 import { logger, isAppError, toErrorMessage } from './utils';
-import { startWeeklyScheduler, stopWeeklyScheduler, isSchedulerRunning, isIngestionJobRunning } from './jobs';
+import { startWeeklyScheduler, stopWeeklyScheduler, isSchedulerRunning, isIngestionJobRunning, startMonthlyReportScheduler, stopMonthlyReportScheduler } from './jobs';
 import { startYearlyCleanupScheduler, stopYearlyCleanupScheduler } from './jobs/yearly-cleanup';
 import { connectPrisma, disconnectPrisma } from './persistence';
 import { registerRoutes } from './routes';
@@ -47,32 +47,7 @@ async function bootstrap(): Promise<void> {
       logger.warn('Firebase credentials not configured - authentication disabled in development');
     }
 
-    // PERFORMANCE: Enable compression for all responses
-    await fastify.register(compress, {
-      global: true,
-      encodings: ['gzip', 'deflate'],
-      threshold: 1024, // Only compress responses > 1KB
-    });
-
-    // SECURITY: Helmet for security headers (disabled CSP for API server)
-    await fastify.register(helmet, {
-      contentSecurityPolicy: false, // API server doesn't need CSP
-      crossOriginEmbedderPolicy: false,
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-    });
-
-    // SECURITY: Global rate limiting
-    await fastify.register(rateLimit, {
-      max: 100, // 100 requests per minute
-      timeWindow: '1 minute',
-      errorResponseBuilder: () => ({
-        success: false,
-        error: 'Too many requests. Please slow down.',
-        statusCode: 429,
-      }),
-    });
-
-    // CORS configuration - supports multiple frontend URLs in production
+    // CORS configuration - MUST BE REGISTERED FIRST before helmet
     const getAllowedOrigins = (): string[] | boolean => {
       if (process.env.NODE_ENV !== 'production') {
         return true; // Allow all in development
@@ -101,8 +76,37 @@ async function bootstrap(): Promise<void> {
     await fastify.register(cors, {
       origin: getAllowedOrigins(),
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+      exposedHeaders: ['Content-Length', 'Content-Type'],
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+    });
+
+    // PERFORMANCE: Enable compression for all responses
+    await fastify.register(compress, {
+      global: true,
+      encodings: ['gzip', 'deflate'],
+      threshold: 1024, // Only compress responses > 1KB
+    });
+
+    // SECURITY: Helmet for security headers (disabled CSP for API server)
+    await fastify.register(helmet, {
+      contentSecurityPolicy: false, // API server doesn't need CSP
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: false, // Disable to allow CORS
+    });
+
+    // SECURITY: Global rate limiting
+    await fastify.register(rateLimit, {
+      max: 100, // 100 requests per minute
+      timeWindow: '1 minute',
+      errorResponseBuilder: () => ({
+        success: false,
+        error: 'Too many requests. Please slow down.',
+        statusCode: 429,
+      }),
     });
 
     // SECURITY: Add security headers to all responses
@@ -208,6 +212,7 @@ async function bootstrap(): Promise<void> {
 
     startWeeklyScheduler();
     startYearlyCleanupScheduler();
+    startMonthlyReportScheduler();
 
     const address = await fastify.listen({
       port: config.port,
