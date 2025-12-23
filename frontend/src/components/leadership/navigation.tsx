@@ -33,8 +33,8 @@ export function LeadershipNavigation() {
         { label: 'Partners', href: '/leadership/partners', icon: Users },
         { label: 'Metrics', href: '/leadership/metrics', icon: Activity },
         { label: 'Trends', href: '/leadership/trends', icon: TrendingUp },
-        { label: 'RFT Metrics', href: '/rft', icon: Activity },
-        { label: 'Sync Performance', href: '/sync-performance', icon: Activity },
+        { label: 'RFT Metrics', href: '/leadership/rft', icon: Activity },
+        { label: 'Sync Performance', href: '/leadership/sync-performance', icon: Activity },
       ]
     },
     { 
