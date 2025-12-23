@@ -157,15 +157,27 @@ async function checkForUrgentTickets(): Promise<void> {
     
     logger.info({ ticketCount: tickets.length }, 'Fetched urgent tickets from Freshdesk');
 
+    // Only notify tickets created in the last 5 minutes
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
     // Process each urgent ticket
     for (const ticket of tickets) {
-      // Skip if already notified
+      // Skip if already notified (in-memory deduplication)
       if (notifiedTickets.has(ticket.id)) {
+        logger.debug({ ticketId: ticket.id }, 'Ticket already notified, skipping');
         continue;
       }
 
       // Skip if ticket is closed or resolved
       if (ticket.status === 4 || ticket.status === 5) {
+        continue;
+      }
+
+      // CRITICAL: Only notify if ticket was created in the last 5 minutes
+      // This prevents re-notifying old tickets on server restart
+      const ticketCreatedAt = new Date(ticket.created_at).getTime();
+      if (ticketCreatedAt < fiveMinutesAgo) {
+        logger.debug({ ticketId: ticket.id, createdAt: ticket.created_at }, 'Ticket too old, skipping notification');
         continue;
       }
 
@@ -175,7 +187,7 @@ async function checkForUrgentTickets(): Promise<void> {
       if (sent) {
         // Mark as notified
         notifiedTickets.add(ticket.id);
-        logger.info({ ticketId: ticket.id }, 'Urgent ticket notification sent and tracked');
+        logger.info({ ticketId: ticket.id, createdAt: ticket.created_at }, 'Urgent ticket notification sent and tracked');
       }
     }
 
