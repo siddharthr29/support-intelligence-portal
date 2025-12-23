@@ -11,6 +11,9 @@ import {
   isSchedulerRunning,
   isIngestionJobRunning,
   startMonthlyReportScheduler,
+  stopMonthlyReportScheduler,
+  startDailySyncPerformanceRefresh,
+  stopDailySyncPerformanceRefresh,
 } from './jobs';
 import { startYearlyCleanupScheduler, stopYearlyCleanupScheduler } from './jobs/yearly-cleanup';
 import { startDailyRftRefresh, stopDailyRftRefresh } from './jobs/daily-rft-refresh';
