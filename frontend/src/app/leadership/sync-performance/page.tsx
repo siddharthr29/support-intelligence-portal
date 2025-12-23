@@ -323,28 +323,28 @@ export default function LeadershipSyncPerformancePage() {
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Excellent')}
                     >
-                      {`🟢 Excellent (${pieData.find((d: any) => d.name === 'Excellent')?.value || 0})`}
+                      🟢 Excellent ({pieData.find((d: any) => d.name === 'Excellent')?.value ?? 0})
                     </Button>
                     <Button
                       variant={performanceFilter === 'Good' ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Good')}
                     >
-                      {`🟡 Good (${pieData.find((d: any) => d.name === 'Good')?.value || 0})`}
+                      🟡 Good ({pieData.find((d: any) => d.name === 'Good')?.value ?? 0})
                     </Button>
                     <Button
                       variant={performanceFilter === 'Fair' ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Fair')}
                     >
-                      {`🟠 Fair (${pieData.find((d: any) => d.name === 'Fair')?.value || 0})`}
+                      🟠 Fair ({pieData.find((d: any) => d.name === 'Fair')?.value ?? 0})
                     </Button>
                     <Button
                       variant={performanceFilter === 'Needs Attention' ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => setPerformanceFilter('Needs Attention')}
                     >
-                      {`🔴 Needs Attention (${pieData.find((d: any) => d.name === 'Needs Attention')?.value || 0})`}
+                      🔴 Needs Attention ({pieData.find((d: any) => d.name === 'Needs Attention')?.value ?? 0})
                     </Button>
                   </CardContent>
                 </Card>
@@ -507,6 +507,44 @@ export default function LeadershipSyncPerformancePage() {
                               <Badge variant={getUsabilityBadgeVariant(org.usabilityScore || 0)}>
                                 {org.usabilityScore?.toFixed(1) || 0}%
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {org.performanceStatus && (
+                                <Badge className={getPerformanceStatusColor(org.performanceStatus)}>
+                                  {org.performanceStatus}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {org.healthStatus && getHealthStatusIcon(org.healthStatus)}
+                                <span className="text-xs">{org.healthStatus}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">{org.avgReliability?.toFixed(1) ?? '-'}%</TableCell>
+                            <TableCell className="text-right">{org.totalUsage6M?.toLocaleString() ?? '-'}</TableCell>
+                            <TableCell className="text-center text-xs font-medium">{org.monthM2Name ?? '-'}</TableCell>
+                            <TableCell className="text-right">{org.monthM2Reliability?.toFixed(1) ?? '-'}%</TableCell>
+                            <TableCell className="text-right">{org.monthM2Usage?.toLocaleString() ?? '-'}</TableCell>
+                            <TableCell className="text-center text-xs font-medium">{org.monthM1Name ?? '-'}</TableCell>
+                            <TableCell className="text-right">{org.monthM1Reliability?.toFixed(1) ?? '-'}%</TableCell>
+                            <TableCell className="text-right">{org.monthM1Usage?.toLocaleString() ?? '-'}</TableCell>
+                            <TableCell className="text-center text-xs font-medium">{org.monthCurrentName ?? '-'}</TableCell>
+                            <TableCell className="text-right">{org.monthCurrentReliability?.toFixed(1) ?? '-'}%</TableCell>
+                            <TableCell className="text-right">{org.monthCurrentUsage?.toLocaleString() ?? '-'}</TableCell>
+                            <TableCell className="text-right">
+                              {org.reliabilityDelta !== null && org.reliabilityDelta !== undefined ? (
+                                <span className={org.reliabilityDelta >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                  {org.reliabilityDelta > 0 ? '+' : ''}{org.reliabilityDelta.toFixed(2)}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {org.usageDeltaPct !== null && org.usageDeltaPct !== undefined ? (
+                                <span className={org.usageDeltaPct >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                  {org.usageDeltaPct > 0 ? '+' : ''}{org.usageDeltaPct.toFixed(2)}%
+                                </span>
+                              ) : '-'}
                             </TableCell>
                           </TableRow>
                         ))}
