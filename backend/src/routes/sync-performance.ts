@@ -13,6 +13,15 @@ interface SyncPerformanceQueryParams {
 }
 
 export async function registerSyncPerformanceRoutes(fastify: FastifyInstance): Promise<void> {
+  // Explicit OPTIONS handler for CORS preflight
+  fastify.options('/api/sync-performance', async (_request, reply) => {
+    return reply.status(204).send();
+  });
+
+  fastify.options('/api/sync-performance/fetch', async (_request, reply) => {
+    return reply.status(204).send();
+  });
+
   fastify.get<{ Querystring: SyncPerformanceQueryParams }>(
     '/api/sync-performance',
     async (request: FastifyRequest<{ Querystring: SyncPerformanceQueryParams }>, reply: FastifyReply) => {
@@ -71,14 +80,31 @@ export async function registerSyncPerformanceRoutes(fastify: FastifyInstance): P
   fastify.post<{ Querystring: { force?: string } }>(
     '/api/sync-performance/fetch',
     async (request, reply) => {
+      // Timeout protection - fail fast after 25 seconds
+      const timeoutId = setTimeout(() => {
+        if (!reply.sent) {
+          logger.error('Sync performance fetch timeout - returning error');
+          reply.status(504).send({
+            success: false,
+            error: 'Request timeout - Metabase took too long to respond',
+            type: 'timeout_error',
+          });
+        }
+      }, 25000);
+
       try {
         const forceRefresh = request.query.force === 'true';
+        
+        logger.info({ forceRefresh }, 'Starting sync performance fetch from Metabase');
+        
         const client = createMetabaseClient();
         const metrics = await client.getSyncPerformanceMetrics();
 
         const snapshotId = `sync_perf_${new Date().toISOString().split('T')[0].replace(/-/g, '')}`;
 
         const result = await writeSyncPerformanceSnapshot(snapshotId, metrics, forceRefresh);
+
+        clearTimeout(timeoutId);
 
         if (result.alreadyExists && !forceRefresh) {
           return reply.send({
@@ -95,8 +121,19 @@ export async function registerSyncPerformanceRoutes(fastify: FastifyInstance): P
           totals: metrics.totals,
         });
       } catch (error) {
+        clearTimeout(timeoutId);
+        
         logger.error({ error }, 'Failed to fetch sync performance data from Metabase');
-        throw error;
+        
+        // CRITICAL: Always return JSON response, never throw
+        if (!reply.sent) {
+          return reply.status(500).send({
+            success: false,
+            error: 'Failed to fetch sync performance data',
+            type: 'internal_error',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
       }
     }
   );

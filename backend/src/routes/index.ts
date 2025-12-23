@@ -5,6 +5,7 @@ import { registerSyncPerformanceRoutes } from './sync-performance';
 import { registerNotesRoutes } from './notes';
 import { registerIngestionRoutes } from './ingestion';
 import { registerCompaniesRoutes } from './companies';
+import { registerFreshdeskWebhookRoutes } from './freshdesk-webhook';
 import { registerEngineerHoursRoutes } from './engineer-hours';
 import { registerSettingsRoutes } from './settings';
 import { registerGoogleSheetsRoutes } from './google-sheets';
@@ -34,6 +35,7 @@ export async function registerRoutes(fastify: FastifyInstance): Promise<void> {
   await registerNotesRoutes(fastify);
   await registerIngestionRoutes(fastify);
   await registerCompaniesRoutes(fastify);
+  await registerFreshdeskWebhookRoutes(fastify);
   await registerEngineerHoursRoutes(fastify);
   await registerSettingsRoutes(fastify);
   await registerGoogleSheetsRoutes(fastify);
