@@ -23,6 +23,7 @@ interface StatCardProps {
   };
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
   className?: string;
+  onClick?: () => void;
 }
 
 const variantStyles = {
@@ -73,6 +74,7 @@ export function StatCard({
   trend,
   variant = 'default',
   className,
+  onClick,
 }: StatCardProps) {
   const styles = variantStyles[variant];
 
@@ -83,8 +85,10 @@ export function StatCard({
         'hover:shadow-md',
         styles.bg,
         styles.border,
+        onClick && 'cursor-pointer',
         className
       )}
+      onClick={onClick}
     >
       <CardContent className="p-4 sm:p-6">
         {/* Header */}
