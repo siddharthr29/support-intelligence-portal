@@ -14,6 +14,7 @@ import {
 } from './jobs';
 import { startYearlyCleanupScheduler, stopYearlyCleanupScheduler } from './jobs/yearly-cleanup';
 import { startDailyRftRefresh, stopDailyRftRefresh } from './jobs/daily-rft-refresh';
+import { startUrgentTicketMonitor, stopUrgentTicketMonitor } from './jobs/urgent-ticket-monitor';
 import { connectPrisma, disconnectPrisma } from './persistence';
 import { registerRoutes } from './routes';
 import { logError } from './services/error-log-service';
@@ -246,6 +247,7 @@ async function shutdown(): Promise<void> {
   stopWeeklyScheduler();
   stopYearlyCleanupScheduler();
   stopDailyRftRefresh();
+  stopUrgentTicketMonitor();
   await fastify.close();
   await disconnectPrisma();
 
