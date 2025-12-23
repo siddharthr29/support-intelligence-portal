@@ -125,14 +125,16 @@ async function checkForUrgentTickets(): Promise<void> {
   try {
     const client = createFreshdeskClient();
     
-    // Fetch tickets updated in the last 5 minutes with urgent priority
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString().split('T')[0];
+    // Fetch tickets created in the last 24 hours with urgent priority
+    // We rely on notifiedTickets Set to prevent duplicates, not the time window
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     logger.info('Checking for urgent tickets...');
     
     // Use Freshdesk search API with proper query format
-    // Query: priority:4 AND updated_at:>YYYY-MM-DD
-    const query = encodeURIComponent(`priority:4 AND updated_at:>'${fiveMinutesAgo}'`);
+    // Query: priority:4 AND created_at:>YYYY-MM-DD
+    // Using created_at instead of updated_at to catch new urgent tickets
+    const query = encodeURIComponent(`priority:4 AND created_at:>'${oneDayAgo}'`);
     const response = await fetch(
       `https://${config.freshdesk.domain}/api/v2/search/tickets?query="${query}"`,
       {
