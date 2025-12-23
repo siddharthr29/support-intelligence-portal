@@ -62,25 +62,15 @@ async function saveEngineerHour(data: {
 function isCurrentWeekUnlocked(): boolean {
   const now = new Date();
   const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  const dayOfWeek = istTime.getDay(); // 5 = Friday
+  const dayOfWeek = istTime.getDay(); // 0 = Sunday, 5 = Friday
   const hours = istTime.getHours();
   
-  // Unlocked from Friday 1 PM onwards (no upper time limit)
+  // Only unlock on Friday from 1 PM IST onwards
   if (dayOfWeek === 5 && hours >= 13) {
     return true;
   }
   
-  // Unlocked on Saturday and Sunday (weekend grace period)
-  if (dayOfWeek === 6 || dayOfWeek === 0) {
-    return true;
-  }
-  
-  // Unlocked on Monday-Thursday (stays unlocked until filled)
-  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
-    return true;
-  }
-  
-  // Locked before Friday 1 PM
+  // Locked for all other days (Mon-Thu, Sat-Sun, and Friday before 1 PM)
   return false;
 }
 
@@ -91,10 +81,8 @@ function getTimeUntilUnlock(): string {
   const dayOfWeek = istTime.getDay();
   const hours = istTime.getHours();
   
-  // If currently unlocked
+  // Only unlock on Friday 1PM IST onwards
   if (dayOfWeek === 5 && hours >= 13) return 'Unlocked';
-  if (dayOfWeek === 6 || dayOfWeek === 0) return 'Unlocked';
-  if (dayOfWeek >= 1 && dayOfWeek <= 4) return 'Unlocked';
   
   // Calculate next Friday 1PM IST
   let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
