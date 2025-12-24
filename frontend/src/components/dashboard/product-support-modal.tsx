@@ -141,7 +141,7 @@ export function ProductSupportModal({
       new Date(ticket.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
       new Date(ticket.updated_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
       ticket.tags.join('; '),
-      `https://avniproject.freshdesk.com/a/tickets/${ticket.id}`,
+      `https://avni.freshdesk.com/a/tickets/${ticket.id}`,
     ]);
 
     const csv = [
@@ -321,7 +321,7 @@ export function ProductSupportModal({
                       </td>
                       <td className="px-4 py-3">
                         <a
-                          href={`https://avniproject.freshdesk.com/a/tickets/${ticket.id}`}
+                          href={`https://avni.freshdesk.com/a/tickets/${ticket.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
