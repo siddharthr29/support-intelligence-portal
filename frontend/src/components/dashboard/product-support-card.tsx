@@ -6,27 +6,28 @@ import { ProductSupportModal, ProductSupportTicket } from './product-support-mod
 import { Users } from 'lucide-react';
 
 interface ProductSupportCardProps {
-  assignedCount: number;
+  totalCount: number;
+  openCount: number;
+  pendingCount: number;
+  resolvedCount: number;
   closedCount: number;
-  assignedTickets: ProductSupportTicket[];
-  closedTickets: ProductSupportTicket[];
+  allTickets: ProductSupportTicket[];
   getCompanyName: (companyId: number) => string;
   isLoading?: boolean;
   trend?: {
-    currentMonthAssigned: number;
-    previousMonthAssigned: number;
-    currentMonthClosed: number;
-    previousMonthClosed: number;
-    assignedChange: number;
-    closedChange: number;
+    currentMonthTotal: number;
+    previousMonthTotal: number;
+    totalChange: number;
   };
 }
 
 export function ProductSupportCard({
-  assignedCount,
+  totalCount,
+  openCount,
+  pendingCount,
+  resolvedCount,
   closedCount,
-  assignedTickets,
-  closedTickets,
+  allTickets,
   getCompanyName,
   isLoading = false,
   trend,
@@ -45,26 +46,26 @@ export function ProductSupportCard({
     );
   }
 
-  // Build subtitle with trend
-  let subtitle = `${assignedCount} assigned, ${closedCount} closed`;
-  if (trend && trend.assignedChange !== 0) {
-    const trendDirection = trend.assignedChange > 0 ? '↑' : '↓';
-    subtitle += ` (${trendDirection}${Math.abs(trend.assignedChange)}% MoM)`;
+  // Build subtitle with status breakdown and trend
+  let subtitle = `${openCount} open, ${pendingCount} pending, ${resolvedCount} resolved, ${closedCount} closed`;
+  if (trend && trend.totalChange !== 0) {
+    const trendDirection = trend.totalChange > 0 ? '↑' : '↓';
+    subtitle += ` (${trendDirection}${Math.abs(trend.totalChange)}% MoM)`;
   }
 
   return (
     <>
       <StatCard
         title="Product Support Group"
-        value={assignedCount}
+        value={totalCount}
         subtitle={subtitle}
         icon={Users}
         tooltipKey="product_support.overview"
         variant="info"
         onClick={() => setModalOpen(true)}
         trend={trend ? {
-          value: trend.assignedChange,
-          isPositive: trend.assignedChange < 0, // For support tickets, decrease is positive
+          value: trend.totalChange,
+          isPositive: trend.totalChange < 0, // For support tickets, decrease is positive
           label: 'vs last month'
         } : undefined}
       />
@@ -72,8 +73,7 @@ export function ProductSupportCard({
       <ProductSupportModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        assignedTickets={assignedTickets}
-        closedTickets={closedTickets}
+        allTickets={allTickets}
         getCompanyName={getCompanyName}
       />
     </>

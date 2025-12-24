@@ -28,17 +28,16 @@ export interface ProductSupportTicketDetail {
 }
 
 export interface ProductSupportMetrics {
-  assignedCount: number;
+  totalCount: number;
+  openCount: number;
+  pendingCount: number;
+  resolvedCount: number;
   closedCount: number;
-  assignedTickets: ProductSupportTicketDetail[];
-  closedTickets: ProductSupportTicketDetail[];
+  allTickets: ProductSupportTicketDetail[];
   trend?: {
-    currentMonthAssigned: number;
-    previousMonthAssigned: number;
-    currentMonthClosed: number;
-    previousMonthClosed: number;
-    assignedChange: number;
-    closedChange: number;
+    currentMonthTotal: number;
+    previousMonthTotal: number;
+    totalChange: number;
   };
 }
 
@@ -343,7 +342,7 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     return groups[groupId] || constantName;
   },
   
-  // Get Product Support metrics (assigned and closed tickets)
+  // Get Product Support metrics (all tickets from last 3 months)
   getProductSupportMetrics: () => {
     const { allTickets, getCompanyName } = get();
     const PRODUCT_SUPPORT_GROUP_ID = 36000098158;
@@ -360,33 +359,24 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
         createdAt >= threeMonthsAgo;
     });
     
-    const assignedTickets = productSupportTickets
-      .filter(t => t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING)
-      .map(t => ({
-        id: t.id,
-        subject: t.subject,
-        status: t.status,
-        priority: t.priority,
-        company_id: t.company_id,
-        company_name: getCompanyName(t.company_id || 0),
-        created_at: t.created_at,
-        updated_at: t.updated_at,
-        tags: t.tags,
-      }));
+    // Map all tickets with details
+    const allTicketsWithDetails = productSupportTickets.map(t => ({
+      id: t.id,
+      subject: t.subject,
+      status: t.status,
+      priority: t.priority,
+      company_id: t.company_id,
+      company_name: getCompanyName(t.company_id || 0),
+      created_at: t.created_at,
+      updated_at: t.updated_at,
+      tags: t.tags,
+    }));
     
-    const closedTickets = productSupportTickets
-      .filter(t => t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED)
-      .map(t => ({
-        id: t.id,
-        subject: t.subject,
-        status: t.status,
-        priority: t.priority,
-        company_id: t.company_id,
-        company_name: getCompanyName(t.company_id || 0),
-        created_at: t.created_at,
-        updated_at: t.updated_at,
-        tags: t.tags,
-      }));
+    // Count by status
+    const openCount = productSupportTickets.filter(t => t.status === FRESHDESK_STATUS.OPEN).length;
+    const pendingCount = productSupportTickets.filter(t => t.status === FRESHDESK_STATUS.PENDING).length;
+    const resolvedCount = productSupportTickets.filter(t => t.status === FRESHDESK_STATUS.RESOLVED).length;
+    const closedCount = productSupportTickets.filter(t => t.status === FRESHDESK_STATUS.CLOSED).length;
     
     // Calculate MoM trend
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -399,13 +389,7 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       return createdAt >= currentMonthStart;
     });
     
-    const currentMonthAssigned = currentMonthTickets.filter(t => 
-      t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING
-    ).length;
-    
-    const currentMonthClosed = currentMonthTickets.filter(t => 
-      t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED
-    ).length;
+    const currentMonthTotal = currentMonthTickets.length;
     
     // Previous month metrics
     const previousMonthTickets = productSupportTickets.filter(t => {
@@ -413,35 +397,24 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       return createdAt >= previousMonthStart && createdAt <= previousMonthEnd;
     });
     
-    const previousMonthAssigned = previousMonthTickets.filter(t => 
-      t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING
-    ).length;
-    
-    const previousMonthClosed = previousMonthTickets.filter(t => 
-      t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED
-    ).length;
+    const previousMonthTotal = previousMonthTickets.length;
     
     // Calculate percentage change
-    const assignedChange = previousMonthAssigned > 0 
-      ? Math.round(((currentMonthAssigned - previousMonthAssigned) / previousMonthAssigned) * 100)
-      : 0;
-    
-    const closedChange = previousMonthClosed > 0
-      ? Math.round(((currentMonthClosed - previousMonthClosed) / previousMonthClosed) * 100)
+    const totalChange = previousMonthTotal > 0 
+      ? Math.round(((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100)
       : 0;
     
     return {
-      assignedCount: assignedTickets.length,
-      closedCount: closedTickets.length,
-      assignedTickets,
-      closedTickets,
+      totalCount: productSupportTickets.length,
+      openCount,
+      pendingCount,
+      resolvedCount,
+      closedCount,
+      allTickets: allTicketsWithDetails,
       trend: {
-        currentMonthAssigned,
-        previousMonthAssigned,
-        currentMonthClosed,
-        previousMonthClosed,
-        assignedChange,
-        closedChange,
+        currentMonthTotal,
+        previousMonthTotal,
+        totalChange,
       },
     };
   },

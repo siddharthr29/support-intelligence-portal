@@ -34,12 +34,10 @@ export interface ProductSupportTicket {
 interface ProductSupportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  assignedTickets: ProductSupportTicket[];
-  closedTickets: ProductSupportTicket[];
+  allTickets: ProductSupportTicket[];
   getCompanyName: (companyId: number) => string;
 }
 
-type TabType = 'assigned' | 'closed';
 type StatusFilter = 'all' | 'open' | 'pending' | 'resolved' | 'closed';
 type PriorityFilter = 'all' | 'urgent' | 'high' | 'medium' | 'low';
 
@@ -86,17 +84,14 @@ const getPriorityBadgeClass = (priority: number): string => {
 export function ProductSupportModal({
   open,
   onOpenChange,
-  assignedTickets,
-  closedTickets,
+  allTickets,
   getCompanyName,
 }: ProductSupportModalProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('assigned');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
-  const [showFilters, setShowFilters] = useState(false);
 
-  const currentTickets = activeTab === 'assigned' ? assignedTickets : closedTickets;
+  const currentTickets = allTickets;
 
   const filteredTickets = useMemo(() => {
     let filtered = [...currentTickets];
@@ -158,7 +153,7 @@ export function ProductSupportModal({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `product_support_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `product_support_tickets_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -181,28 +176,9 @@ export function ProductSupportModal({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 flex-1 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex gap-2 border-b">
-            <button
-              onClick={() => setActiveTab('assigned')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'assigned'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Currently Assigned ({assignedTickets.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('closed')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'closed'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Closed ({closedTickets.length})
-            </button>
+          {/* Ticket Count */}
+          <div className="text-sm text-gray-600">
+            Showing {filteredTickets.length} of {allTickets.length} tickets
           </div>
 
           {/* Search and Filters */}
@@ -217,20 +193,17 @@ export function ProductSupportModal({
               />
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                Filters
-                {hasActiveFilters && (
-                  <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                    {[searchQuery ? 1 : 0, statusFilter !== 'all' ? 1 : 0, priorityFilter !== 'all' ? 1 : 0].reduce((a, b) => a + b, 0)}
-                  </Badge>
-                )}
-              </Button>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -244,8 +217,7 @@ export function ProductSupportModal({
           </div>
 
           {/* Filter Panel */}
-          {showFilters && (
-            <div className="bg-gray-50 border rounded-lg p-4 space-y-3">
+          <div className="bg-gray-50 border rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm">Filters</h4>
                 {hasActiveFilters && (
@@ -291,11 +263,6 @@ export function ProductSupportModal({
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Results Count */}
-          <div className="text-sm text-gray-600">
-            Showing {filteredTickets.length} of {currentTickets.length} tickets
           </div>
 
           {/* Table */}

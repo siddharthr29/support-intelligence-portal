@@ -268,10 +268,12 @@ export default function DashboardPage() {
 
             {/* Product Support Card - Separate Row */}
             <ProductSupportCard
-              assignedCount={productSupportMetrics.assignedCount}
+              totalCount={productSupportMetrics.totalCount}
+              openCount={productSupportMetrics.openCount}
+              pendingCount={productSupportMetrics.pendingCount}
+              resolvedCount={productSupportMetrics.resolvedCount}
               closedCount={productSupportMetrics.closedCount}
-              assignedTickets={productSupportMetrics.assignedTickets}
-              closedTickets={productSupportMetrics.closedTickets}
+              allTickets={productSupportMetrics.allTickets}
               getCompanyName={getCompanyName}
               isLoading={isStatsLoading}
               trend={productSupportMetrics.trend}

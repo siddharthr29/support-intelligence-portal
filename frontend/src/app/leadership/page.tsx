@@ -178,10 +178,12 @@ export default function LeadershipDashboard() {
 
         {/* Product Support Card */}
         <ProductSupportCard
-          assignedCount={productSupportMetrics.assignedCount}
+          totalCount={productSupportMetrics.totalCount}
+          openCount={productSupportMetrics.openCount}
+          pendingCount={productSupportMetrics.pendingCount}
+          resolvedCount={productSupportMetrics.resolvedCount}
           closedCount={productSupportMetrics.closedCount}
-          assignedTickets={productSupportMetrics.assignedTickets}
-          closedTickets={productSupportMetrics.closedTickets}
+          allTickets={productSupportMetrics.allTickets}
           getCompanyName={getCompanyName}
           isLoading={ticketsLoading}
           trend={productSupportMetrics.trend}
