@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Users, Clock, AlertTriangle, BarChart3 } from 'lucide-react';
 import { useLeadership } from '@/contexts/leadership-context';
+import { ProductSupportCard } from '@/components/dashboard/product-support-card';
+import { useTicketStore } from '@/stores/ticket-store';
 
 interface MetricsSummary {
   long_unresolved_blockers: number;
@@ -27,6 +29,9 @@ export default function LeadershipDashboard() {
   const { isInitialLoad, setIsInitialLoad, cachedData, setCachedData } = useLeadership();
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(isInitialLoad);
+  
+  // Get Product Support metrics from ticket store
+  const { getProductSupportMetrics, getCompanyName, fetchAllTickets, isLoading: ticketsLoading } = useTicketStore();
 
   const loadData = useCallback(async () => {
     const cacheKey = 'overview-metrics';
@@ -59,7 +64,8 @@ export default function LeadershipDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    fetchAllTickets();
+  }, [loadData, fetchAllTickets]);
 
   if (loading) {
     return (
@@ -93,6 +99,9 @@ export default function LeadershipDashboard() {
       icon: Clock,
     },
   ].filter(Boolean);
+  
+  // Get Product Support metrics
+  const productSupportMetrics = getProductSupportMetrics();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -166,6 +175,16 @@ export default function LeadershipDashboard() {
             variant="error"
           />
         </div>
+
+        {/* Product Support Card */}
+        <ProductSupportCard
+          assignedCount={productSupportMetrics.assignedCount}
+          closedCount={productSupportMetrics.closedCount}
+          assignedTickets={productSupportMetrics.assignedTickets}
+          closedTickets={productSupportMetrics.closedTickets}
+          getCompanyName={getCompanyName}
+          isLoading={ticketsLoading}
+        />
 
         {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

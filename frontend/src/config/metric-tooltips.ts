@@ -48,6 +48,13 @@ export const METRIC_TOOLTIPS: Record<string, MetricTooltip> = {
     dataSource: 'YtdTicket table where status = 3',
   },
 
+  'product_support.overview': {
+    title: 'Product Team Support',
+    description: 'Tickets assigned to and closed by the Product Support team',
+    calculation: 'Assigned: COUNT of tickets with group_id = 36000098158 AND status IN (2=Open, 3=Pending). Closed: COUNT with status IN (4=Resolved, 5=Closed)',
+    dataSource: 'YtdTicket table filtered by Product Support group (36000098158)',
+  },
+
   // ============================================
   // RFT (Rule Failure Telemetry)
   // ============================================

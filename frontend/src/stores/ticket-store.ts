@@ -5,12 +5,33 @@ import { apiGet } from '@/lib/api-client';
 
 export interface TicketSummary {
   id: number;
+  subject: string;
   created_at: string;
+  updated_at: string;
   status: number;
   priority: number;
   group_id: number | null;
   company_id: number | null;
   tags: string[];
+}
+
+export interface ProductSupportTicketDetail {
+  id: number;
+  subject: string;
+  status: number;
+  priority: number;
+  company_id: number | null;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+}
+
+export interface ProductSupportMetrics {
+  assignedCount: number;
+  closedCount: number;
+  assignedTickets: ProductSupportTicketDetail[];
+  closedTickets: ProductSupportTicketDetail[];
 }
 
 export interface FilteredStats {
@@ -83,6 +104,7 @@ interface TicketStore {
   getTicketsInRange: () => TicketSummary[];
   getCompanyName: (companyId: number) => string;
   getGroupName: (groupId: number) => string;
+  getProductSupportMetrics: () => ProductSupportMetrics;
 }
 
 // Compute stats from a list of tickets
@@ -222,9 +244,11 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       });
       
       // Transform tickets to expected format
-      const tickets: TicketSummary[] = (json.data?.tickets || []).map((t: { id: number; createdAt: string; status: number; priority: number; groupId: number | null; companyId: number | null; tags: string[] }) => ({
+      const tickets: TicketSummary[] = (json.data?.tickets || []).map((t: { id: number; subject: string; createdAt: string; updatedAt: string; status: number; priority: number; groupId: number | null; companyId: number | null; tags: string[] }) => ({
         id: t.id,
+        subject: t.subject || '',
         created_at: t.createdAt,
+        updated_at: t.updatedAt,
         status: t.status,
         priority: t.priority,
         group_id: t.groupId,
@@ -309,5 +333,48 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     // Fall back to API cache
     const { groups } = get();
     return groups[groupId] || constantName;
+  },
+  
+  // Get Product Support metrics (assigned and closed tickets)
+  getProductSupportMetrics: () => {
+    const { allTickets, getCompanyName } = get();
+    const PRODUCT_SUPPORT_GROUP_ID = 36000098158;
+    
+    const productSupportTickets = allTickets.filter(t => t.group_id === PRODUCT_SUPPORT_GROUP_ID);
+    
+    const assignedTickets = productSupportTickets
+      .filter(t => t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING)
+      .map(t => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        company_id: t.company_id,
+        company_name: getCompanyName(t.company_id || 0),
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+        tags: t.tags,
+      }));
+    
+    const closedTickets = productSupportTickets
+      .filter(t => t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED)
+      .map(t => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        company_id: t.company_id,
+        company_name: getCompanyName(t.company_id || 0),
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+        tags: t.tags,
+      }));
+    
+    return {
+      assignedCount: assignedTickets.length,
+      closedCount: closedTickets.length,
+      assignedTickets,
+      closedTickets,
+    };
   },
 }));

@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useTicketStore } from "@/stores/ticket-store";
 import { useYearStore } from "@/stores/year-store";
+import { ProductSupportCard } from "@/components/dashboard/product-support-card";
 
 // Lazy load heavy components for better performance
 const PriorityChart = lazy(() => import("@/components/dashboard/priority-chart").then(m => ({ default: m.PriorityChart })));
@@ -68,6 +69,8 @@ export default function DashboardPage() {
     error: statsError,
     fetchAllTickets,
     lastFetched,
+    getProductSupportMetrics,
+    getCompanyName,
   } = useTicketStore();
 
   // Redirect leadership users to leadership dashboard
@@ -127,6 +130,9 @@ export default function DashboardPage() {
 
   const resolutionRate = filteredStats?.resolutionRate ?? 0;
   const hasNoData = filteredStats && filteredStats.totalTickets === 0;
+  
+  // Get Product Support metrics
+  const productSupportMetrics = getProductSupportMetrics();
 
   return (
     <ProtectedRoute>
@@ -259,6 +265,16 @@ export default function DashboardPage() {
                 />
               </div>
             )}
+
+            {/* Product Support Card - Separate Row */}
+            <ProductSupportCard
+              assignedCount={productSupportMetrics.assignedCount}
+              closedCount={productSupportMetrics.closedCount}
+              assignedTickets={productSupportMetrics.assignedTickets}
+              closedTickets={productSupportMetrics.closedTickets}
+              getCompanyName={getCompanyName}
+              isLoading={isStatsLoading}
+            />
 
             {/* Charts - Lazy loaded */}
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
