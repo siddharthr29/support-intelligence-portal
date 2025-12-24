@@ -354,6 +354,15 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       !t.subject.toLowerCase().includes('new submission from avni signup form')
     );
     
+    console.log('[ProductSupport] Total tickets in store:', allTickets.length);
+    console.log('[ProductSupport] Product Support tickets (after filter):', productSupportTickets.length);
+    console.log('[ProductSupport] Sample tickets:', productSupportTickets.slice(0, 3).map(t => ({
+      id: t.id,
+      subject: t.subject,
+      status: t.status,
+      created: t.created_at
+    })));
+    
     const assignedTickets = productSupportTickets
       .filter(t => t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING)
       .map(t => ({
