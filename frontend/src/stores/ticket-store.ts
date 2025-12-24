@@ -342,26 +342,26 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     return groups[groupId] || constantName;
   },
   
-  // Get Product Support metrics (all tickets from last 3 months)
+  // Get Product Support metrics (all tickets from last 12 months)
   getProductSupportMetrics: () => {
     const { allTickets, getCompanyName } = get();
     const PRODUCT_SUPPORT_GROUP_ID = 36000098158;
     
-    // Calculate date 3 months ago (Oct 1 if current month is Dec)
+    // Calculate date 12 months ago (Jan 1 if current month is Dec)
     const now = new Date();
-    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
     
-    // Filter: Product Support group + exclude signup forms + last 3 months only
+    // Filter: Product Support group + exclude signup forms + last 12 months only
     const productSupportTickets = allTickets.filter(t => {
       const createdAt = new Date(t.created_at);
       return t.group_id === PRODUCT_SUPPORT_GROUP_ID &&
         !t.subject.toLowerCase().includes('new submission from avni signup form') &&
-        createdAt >= threeMonthsAgo;
+        createdAt >= twelveMonthsAgo;
     });
     
     console.log('[ProductSupport] Date filter:', {
       now: now.toISOString(),
-      threeMonthsAgo: threeMonthsAgo.toISOString(),
+      twelveMonthsAgo: twelveMonthsAgo.toISOString(),
       totalTicketsInStore: allTickets.length,
       productSupportGroupTickets: allTickets.filter(t => t.group_id === PRODUCT_SUPPORT_GROUP_ID).length,
       afterSignupFormFilter: allTickets.filter(t => t.group_id === PRODUCT_SUPPORT_GROUP_ID && !t.subject.toLowerCase().includes('new submission from avni signup form')).length,

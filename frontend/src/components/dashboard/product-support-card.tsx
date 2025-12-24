@@ -56,7 +56,7 @@ export function ProductSupportCard({
   return (
     <>
       <StatCard
-        title="Product Support Group"
+        title="Product Support Group (Last 12 Months)"
         value={totalCount}
         subtitle={subtitle}
         icon={Users}

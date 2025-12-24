@@ -171,7 +171,7 @@ export function ProductSupportModal({
       <DialogContent className="max-w-[95vw] w-full lg:max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Product Support Group Tickets
+            Product Support Group Tickets (Last 12 Months)
           </DialogTitle>
         </DialogHeader>
 
