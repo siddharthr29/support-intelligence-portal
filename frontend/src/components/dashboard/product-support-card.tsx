@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { StatCard } from '@/components/ui/stat-card';
 import { ProductSupportModal, ProductSupportTicket } from './product-support-modal';
-import { Users } from 'lucide-react';
+import { Users, Wrench } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ProductSupportCardProps {
   totalCount: number;
@@ -55,20 +56,28 @@ export function ProductSupportCard({
 
   return (
     <>
-      <StatCard
-        title="Product Support Group (Last 12 Months)"
-        value={totalCount}
-        subtitle={subtitle}
-        icon={Users}
-        tooltipKey="product_support.overview"
-        variant="info"
-        onClick={() => setModalOpen(true)}
-        trend={trend ? {
-          value: trend.totalChange,
-          isPositive: trend.totalChange < 0, // For support tickets, decrease is positive
-          label: 'vs last month'
-        } : undefined}
-      />
+      <div className="relative">
+        <div className="absolute -top-2 -right-2 z-10">
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs flex items-center gap-1">
+            <Wrench className="h-3 w-3" />
+            WORK IN PROGRESS
+          </Badge>
+        </div>
+        <StatCard
+          title="👥 Product Support Group (Last 12 Months)"
+          value={totalCount}
+          subtitle={subtitle}
+          icon={Users}
+          tooltipKey="product_support.overview"
+          variant="info"
+          onClick={() => setModalOpen(true)}
+          trend={trend ? {
+            value: trend.totalChange,
+            isPositive: trend.totalChange < 0, // For support tickets, decrease is positive
+            label: 'vs last month'
+          } : undefined}
+        />
+      </div>
       
       <ProductSupportModal
         open={modalOpen}
