@@ -359,6 +359,15 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
         createdAt >= threeMonthsAgo;
     });
     
+    console.log('[ProductSupport] Date filter:', {
+      now: now.toISOString(),
+      threeMonthsAgo: threeMonthsAgo.toISOString(),
+      totalTicketsInStore: allTickets.length,
+      productSupportGroupTickets: allTickets.filter(t => t.group_id === PRODUCT_SUPPORT_GROUP_ID).length,
+      afterSignupFormFilter: allTickets.filter(t => t.group_id === PRODUCT_SUPPORT_GROUP_ID && !t.subject.toLowerCase().includes('new submission from avni signup form')).length,
+      afterDateFilter: productSupportTickets.length,
+    });
+    
     // Map all tickets with details
     const allTicketsWithDetails = productSupportTickets.map(t => ({
       id: t.id,
