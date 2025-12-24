@@ -348,20 +348,17 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     const { allTickets, getCompanyName } = get();
     const PRODUCT_SUPPORT_GROUP_ID = 36000098158;
     
-    // Filter out signup form tickets and get Product Support tickets
-    const productSupportTickets = allTickets.filter(t => 
-      t.group_id === PRODUCT_SUPPORT_GROUP_ID &&
-      !t.subject.toLowerCase().includes('new submission from avni signup form')
-    );
+    // Calculate date 3 months ago
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
     
-    console.log('[ProductSupport] Total tickets in store:', allTickets.length);
-    console.log('[ProductSupport] Product Support tickets (after filter):', productSupportTickets.length);
-    console.log('[ProductSupport] Sample tickets:', productSupportTickets.slice(0, 3).map(t => ({
-      id: t.id,
-      subject: t.subject,
-      status: t.status,
-      created: t.created_at
-    })));
+    // Filter: Product Support group + exclude signup forms + last 3 months only
+    const productSupportTickets = allTickets.filter(t => {
+      const createdAt = new Date(t.created_at);
+      return t.group_id === PRODUCT_SUPPORT_GROUP_ID &&
+        !t.subject.toLowerCase().includes('new submission from avni signup form') &&
+        createdAt >= threeMonthsAgo;
+    });
     
     const assignedTickets = productSupportTickets
       .filter(t => t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING)
@@ -392,7 +389,6 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
       }));
     
     // Calculate MoM trend
-    const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
