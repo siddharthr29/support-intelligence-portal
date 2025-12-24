@@ -184,6 +184,7 @@ export default function LeadershipDashboard() {
           closedTickets={productSupportMetrics.closedTickets}
           getCompanyName={getCompanyName}
           isLoading={ticketsLoading}
+          trend={productSupportMetrics.trend}
         />
 
         {/* Quick Links */}

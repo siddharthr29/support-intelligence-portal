@@ -274,6 +274,7 @@ export default function DashboardPage() {
               closedTickets={productSupportMetrics.closedTickets}
               getCompanyName={getCompanyName}
               isLoading={isStatsLoading}
+              trend={productSupportMetrics.trend}
             />
 
             {/* Charts - Lazy loaded */}

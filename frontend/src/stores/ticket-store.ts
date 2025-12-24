@@ -32,6 +32,14 @@ export interface ProductSupportMetrics {
   closedCount: number;
   assignedTickets: ProductSupportTicketDetail[];
   closedTickets: ProductSupportTicketDetail[];
+  trend?: {
+    currentMonthAssigned: number;
+    previousMonthAssigned: number;
+    currentMonthClosed: number;
+    previousMonthClosed: number;
+    assignedChange: number;
+    closedChange: number;
+  };
 }
 
 export interface FilteredStats {
@@ -340,7 +348,11 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     const { allTickets, getCompanyName } = get();
     const PRODUCT_SUPPORT_GROUP_ID = 36000098158;
     
-    const productSupportTickets = allTickets.filter(t => t.group_id === PRODUCT_SUPPORT_GROUP_ID);
+    // Filter out signup form tickets and get Product Support tickets
+    const productSupportTickets = allTickets.filter(t => 
+      t.group_id === PRODUCT_SUPPORT_GROUP_ID &&
+      !t.subject.toLowerCase().includes('new submission from avni signup form')
+    );
     
     const assignedTickets = productSupportTickets
       .filter(t => t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING)
@@ -370,11 +382,62 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
         tags: t.tags,
       }));
     
+    // Calculate MoM trend
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    
+    // Current month metrics
+    const currentMonthTickets = productSupportTickets.filter(t => {
+      const createdAt = new Date(t.created_at);
+      return createdAt >= currentMonthStart;
+    });
+    
+    const currentMonthAssigned = currentMonthTickets.filter(t => 
+      t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING
+    ).length;
+    
+    const currentMonthClosed = currentMonthTickets.filter(t => 
+      t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED
+    ).length;
+    
+    // Previous month metrics
+    const previousMonthTickets = productSupportTickets.filter(t => {
+      const createdAt = new Date(t.created_at);
+      return createdAt >= previousMonthStart && createdAt <= previousMonthEnd;
+    });
+    
+    const previousMonthAssigned = previousMonthTickets.filter(t => 
+      t.status === FRESHDESK_STATUS.OPEN || t.status === FRESHDESK_STATUS.PENDING
+    ).length;
+    
+    const previousMonthClosed = previousMonthTickets.filter(t => 
+      t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED
+    ).length;
+    
+    // Calculate percentage change
+    const assignedChange = previousMonthAssigned > 0 
+      ? Math.round(((currentMonthAssigned - previousMonthAssigned) / previousMonthAssigned) * 100)
+      : 0;
+    
+    const closedChange = previousMonthClosed > 0
+      ? Math.round(((currentMonthClosed - previousMonthClosed) / previousMonthClosed) * 100)
+      : 0;
+    
     return {
       assignedCount: assignedTickets.length,
       closedCount: closedTickets.length,
       assignedTickets,
       closedTickets,
+      trend: {
+        currentMonthAssigned,
+        previousMonthAssigned,
+        currentMonthClosed,
+        previousMonthClosed,
+        assignedChange,
+        closedChange,
+      },
     };
   },
 }));

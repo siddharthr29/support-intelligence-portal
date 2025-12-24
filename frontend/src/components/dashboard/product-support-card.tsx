@@ -12,6 +12,14 @@ interface ProductSupportCardProps {
   closedTickets: ProductSupportTicket[];
   getCompanyName: (companyId: number) => string;
   isLoading?: boolean;
+  trend?: {
+    currentMonthAssigned: number;
+    previousMonthAssigned: number;
+    currentMonthClosed: number;
+    previousMonthClosed: number;
+    assignedChange: number;
+    closedChange: number;
+  };
 }
 
 export function ProductSupportCard({
@@ -21,13 +29,14 @@ export function ProductSupportCard({
   closedTickets,
   getCompanyName,
   isLoading = false,
+  trend,
 }: ProductSupportCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
   if (isLoading) {
     return (
       <StatCard
-        title="Product Team Support"
+        title="Product Support Group"
         value="--"
         subtitle="Loading..."
         icon={Users}
@@ -36,16 +45,28 @@ export function ProductSupportCard({
     );
   }
 
+  // Build subtitle with trend
+  let subtitle = `${assignedCount} assigned, ${closedCount} closed`;
+  if (trend && trend.assignedChange !== 0) {
+    const trendDirection = trend.assignedChange > 0 ? '↑' : '↓';
+    subtitle += ` (${trendDirection}${Math.abs(trend.assignedChange)}% MoM)`;
+  }
+
   return (
     <>
       <StatCard
-        title="Product Team Support"
+        title="Product Support Group"
         value={assignedCount}
-        subtitle={`${assignedCount} assigned, ${closedCount} closed`}
+        subtitle={subtitle}
         icon={Users}
         tooltipKey="product_support.overview"
         variant="info"
         onClick={() => setModalOpen(true)}
+        trend={trend ? {
+          value: trend.assignedChange,
+          isPositive: trend.assignedChange < 0, // For support tickets, decrease is positive
+          label: 'vs last month'
+        } : undefined}
       />
       
       <ProductSupportModal
