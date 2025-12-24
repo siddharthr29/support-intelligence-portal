@@ -347,9 +347,9 @@ export const useTicketStore = create<TicketStore>()((set, get) => ({
     const { allTickets, getCompanyName } = get();
     const PRODUCT_SUPPORT_GROUP_ID = 36000098158;
     
-    // Calculate date 3 months ago
+    // Calculate date 3 months ago (Oct 1 if current month is Dec)
     const now = new Date();
-    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
     
     // Filter: Product Support group + exclude signup forms + last 3 months only
     const productSupportTickets = allTickets.filter(t => {
