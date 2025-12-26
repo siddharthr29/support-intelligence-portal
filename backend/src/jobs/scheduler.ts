@@ -3,6 +3,8 @@ import { config } from '../config';
 import { logger } from '../utils/logger';
 import { executeWeeklyIngestion, createJobContext } from './weekly-ingestion';
 import { sendDiscordReminder, sendDiscordWeeklyReport } from '../services/discord';
+import { getCurrentWeekBoundariesIST, generateSnapshotId } from '../utils/datetime';
+import { isWeeklyReportPushed as isWeeklyReportPushedInDB } from '../persistence/weekly-report-push-repository';
 import type { IngestionJobResult } from './types';
 
 let scheduledTask: cron.ScheduledTask | null = null;
@@ -55,7 +57,8 @@ export function startWeeklyScheduler(): void {
   hourlyReminderTask = cron.schedule(
     '0 14-20 * * 5', // Every hour on Friday from 2PM to 8PM
     async () => {
-      if (!weeklyReportPushed) {
+      const reportPushed = await isCurrentWeekReportPushed();
+      if (!reportPushed) {
         logger.info('Sending hourly Discord reminder (report not pushed yet)');
         await sendDiscordReminder();
       } else {
@@ -73,7 +76,8 @@ export function startWeeklyScheduler(): void {
   cron.schedule(
     '0 9-13 * * 1', // Every hour on Monday from 9AM to 1PM
     async () => {
-      if (!weeklyReportPushed) {
+      const reportPushed = await isCurrentWeekReportPushed();
+      if (!reportPushed) {
         logger.info('Sending Monday urgent reminder (report still not pushed)');
         await sendDiscordReminder();
       } else {
@@ -144,9 +148,22 @@ export function markWeeklyReportPushed(): void {
   logger.info('Weekly report marked as pushed - hourly reminders will stop');
 }
 
-// Check if weekly report has been pushed
 export function isWeeklyReportPushed(): boolean {
   return weeklyReportPushed;
+}
+
+export async function isCurrentWeekReportPushed(): Promise<boolean> {
+  try {
+    const { weekEnd } = getCurrentWeekBoundariesIST();
+    const snapshotId = generateSnapshotId(weekEnd);
+    const pushed = await isWeeklyReportPushedInDB(snapshotId);
+    logger.info({ snapshotId, pushed }, 'Checked current week report push status from database');
+    return pushed;
+  } catch (error) {
+    logger.error({ error }, 'Failed to check current week report push status');
+    // Fall back to in-memory flag if database check fails
+    return weeklyReportPushed;
+  }
 }
 
 async function runScheduledJob(): Promise<IngestionJobResult | null> {
