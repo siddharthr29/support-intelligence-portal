@@ -144,11 +144,12 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       return created >= weekStart && created <= weekEnd;
     });
     
-    // Filter tickets RESOLVED in the week (status is resolved/closed AND updatedAt in week)
+    // Filter tickets RESOLVED in the week (status is resolved/closed AND createdAt in week)
+    // Changed from updatedAt to createdAt to match backend logic and Freshdesk behavior
     const ticketsResolvedInWeek = tickets.filter(t => {
-      const updated = new Date(t.updatedAt);
+      const created = new Date(t.createdAt);
       const isResolved = t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED;
-      return isResolved && updated >= weekStart && updated <= weekEnd;
+      return isResolved && created >= weekStart && created <= weekEnd;
     });
     
     // Priority breakdown (based on tickets CREATED in the week)
