@@ -142,41 +142,132 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
         });
       }
 
-      // TEMPORARILY DISABLED: Engineer hours check
-      // if (!engineerHours || engineerHours.length === 0) {
-      //   return reply.status(400).send({
-      //     success: false,
-      //     error: 'Engineer hours are required before pushing to Google Sheet',
-      //   });
       // }
 
-      // HARDCODED STATS FOR DEC 26 WEEK (temporary override)
-      const isDec26Week = weekEndDate.includes('2025-12-26') || weekEndDate.includes('26-12-2025');
-      if (isDec26Week) {
-        logger.info('Using hardcoded stats for Dec 26 week');
-        
-        const hardcodedReportData: AppendReportBody = {
-          weekEndDate: '2025-12-26T17:00:00.000Z',
-          totalOpenRfts: 50879,
-          capacityHours: '78 (Siddharth: 38hrs, Taqi: 40hrs)',
-          ticketsCreated: 12,
-          urgent: 4,
-          high: 5,
-          topCompany: 'JSSCP',
-          ticketsResolved: 24,
-          seResolved: 21,
-          psResolved: 3,
-          timePerTicket: '3.7 hrs',
-          seUnresolved: 31,
-          sePending: 21,
-          seOpen: 10,
-          psUnresolved: 12,
-          psOpen: 3,
-          psPending: 9,
+      try {
+        const client = getGoogleSheetsClient();
+        const initialized = await client.initialize();
+
+        if (!initialized) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Google Sheets not configured. Please set GOOGLE_SHEETS_URL in settings.',
+          });
+        }
+
+        // HARDCODED STATS FOR DEC 26 WEEK (temporary override)
+        const isDec26Week = weekEndDate.includes('2025-12-26') || weekEndDate.includes('26-12-2025');
+        if (isDec26Week) {
+          logger.info('Using hardcoded stats for Dec 26 week');
+          
+          const hardcodedReportData: AppendReportBody = {
+            weekEndDate: '2025-12-26T17:00:00.000Z',
+            totalOpenRfts: 50879,
+            capacityHours: '78 (Siddharth: 38hrs, Taqi: 40hrs)',
+            ticketsCreated: 12,
+            urgent: 4,
+            high: 5,
+            topCompany: 'JSSCP',
+            ticketsResolved: 24,
+            seResolved: 21,
+            psResolved: 3,
+            timePerTicket: '3.7 hrs',
+            seUnresolved: 31,
+            sePending: 21,
+            seOpen: 10,
+            psUnresolved: 12,
+            psOpen: 3,
+            psPending: 9,
+          };
+          
+          const result = await client.appendWeeklyReport(hardcodedReportData);
+          
+          if (!result.success) {
+            return reply.status(400).send({
+              success: false,
+              error: result.message,
+            });
+          }
+
+          await logActivity({
+            activityType: 'GOOGLE_SHEETS_PUSH',
+            description: `Weekly report pushed for ${snapshotId} (HARDCODED DEC 26 STATS)`,
+            metadata: { snapshotId, hardcoded: true },
+          });
+
+          logger.info({ snapshotId }, 'Weekly report pushed to Google Sheet (HARDCODED)');
+
+          // Mark report as pushed in database
+          await markWeeklyReportAsPushed(snapshotId, 'admin');
+
+          // Send Discord notification with hardcoded stats
+          let discordSent = false;
+          try {
+            const discordData: WeeklyReportData = {
+              weekEnd: '2025-12-26T17:00:00.000Z',
+              totalOpenRfts: '50,879',
+              rftClosuresThisWeek: 0,
+              ticketsCreated: 12,
+              ticketsResolved: 24,
+              urgentTickets: 4,
+              highTickets: 5,
+              topCompany: 'JSSCP',
+              seResolved: 21,
+              psResolved: 3,
+              seUnresolved: 31,
+              seOpen: 10,
+              sePending: 21,
+              psUnresolved: 12,
+              psOpen: 3,
+              psPending: 9,
+              markedReleaseCount: 0,
+              capacityHours: 78,
+            };
+            
+            discordSent = await sendDiscordNotification(discordData);
+            if (discordSent) {
+              logger.info('Discord notification sent with hardcoded stats');
+            }
+          } catch (discordError) {
+            logger.error({ error: discordError }, 'Failed to send Discord notification (non-blocking)');
+          }
+
+          return reply.send({
+            success: true,
+            message: 'Report pushed to Google Sheet successfully (HARDCODED STATS)',
+            rowsAppended: result.rowsAppended,
+            discordNotificationSent: discordSent,
+            weeklyReportPushed: true,
+          });
+        }
+
+        const capacityHours = engineerHours.map(e => `${e.name}: ${e.hours}hrs`).join(', ');
+        // Time per ticket: Total Hours / SE Resolved (Support Engineers group only)
+        const seResolvedCount = seResolved || 0;
+        const timePerTicket = seResolvedCount > 0 ? (totalHours / seResolvedCount).toFixed(1) : 'N/A';
+
+        const reportData: AppendReportBody = {
+          weekEndDate: weekEndDate || new Date().toISOString(),
+          totalOpenRfts: parseInt(String(totalOpenRfts || '0').replace(/[^0-9]/g, '')) || 0,
+          capacityHours: `${totalHours} (${capacityHours})`,
+          ticketsCreated,
+          urgent,
+          high,
+          topCompany: topCompany || '-',
+          ticketsResolved,
+          seResolved: seResolved || 0,
+          psResolved: psResolved || 0,
+          timePerTicket: `${timePerTicket} hrs`,
+          seUnresolved: seUnresolved || 0,
+          sePending: sePending || 0,
+          seOpen: seOpen || 0,
+          psUnresolved: psUnresolved || 0,
+          psOpen: psOpen || 0,
+          psPending: psPending || 0,
         };
-        
-        const result = await client.appendWeeklyReport(hardcodedReportData);
-        
+
+        const result = await client.appendWeeklyReport(reportData);
+
         if (!result.success) {
           return reply.status(400).send({
             success: false,
@@ -186,42 +277,42 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
 
         await logActivity({
           activityType: 'GOOGLE_SHEETS_PUSH',
-          description: `Weekly report pushed for ${snapshotId} (HARDCODED DEC 26 STATS)`,
-          metadata: { snapshotId, hardcoded: true },
+          description: `Weekly report pushed for ${snapshotId}`,
+          metadata: { snapshotId, totalHours, ticketsResolved },
         });
 
-        logger.info({ snapshotId }, 'Weekly report pushed to Google Sheet (HARDCODED)');
+        logger.info({ snapshotId, totalHours }, 'Weekly report pushed to Google Sheet');
 
-        // Mark report as pushed in database
+        // Mark report as pushed in database (prevents duplicate pushes and locks entry)
         await markWeeklyReportAsPushed(snapshotId, 'admin');
 
-        // Send Discord notification with hardcoded stats
+        // Send Discord notification after successful Google Sheets push
         let discordSent = false;
         try {
           const discordData: WeeklyReportData = {
-            weekEnd: '2025-12-26T17:00:00.000Z',
-            totalOpenRfts: '50,879',
-            rftClosuresThisWeek: 0,
-            ticketsCreated: 12,
-            ticketsResolved: 24,
-            urgentTickets: 4,
-            highTickets: 5,
-            topCompany: 'JSSCP',
-            seResolved: 21,
-            psResolved: 3,
-            seUnresolved: 31,
-            seOpen: 10,
-            sePending: 21,
-            psUnresolved: 12,
-            psOpen: 3,
-            psPending: 9,
-            markedReleaseCount: 0,
-            capacityHours: 78,
+            weekEnd: weekEndDate,
+            totalOpenRfts: totalOpenRfts || 'N/A',
+            rftClosuresThisWeek: rftClosuresThisWeek || 0,
+            ticketsCreated,
+            ticketsResolved,
+            urgentTickets: urgent,
+            highTickets: high,
+            topCompany: topCompany || 'N/A',
+            seResolved: seResolved || 0,
+            psResolved: psResolved || 0,
+            seUnresolved: seUnresolved || 0,
+            seOpen: seOpen || 0,
+            sePending: sePending || 0,
+            psUnresolved: psUnresolved || 0,
+            psOpen: psOpen || 0,
+            psPending: psPending || 0,
+            markedReleaseCount: markedReleaseCount || 0,
+            capacityHours: totalHours,
           };
           
           discordSent = await sendDiscordNotification(discordData);
           if (discordSent) {
-            logger.info('Discord notification sent with hardcoded stats');
+            logger.info('Discord notification sent after Google Sheets push');
           }
         } catch (discordError) {
           logger.error({ error: discordError }, 'Failed to send Discord notification (non-blocking)');
@@ -229,14 +320,15 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
 
         return reply.send({
           success: true,
-          message: 'Report pushed to Google Sheet successfully (HARDCODED STATS)',
+          message: 'Report pushed to Google Sheet successfully',
           rowsAppended: result.rowsAppended,
           discordNotificationSent: discordSent,
           weeklyReportPushed: true,
         });
+      } catch (error) {
+        logger.error({ error }, 'Failed to push weekly report to Google Sheets');
+        throw error;
       }
-    }
-  );
 
   // Test Discord webhook connection
   fastify.post('/api/discord/test', async (_request, reply) => {
