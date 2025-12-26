@@ -125,6 +125,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
 
   // Clear all data to force fresh reload
   clearData: () => {
+    console.log('[AppDataStore] Clearing all cached data...');
     set({
       tickets: [],
       companies: {},
@@ -134,6 +135,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       isLoaded: false,
       error: null,
     });
+    console.log('[AppDataStore] Data cleared, store reset to initial state');
   },
   
   // Filter tickets by date range (computed locally, no API call)
