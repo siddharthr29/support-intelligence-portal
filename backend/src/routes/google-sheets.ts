@@ -142,8 +142,6 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
         });
       }
 
-      // }
-
       try {
         const client = getGoogleSheetsClient();
         const initialized = await client.initialize();
