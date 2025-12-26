@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,9 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   const [copied, setCopied] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>('');
+
+  // Ref to prevent multiple useEffect executions
+  const hasRefreshedRef = useRef(false);
   
   // Use centralized app data store (data already loaded in Shell)
   const { getWeekStats, getCompanyName, isLoaded, getAllTimeUnresolvedByGroup, getMarkedReleaseVersions, fetchAppData, clearData } = useAppDataStore();
@@ -72,6 +75,13 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   // Force fresh data load by clearing cache and reloading - runs only once on mount
   useEffect(() => {
     console.log('[WeeklyReport] useEffect triggered, isLoaded:', isLoaded);
+    // Prevent multiple executions even on remounts
+    if (hasRefreshedRef.current) {
+      console.log('WeeklyReport: Already refreshed, skipping...');
+      return;
+    }
+    hasRefreshedRef.current = true;
+    
     // Always force refresh to bypass any caching issues
     console.log('WeeklyReport: Forcing data refresh regardless of loaded state...');
     clearData(); // Clear any cached data
