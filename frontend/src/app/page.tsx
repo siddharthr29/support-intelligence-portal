@@ -104,7 +104,7 @@ export default function DashboardPage() {
     } else if (datePreset === 'current_week') {
       // Use centralized week boundaries (Friday 5pm to Friday 5pm)
       const { weekStart, weekEnd } = getCurrentWeekBoundariesIST(now);
-      setDateRange({ from: weekStart, to: now });
+      setDateRange({ from: weekStart, to: weekEnd });
     }
   }, [datePreset, setDateRange]);
 
