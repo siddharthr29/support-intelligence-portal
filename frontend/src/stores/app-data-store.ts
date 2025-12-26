@@ -144,12 +144,11 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       return created >= weekStart && created <= weekEnd;
     });
     
-    // Filter tickets RESOLVED in the week (status is resolved/closed AND createdAt in week)
-    // Changed from updatedAt to createdAt to match backend logic and Freshdesk behavior
+    // Filter tickets RESOLVED in the week (status is resolved/closed AND updatedAt in week)
     const ticketsResolvedInWeek = tickets.filter(t => {
-      const created = new Date(t.createdAt);
+      const updated = new Date(t.updatedAt);
       const isResolved = t.status === FRESHDESK_STATUS.RESOLVED || t.status === FRESHDESK_STATUS.CLOSED;
-      return isResolved && created >= weekStart && created <= weekEnd;
+      return isResolved && updated >= weekStart && updated <= weekEnd;
     });
     
     // Priority breakdown (based on tickets CREATED in the week)
@@ -165,7 +164,12 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
     const groupResolvedMap = new Map<number, number>();
     for (const ticket of ticketsResolvedInWeek) {
       if (ticket.groupId) {
-        groupResolvedMap.set(ticket.groupId, (groupResolvedMap.get(ticket.groupId) || 0) + 1);
+        // Combine Product Support groups into one category (same logic as backend)
+        let effectiveGroupId = ticket.groupId;
+        if (ticket.groupId === 36000098158 || ticket.groupId === 36000247508 || ticket.groupId === 36000441443) {
+          effectiveGroupId = 36000247508; // Use the main Product Support group ID
+        }
+        groupResolvedMap.set(effectiveGroupId, (groupResolvedMap.get(effectiveGroupId) || 0) + 1);
       }
     }
     
@@ -250,11 +254,17 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
     const groupMap = new Map<number, { open: number; pending: number; total: number }>();
     for (const ticket of unresolvedTickets) {
       if (ticket.groupId) {
-        const existing = groupMap.get(ticket.groupId) || { open: 0, pending: 0, total: 0 };
+        // Combine Product Support groups into one category (same logic as backend)
+        let effectiveGroupId = ticket.groupId;
+        if (ticket.groupId === 36000098158 || ticket.groupId === 36000247508 || ticket.groupId === 36000441443) {
+          effectiveGroupId = 36000247508; // Use the main Product Support group ID
+        }
+        
+        const existing = groupMap.get(effectiveGroupId) || { open: 0, pending: 0, total: 0 };
         existing.total++;
         if (ticket.status === FRESHDESK_STATUS.OPEN) existing.open++;
         if (ticket.status === FRESHDESK_STATUS.PENDING) existing.pending++;
-        groupMap.set(ticket.groupId, existing);
+        groupMap.set(effectiveGroupId, existing);
       }
     }
     
