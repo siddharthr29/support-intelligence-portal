@@ -142,12 +142,13 @@ export async function registerGoogleSheetsRoutes(fastify: FastifyInstance): Prom
         });
       }
 
-      if (!engineerHours || engineerHours.length === 0) {
-        return reply.status(400).send({
-          success: false,
-          error: 'Engineer hours are required before pushing to Google Sheet',
-        });
-      }
+      // TEMPORARILY DISABLED: Engineer hours check
+      // if (!engineerHours || engineerHours.length === 0) {
+      //   return reply.status(400).send({
+      //     success: false,
+      //     error: 'Engineer hours are required before pushing to Google Sheet',
+      //   });
+      // }
 
       try {
         const client = getGoogleSheetsClient();
