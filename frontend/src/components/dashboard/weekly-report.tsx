@@ -66,29 +66,22 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   const [isPushing, setIsPushing] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>('');
 
-  // Ref to prevent multiple useEffect executions
-  const hasRefreshedRef = useRef(false);
-  
   // Use centralized app data store (data already loaded in Shell)
   const { getWeekStats, getCompanyName, isLoaded, getAllTimeUnresolvedByGroup, getMarkedReleaseVersions, fetchAppData, clearData } = useAppDataStore();
   
-  // Force fresh data load by clearing cache and reloading - runs only once on mount
+  // Load data only when needed (first mount or year change)
   useEffect(() => {
     console.log('[WeeklyReport] useEffect triggered, isLoaded:', isLoaded);
-    // Prevent multiple executions even on remounts
-    if (hasRefreshedRef.current) {
-      console.log('WeeklyReport: Already refreshed, skipping...');
-      return;
-    }
-    hasRefreshedRef.current = true;
     
-    // Always force refresh to bypass any caching issues
-    console.log('WeeklyReport: Forcing data refresh regardless of loaded state...');
-    clearData(); // Clear any cached data
-    console.log('WeeklyReport: About to call fetchAppData...');
-    fetchAppData(2025, true); // Force fresh data load
-    console.log('WeeklyReport: fetchAppData called');
-  }, []); // Empty dependencies - run only once on mount
+    // Only fetch if data is not loaded for the selected year
+    if (!isLoaded) {
+      console.log('WeeklyReport: Data not loaded, fetching...');
+      fetchAppData(2025, false); // Normal fetch, not force refresh
+      console.log('WeeklyReport: fetchAppData called');
+    } else {
+      console.log('WeeklyReport: Data already loaded, no fetch needed');
+    }
+  }, [isLoaded, fetchAppData]); // Include isLoaded to refetch when store is reset
   
   const weekOptions = getWeekOptionsIST(2);
   const currentWeekValue = selectedWeek || weekOptions[0]?.value || '';

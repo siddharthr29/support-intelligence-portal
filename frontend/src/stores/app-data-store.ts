@@ -74,15 +74,23 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
   isLoading: false,
   isLoaded: false,
   error: null,
+  // Track current request to prevent concurrent calls
+  currentRequestYear: null,
   
   // Fetch all data in ONE request
   fetchAppData: async (year?: number, forceRefresh = false) => {
+    const selectedYear = year || new Date().getFullYear();
+    
+    // Prevent concurrent requests for the same year
+    if (get().currentRequestYear === selectedYear && get().isLoading) {
+      console.log(`[AppDataStore] Request for year ${selectedYear} already in progress, skipping`);
+      return;
+    }
+    
     // Allow force refresh to bypass loaded check
     if (!forceRefresh && get().isLoaded && !get().isLoading) return;
     
-    set({ isLoading: true, error: null });
-    
-    const selectedYear = year || new Date().getFullYear();
+    set({ isLoading: true, error: null, currentRequestYear: selectedYear });
     
     try {
       console.log('[AppDataStore] Fetching unified app data...', { year: selectedYear });
@@ -104,6 +112,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
         isLoading: false,
         isLoaded: true,
         error: null,
+        currentRequestYear: null, // Clear request tracker on success
       });
       
     } catch (error) {
@@ -115,6 +124,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
         isLoading: false, 
         isLoaded: true, // Prevent retry loops
         error: errorMessage,
+        currentRequestYear: null, // Clear request tracker on error
         // Set safe defaults on error
         tickets: [],
         companies: {},
@@ -134,6 +144,7 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
       isLoading: false,
       isLoaded: false,
       error: null,
+      currentRequestYear: null, // Reset request tracker
     });
     console.log('[AppDataStore] Data cleared, store reset to initial state');
   },
