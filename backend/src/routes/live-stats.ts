@@ -141,15 +141,31 @@ export async function registerLiveStatsRoutes(fastify: FastifyInstance): Promise
       // Use YtdTicket table - the main cached data source
       const prisma = getPrismaClient();
       
-      // Query tickets from YtdTicket table (populated by Friday 4:30PM job)
+      // Query tickets that were resolved/closed during the specified week
       const dbTickets = await prisma.ytdTicket.findMany({
         where: {
-          createdAt: {
+          // Ticket was resolved/closed during this week
+          updatedAt: {
             gte: start,
             lte: end,
           },
+          // Only include tickets that are resolved or closed
+          status: {
+            in: [FRESHDESK_STATUS.RESOLVED, FRESHDESK_STATUS.CLOSED]
+          }
         },
       });
+
+      // Debug logging
+      logger.info({
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        totalTicketsFound: dbTickets.length,
+        ticketIds: dbTickets.map(t => Number(t.freshdeskTicketId)).sort(),
+        groupIds: [...new Set(dbTickets.map(t => t.groupId?.toString()).filter(Boolean))],
+        productSupportTickets: dbTickets.filter(t => t.groupId === 36000098158n || t.groupId === 36000247508n || t.groupId === 36000441443n).length,
+        productSupportTicketIds: dbTickets.filter(t => t.groupId === 36000098158n).map(t => Number(t.freshdeskTicketId))
+      }, 'Week stats query results');
 
       // Map to expected format
       const weekTickets = dbTickets.map(t => ({
@@ -177,10 +193,16 @@ export async function registerLiveStatsRoutes(fastify: FastifyInstance): Promise
       const groupMap = new Map<number, { total: number; open: number; pending: number; resolved: number }>();
       for (const ticket of weekTickets) {
         if (ticket.group_id) {
-          if (!groupMap.has(ticket.group_id)) {
-            groupMap.set(ticket.group_id, { total: 0, open: 0, pending: 0, resolved: 0 });
+          // Combine both Product Support groups into one category
+          let effectiveGroupId = ticket.group_id;
+          if (ticket.group_id === 36000098158 || ticket.group_id === 36000247508 || ticket.group_id === 36000441443) {
+            effectiveGroupId = 36000247508; // Use the main Product Support group ID
           }
-          const entry = groupMap.get(ticket.group_id)!;
+
+          if (!groupMap.has(effectiveGroupId)) {
+            groupMap.set(effectiveGroupId, { total: 0, open: 0, pending: 0, resolved: 0 });
+          }
+          const entry = groupMap.get(effectiveGroupId)!;
           entry.total++;
           
           if (ticket.status === FRESHDESK_STATUS.OPEN) entry.open++;
