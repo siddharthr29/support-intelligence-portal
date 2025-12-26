@@ -131,7 +131,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
 
     // Calculate group stats (Support Engineers vs Product Support) from week data
     const seGroup = weekStats.groupBreakdown?.find((g: { groupId: number }) => g.groupId === 36000098156); // Support Engineers
-    const psGroup = weekStats.groupBreakdown?.find((g: { groupId: number }) => g.groupId === 36000098158); // Product Support
+    const psGroup = weekStats.groupBreakdown?.find((g: { groupId: number }) => g.groupId === 36000247508); // Product Support
     
     const seResolved = seGroup?.resolved || 0;
     const psResolved = psGroup?.resolved || 0;
@@ -139,7 +139,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
     // Get ALL TIME unresolved stats (not week-specific)
     const allTimeUnresolved = getAllTimeUnresolvedByGroup();
     const seAllTime = allTimeUnresolved.find(g => g.groupId === 36000098156);
-    const psAllTime = allTimeUnresolved.find(g => g.groupId === 36000098158);
+    const psAllTime = allTimeUnresolved.find(g => g.groupId === 36000247508);
     
     const seUnresolved = seAllTime?.total || 0;
     const seOpen = seAllTime?.open || 0;
@@ -179,7 +179,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
       : `⚠️ ${ticketsWithoutTags} tickets missing tags (${ticketsWithTags} have tags)`;
 
     // Marked release: Count of tickets with version tags in Product Support group
-    const psGroupId = 36000098158; // Product Support group
+    const psGroupId = 36000247508; // Product Support group
     const markedReleaseVersions = getMarkedReleaseVersions(psGroupId);
     const markedReleaseCount = markedReleaseVersions[0]?.count || 0;
 
@@ -234,7 +234,7 @@ Pending: ${psPending}`;
     try {
       // Get group stats for Discord notification
       const seGroupId = 36000098156;
-      const psGroupId = 36000098158;
+      const psGroupId = 36000247508;
       const seGroup = weekStats?.groupBreakdown?.find(g => g.groupId === seGroupId);
       const psGroup = weekStats?.groupBreakdown?.find(g => g.groupId === psGroupId);
       
