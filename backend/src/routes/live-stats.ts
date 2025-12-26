@@ -144,8 +144,7 @@ export async function registerLiveStatsRoutes(fastify: FastifyInstance): Promise
       // Query tickets that were resolved/closed during the specified week
       const dbTickets = await prisma.ytdTicket.findMany({
         where: {
-          // Ticket was resolved/closed during this week
-          createdAt: {
+          updatedAt: {
             gte: start,
             lte: end,
           },

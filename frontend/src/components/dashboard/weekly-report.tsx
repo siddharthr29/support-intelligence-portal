@@ -20,6 +20,7 @@ import {
   getNowIST, 
   getDayOfWeekIST, 
   getHourIST, 
+  getMinuteIST,
   getMostRecentFriday5pmIST,
   getNextFriday5pmIST,
   getWeekOptionsIST,
@@ -315,6 +316,15 @@ Pending: ${psPending}`;
     }
   };
 
+  const hasEngineerHours = engineerHours.length > 0;
+  
+  // Check if selected week is the "current week" option (first in list with "now" label)
+  const isCurrentWeekSelected = selectedWeekData?.label.includes('now') || false;
+  
+  // Check if this is current week (can push to sheet) - use IST
+  // Current week is defined as the week that includes "now" in its label
+  const isCurrentWeek = isCurrentWeekSelected;
+  
   // Check if scheduler has run (after 4:30 PM IST on Friday)
   const isAfterSchedulerTime = () => {
     const now = getNowIST();
@@ -325,10 +335,6 @@ Pending: ${psPending}`;
     // Only allow pushing after Friday 4:30 PM IST when scheduler has run
     return dayOfWeek === WEEK_END_DAY && (hour > WEEK_END_HOUR - 1 || (hour === WEEK_END_HOUR - 1 && minute >= 30));
   };
-  
-  // NEVER lock stats - always show current week data
-  // Only lock "Push to Sheets" button if engineer hours not filled
-  const isStatsLocked = false;
   
   const report = generateReport();
 
