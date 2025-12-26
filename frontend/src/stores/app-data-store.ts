@@ -51,6 +51,7 @@ interface AppDataState {
   isLoading: boolean;
   isLoaded: boolean;
   error: string | null;
+  currentRequestYear: number | null;
   
   // Actions
   fetchAppData: (year?: number, forceRefresh?: boolean) => Promise<void>;
