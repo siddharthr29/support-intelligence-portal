@@ -157,8 +157,16 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
     const mediumTickets = ticketsCreatedInWeek.filter(t => t.priority === FRESHDESK_PRIORITY.MEDIUM).length;
     const lowTickets = ticketsCreatedInWeek.filter(t => t.priority === FRESHDESK_PRIORITY.LOW).length;
     
-    // Total resolved count
-    const resolvedTickets = ticketsResolvedInWeek.length;
+    // Total resolved count - only include Support Engineers and Product Support groups
+    const relevantResolvedTickets = ticketsResolvedInWeek.filter(ticket => {
+      if (!ticket.groupId) return false;
+      // Support Engineers groups
+      if (ticket.groupId === 36000098156 || ticket.groupId === 36000247507) return true;
+      // Product Support groups (before aggregation)
+      if (ticket.groupId === 36000098158 || ticket.groupId === 36000247508 || ticket.groupId === 36000441443) return true;
+      return false;
+    });
+    const resolvedTickets = relevantResolvedTickets.length;
     
     // Group breakdown for RESOLVED tickets (tickets resolved in the week, grouped by groupId)
     const groupResolvedMap = new Map<number, number>();
