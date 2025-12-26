@@ -155,13 +155,11 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
   // Determine if entry is locked
   const isPushed = pushStatus?.isPushed || false;
   const hasHours = engineerHours.length > 0;
-  const isEntryLocked = !isUnlocked || isPushed || hasHours;
+  const isEntryLocked = !isUnlocked || isPushed;
   
   let lockReason = '';
   if (isPushed) {
     lockReason = `Already pushed by ${pushStatus?.pushedBy}`;
-  } else if (hasHours) {
-    lockReason = 'Hours already filled';
   } else if (!isUnlocked) {
     lockReason = timeUntilUnlock;
   }
@@ -200,10 +198,6 @@ export function EngineerHoursModal({ snapshotId, onHoursUpdated }: EngineerHours
             {isPushed ? (
               <p className="text-sm text-yellow-700">
                 This weekly report has already been pushed to Google Sheets by {pushStatus?.pushedBy}.
-              </p>
-            ) : hasHours ? (
-              <p className="text-sm text-yellow-700">
-                Engineer hours have already been filled for this week. Push to Sheets is now unlocked.
               </p>
             ) : (
               <>
