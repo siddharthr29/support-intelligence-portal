@@ -69,7 +69,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   // Use centralized app data store (data already loaded in Shell)
   const { getWeekStats, getCompanyName, isLoaded, getAllTimeUnresolvedByGroup, getMarkedReleaseVersions, fetchAppData, clearData } = useAppDataStore();
   
-  // Force fresh data load by clearing cache and reloading
+  // Force fresh data load by clearing cache and reloading - runs only once on mount
   useEffect(() => {
     console.log('[WeeklyReport] useEffect triggered, isLoaded:', isLoaded);
     // Always force refresh to bypass any caching issues
@@ -78,7 +78,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
     console.log('WeeklyReport: About to call fetchAppData...');
     fetchAppData(2025, true); // Force fresh data load
     console.log('WeeklyReport: fetchAppData called');
-  }, [fetchAppData, clearData]);
+  }, []); // Empty dependencies - run only once on mount
   
   const weekOptions = getWeekOptionsIST(2);
   const currentWeekValue = selectedWeek || weekOptions[0]?.value || '';
