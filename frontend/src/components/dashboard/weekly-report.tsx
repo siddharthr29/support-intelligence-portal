@@ -315,14 +315,16 @@ Pending: ${psPending}`;
     }
   };
 
-  const hasEngineerHours = engineerHours.length > 0;
-  
-  // Check if selected week is the "current week" option (first in list with "now" label)
-  const isCurrentWeekSelected = selectedWeekData?.label.includes('now') || false;
-  
-  // Check if this is current week (can push to sheet) - use IST
-  // Current week is defined as the week that includes "now" in its label
-  const isCurrentWeek = isCurrentWeekSelected;
+  // Check if scheduler has run (after 4:30 PM IST on Friday)
+  const isAfterSchedulerTime = () => {
+    const now = getNowIST();
+    const dayOfWeek = getDayOfWeekIST(now);
+    const hour = getHourIST(now);
+    const minute = getMinuteIST(now);
+    
+    // Only allow pushing after Friday 4:30 PM IST when scheduler has run
+    return dayOfWeek === WEEK_END_DAY && (hour > WEEK_END_HOUR - 1 || (hour === WEEK_END_HOUR - 1 && minute >= 30));
+  };
   
   // NEVER lock stats - always show current week data
   // Only lock "Push to Sheets" button if engineer hours not filled
@@ -374,7 +376,7 @@ Pending: ${psPending}`;
             <Button
               size="sm"
               onClick={handlePushToGoogleSheet}
-              disabled={!hasEngineerHours || isPushing || !isCurrentWeek || pushStatus?.isPushed}
+              disabled={!hasEngineerHours || isPushing || !isCurrentWeek || pushStatus?.isPushed || !isAfterSchedulerTime()}
               className="gap-2"
               title={
                 pushStatus?.isPushed 
@@ -383,6 +385,8 @@ Pending: ${psPending}`;
                   ? 'Only current week can be pushed' 
                   : !hasEngineerHours 
                   ? 'Add engineer hours first' 
+                  : !isAfterSchedulerTime() 
+                  ? 'Push to Sheets available after Friday 4:30 PM IST (when data is updated)' 
                   : 'Push report to Google Sheet'
               }
             >
@@ -494,6 +498,13 @@ Pending: ${psPending}`;
                   <p className="text-xs text-amber-800 flex items-center gap-2">
                     <Lock className="h-4 w-4" />
                     <span><strong>Push to Sheets is locked.</strong> Please add engineer hours to unlock.</span>
+                  </p>
+                </div>
+              ) : !isAfterSchedulerTime() ? (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-xs text-blue-800 flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    <span><strong>Push to Sheets available after Friday 4:30 PM IST</strong> (when weekly data is updated).</span>
                   </p>
                 </div>
               ) : null}
