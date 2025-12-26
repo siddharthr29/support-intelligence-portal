@@ -388,9 +388,9 @@ export function getWeekOptionsIST(numberOfWeeks: number = 2): Array<{
   // Add current week (in progress)
   options.push({
     value: dateFnsFormat(currentWeekScheduledEnd, 'yyyy-MM-dd'),
-    label: `Current Week (${dateFnsFormat(currentWeekStart, 'MMM d')} - now)`,
+    label: `Current Week (${dateFnsFormat(currentWeekStart, 'MMM d')} - ${dateFnsFormat(currentWeekScheduledEnd, 'MMM d')})`,
     weekStart: currentWeekStart,
-    weekEnd: now, // Use current time as effective end
+    weekEnd: currentWeekScheduledEnd, // Use the scheduled week end instead of current time
   });
   
   // Add previous completed weeks
