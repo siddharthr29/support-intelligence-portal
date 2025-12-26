@@ -75,9 +75,9 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
   error: null,
   
   // Fetch all data in ONE request
-  fetchAppData: async (year?: number) => {
-    // Prevent duplicate fetches
-    if (get().isLoading) return;
+  fetchAppData: async (year?: number, forceRefresh = false) => {
+    // Allow force refresh to bypass loaded check
+    if (!forceRefresh && get().isLoaded && !get().isLoading) return;
     
     set({ isLoading: true, error: null });
     
@@ -85,7 +85,8 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
     
     try {
       console.log('[AppDataStore] Fetching unified app data...', { year: selectedYear });
-      const json = await apiGet(`/api/app-data?year=${selectedYear}`);
+      const cacheBust = Date.now(); // Force fresh data
+      const json = await apiGet(`/api/app-data?year=${selectedYear}&_t=${cacheBust}`);
       
       console.log('[AppDataStore] Data loaded:', {
         ticketCount: json.data.tickets.length,
