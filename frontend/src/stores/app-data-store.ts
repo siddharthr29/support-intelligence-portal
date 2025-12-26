@@ -138,10 +138,19 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
   getWeekStats: (weekStart: Date, weekEnd: Date) => {
     const { tickets } = get();
     
-    // Filter tickets CREATED in the week (for ticketsCreated count)
+    // Filter tickets CREATED in the week (for ticketsCreated count) - only include main support groups
     const ticketsCreatedInWeek = tickets.filter(t => {
       const created = new Date(t.createdAt);
-      return created >= weekStart && created <= weekEnd;
+      const isInDateRange = created >= weekStart && created <= weekEnd;
+      if (!isInDateRange) return false;
+      
+      // Only include Support Engineers and Product Support groups
+      if (!t.groupId) return false;
+      // Support Engineers groups
+      if (t.groupId === 36000098156 || t.groupId === 36000247507) return true;
+      // Product Support groups
+      if (t.groupId === 36000098158 || t.groupId === 36000247508 || t.groupId === 36000441443) return true;
+      return false;
     });
     
     // Filter tickets RESOLVED in the week (status is resolved/closed AND updatedAt in week)
