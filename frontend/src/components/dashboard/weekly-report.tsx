@@ -72,16 +72,13 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   // Force fresh data load by clearing cache and reloading
   useEffect(() => {
     console.log('[WeeklyReport] useEffect triggered, isLoaded:', isLoaded);
-    if (!isLoaded) {
-      console.log('WeeklyReport: Clearing cached data and forcing fresh load...');
-      clearData(); // Clear any cached data
-      console.log('WeeklyReport: About to call fetchAppData...');
-      fetchAppData(2025, true); // Force fresh data load
-      console.log('WeeklyReport: fetchAppData called');
-    } else {
-      console.log('WeeklyReport: Data already loaded, skipping refresh');
-    }
-  }, [isLoaded, fetchAppData, clearData]);
+    // Always force refresh to bypass any caching issues
+    console.log('WeeklyReport: Forcing data refresh regardless of loaded state...');
+    clearData(); // Clear any cached data
+    console.log('WeeklyReport: About to call fetchAppData...');
+    fetchAppData(2025, true); // Force fresh data load
+    console.log('WeeklyReport: fetchAppData called');
+  }, [fetchAppData, clearData]);
   
   const weekOptions = getWeekOptionsIST(2);
   const currentWeekValue = selectedWeek || weekOptions[0]?.value || '';
