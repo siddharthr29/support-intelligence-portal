@@ -205,15 +205,16 @@ export function getCurrentWeekBoundariesIST(referenceDate: Date = getNowIST()): 
   const now = referenceDate;
   const nowDay = getDayOfWeekIST(now);
   const nowHour = getHourIST(now);
+  const nowMinute = getMinuteIST(now);
   
   let weekStart: Date;
   
-  if (nowDay === WEEK_END_DAY && nowHour >= WEEK_END_HOUR) {
-    // It's Friday after 5pm IST - current week just started
+  if (nowDay === WEEK_END_DAY && (nowHour > WEEK_END_HOUR || (nowHour === WEEK_END_HOUR && nowMinute >= 30))) {
+    // It's Friday after 5:30pm IST - current week just started
     weekStart = getMostRecentFriday5pmIST(now);
   } else {
     // Any other time - current week started last Friday 5pm
-    weekStart = getMostRecentFriday5pmIST(now);
+    weekStart = subWeeks(getMostRecentFriday5pmIST(now), 1);
   }
   
   const weekEnd = getNextFriday5pmIST(weekStart);
