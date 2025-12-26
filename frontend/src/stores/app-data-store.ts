@@ -53,7 +53,7 @@ interface AppDataState {
   error: string | null;
   
   // Actions
-  fetchAppData: (year?: number) => Promise<void>;
+  fetchAppData: (year?: number, forceRefresh?: boolean) => Promise<void>;
   
   // Computed helpers
   getTicketsByDateRange: (startDate: Date, endDate: Date) => Ticket[];

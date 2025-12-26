@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,15 +67,7 @@ export function WeeklyReport({ rftData, companyNames, weekEndDate, snapshotId }:
   const [selectedWeek, setSelectedWeek] = useState<string>('');
   
   // Use centralized app data store (data already loaded in Shell)
-  const { getWeekStats, getCompanyName, isLoaded, getAllTimeUnresolvedByGroup, getMarkedReleaseVersions, fetchAppData } = useAppDataStore();
-  
-  // Force refresh data on component mount to bypass caching
-  useEffect(() => {
-    if (!isLoaded) {
-      console.log('WeeklyReport: Forcing fresh data load...');
-      fetchAppData(2025, true); // Force refresh
-    }
-  }, [isLoaded, fetchAppData]);
+  const { getWeekStats, getCompanyName, isLoaded, getAllTimeUnresolvedByGroup, getMarkedReleaseVersions } = useAppDataStore();
   
   const weekOptions = getWeekOptionsIST(2);
   const currentWeekValue = selectedWeek || weekOptions[0]?.value || '';
