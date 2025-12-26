@@ -54,6 +54,7 @@ interface AppDataState {
   
   // Actions
   fetchAppData: (year?: number, forceRefresh?: boolean) => Promise<void>;
+  clearData: () => void;
   
   // Computed helpers
   getTicketsByDateRange: (startDate: Date, endDate: Date) => Ticket[];
@@ -120,6 +121,19 @@ export const useAppDataStore = create<AppDataState>((set, get) => ({
         groups: {},
       });
     }
+  },
+
+  // Clear all data to force fresh reload
+  clearData: () => {
+    set({
+      tickets: [],
+      companies: {},
+      groups: {},
+      lastSyncTimestamp: null,
+      isLoading: false,
+      isLoaded: false,
+      error: null,
+    });
   },
   
   // Filter tickets by date range (computed locally, no API call)
